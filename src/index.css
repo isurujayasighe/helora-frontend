@@ -1,0 +1,469 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@tailwind utilities;
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* =========================
+     Core surfaces
+     ========================= */
+  --background:  #f8f8f8; /* Very light slate tint #f2f3f8 */ 
+  --foreground: oklch(0.26 0.05 262);
+
+  --card: oklch(100% 0.00011 271.152); /* #ffffff */
+  --card-foreground: oklch(0.26 0.05 262);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3 0.045 195);
+
+  /* =========================
+     Brand
+     ========================= */
+  --primary: oklch(0.3 0.045 195); /* #03363d */
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.955 0.006 80); /* #f3f0ee */
+  --secondary-foreground: oklch(18.447% 0.08005 274.251);
+
+  /* =========================
+     Muted & accent
+     ========================= */
+  --muted: oklch(0.98 0 0);
+  --muted-foreground: oklch(0.36 0.045 195); /* #17494d */
+
+  --accent: oklch(0.85 0.04 185); /* #bdd9d7 */
+  --accent-foreground: oklch(0.3 0.045 195);
+
+  /* =========================
+     Destructive
+     ========================= */
+  --destructive: oklch(0.63 0.23 29);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* =========================
+     Borders & inputs
+     ========================= */
+  --border: oklch(94.788% 0.01403 186.388);
+  --input: oklch(0.85 0.04 185);
+  --ring: oklch(0.36 0.045 195);
+
+  /* =========================
+     Charts (teal-aligned)
+     ========================= */
+  --chart-1: oklch(0.3 0.045 195);
+  --chart-2: oklch(0.36 0.045 195);
+  --chart-3: oklch(0.85 0.04 185);
+  --chart-4: oklch(0.75 0.08 90);
+  --chart-5: oklch(0.63 0.23 29);
+
+  
+
+  /* =========================
+     Sidebar (Light / White Theme)
+     ========================= */
+  /* Main Background: Deep Indigo */
+  /* The Base Brand Orange */
+  --sidebar: #141c29;
+  
+  /* Text: Cleaned up for better contrast on orange */
+  --sidebar-foreground: oklch(0.98 0.01 20); 
+
+  /* Active Item: Deep Charcoal or Rich Navy */
+  /* Instead of Indigo, use a color that makes the orange pop without clashing */
+  --sidebar-primary: oklch(0.25 0.04 260); 
+  --sidebar-primary-foreground: oklch(0.98 0.01 20);
+
+  /* Hover State: A semi-transparent white/light orange */
+  /* This feels more modern than the dark grey-blue you had */
+  --sidebar-accent: oklch(57.61% 0.00007 271.152 / 0.247); 
+  --sidebar-accent-foreground: oklch(0.98 0.01 20);
+
+  /* Borders: A darker shade of the sidebar color for a "seamless" look */
+  --sidebar-border: oklch(26.405% 0.14743 274.74);
+
+  /* Focus Ring: Matching the brand orange but with high chrome */
+  --sidebar-ring: oklch(26.405% 0.14743 274.74);
+  /* =========================
+     Enterprise status colors
+     ========================= */
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: oklch(1 0 0);
+
+  --warning: oklch(0.78 0.17 85);
+  --warning-foreground: oklch(0.2 0.02 85);
+
+  --info: oklch(0.36 0.045 195);
+  --info-foreground: oklch(1 0 0);
+
+  /* =========================
+     Workflow / integration states
+     ========================= */
+  --status-draft: oklch(0.6 0.015 250);
+  --status-connected: oklch(0.52 0.12 150);
+  --status-mapped: oklch(0.36 0.045 195);
+  --status-tested: oklch(0.78 0.17 85);
+  --status-deployed: oklch(0.52 0.12 150);
+  --status-paused: oklch(0.6 0.015 250);
+  --status-error: oklch(0.63 0.23 29);
+
+  /* =========================
+     Typography
+     ========================= */
+  --font-sans: Roboto, system-ui, ui-sans-serif, sans-serif;
+
+  /* =========================
+     Radius & spacing
+     ========================= */
+  --radius: 0.5rem;
+  --spacing: 0.25rem;
+
+  /* =========================
+     Shadows (OKLCH-based alpha)
+     ========================= */
+--shadow-sm: 
+    0 1px 2px 0 oklch(0 0 0 / 0.05);
+
+  /* Clean, crisp elevation for standard buttons/inputs */
+  --shadow: 
+    0 1px 2px 0 oklch(0 0 0 / 0.06), 
+    0 1px 3px 0 oklch(0 0 0 / 0.1);
+
+  /* Mid-level elevation for small cards or dropdowns */
+  --shadow-md: 
+    0 4px 6px -1px oklch(0 0 0 / 0.08), 
+    0 2px 4px -2px oklch(0 0 0 / 0.04);
+
+  /* Premium feel for main dashboard cards */
+  --shadow-lg: 
+    0 10px 15px -3px oklch(0 0 0 / 0.06), 
+    0 4px 6px -4px oklch(0 0 0 / 0.04);
+
+  /* Deep immersion for modals and flyouts */
+  --shadow-xl: 
+    0 20px 25px -5px oklch(0 0 0 / 0.08), 
+    0 8px 10px -6px oklch(0 0 0 / 0.02);
+
+  /* The "Floating" effect for global overlays */
+  --shadow-2xl: 
+    0 30px 60px -12px oklch(0 0 0 / 0.15),
+    0 0 1px 0 oklch(0 0 0 / 0.1);
+}
+
+.dark {
+  /* =========================
+     Core surfaces
+     ========================= */
+  --background: oklch(0.18 0.02 195); /* deep teal background */
+  --foreground: oklch(0.98 0.003 247); /* near-white text */
+
+  --card: oklch(0.22 0.025 195);
+  --card-foreground: oklch(0.98 0.003 247);
+
+  --popover: oklch(0.22 0.025 195);
+  --popover-foreground: oklch(0.98 0.003 247);
+
+  /* =========================
+     Brand
+     ========================= */
+  --primary: oklch(0.72 0.045 195); /* light teal */
+  --primary-foreground: oklch(0.18 0.02 195);
+
+  --secondary: oklch(0.26 0.02 195);
+  --secondary-foreground: oklch(0.98 0.003 247);
+
+  /* =========================
+     Muted & accent
+     ========================= */
+  --muted: oklch(0.26 0.02 195);
+  --muted-foreground: oklch(0.75 0.025 195);
+
+  --accent: oklch(0.34 0.03 190);
+  --accent-foreground: oklch(0.98 0.003 247);
+
+  /* =========================
+     Destructive
+     ========================= */
+  --destructive: oklch(0.62 0.22 29);
+  --destructive-foreground: oklch(0.98 0.003 247);
+
+  /* =========================
+     Borders & inputs
+     ========================= */
+  --border: oklch(0.3 0.02 195);
+  --input: oklch(0.3 0.02 195);
+  --ring: oklch(0.72 0.045 195);
+
+  /* =========================
+     Charts (dark-safe)
+     ========================= */
+  --chart-1: oklch(0.72 0.045 195);
+  --chart-2: oklch(0.62 0.045 195);
+  --chart-3: oklch(0.85 0.04 185);
+  --chart-4: oklch(0.78 0.17 85);
+  --chart-5: oklch(0.62 0.22 29);
+
+  /* =========================
+     Sidebar
+     ========================= */
+  --sidebar: oklch(0.16 0.02 195);
+  --sidebar-foreground: oklch(0.98 0.003 247);
+
+  --sidebar-primary: oklch(0.72 0.045 195);
+  --sidebar-primary-foreground: oklch(0.16 0.02 195);
+
+  --sidebar-accent: oklch(0.26 0.02 195);
+  --sidebar-accent-foreground: oklch(0.98 0.003 247);
+
+  --sidebar-border: oklch(0.26 0.02 195);
+  --sidebar-ring: oklch(0.72 0.045 195);
+
+  /* =========================
+     Enterprise status colors
+     ========================= */
+  --success: oklch(0.65 0.12 150);
+  --success-foreground: oklch(0.16 0.02 195);
+
+  --warning: oklch(0.78 0.17 85);
+  --warning-foreground: oklch(0.2 0.02 85);
+
+  --info: oklch(0.72 0.045 195);
+  --info-foreground: oklch(0.16 0.02 195);
+
+  /* =========================
+     Workflow / integration states
+     ========================= */
+  --status-draft: oklch(0.65 0.015 250);
+  --status-connected: oklch(0.65 0.12 150);
+  --status-mapped: oklch(0.72 0.045 195);
+  --status-tested: oklch(0.78 0.17 85);
+  --status-deployed: oklch(0.65 0.12 150);
+  --status-paused: oklch(0.65 0.015 250);
+  --status-error: oklch(0.62 0.22 29);
+
+  /* =========================
+     Shadows (subtle, dark-safe)
+     ========================= */
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.5), 0 1px 2px -1px oklch(0 0 0 / 0.45);
+  --shadow-md:
+    0 4px 6px -1px oklch(0 0 0 / 0.55), 0 2px 4px -2px oklch(0 0 0 / 0.5);
+  --shadow-lg:
+    0 10px 15px -3px oklch(0 0 0 / 0.6), 0 4px 6px -4px oklch(0 0 0 / 0.55);
+  --shadow-xl:
+    0 20px 25px -5px oklch(0 0 0 / 0.65), 0 8px 10px -6px oklch(0 0 0 / 0.6);
+  --shadow-2xl: 0 25px 50px -12px oklch(0 0 0 / 0.75);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+  --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+  --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+  --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+}
+
+@theme {
+  --text-sm: 0.85rem;
+  --text-sm--letter-spacing: 0.03rem;
+  --text-xl: 1.25rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text--xs: 0.75rem;
+
+  --shadow-3xl: 0 35px 35px rgba(0, 0, 0, 0.25);
+}
+
+body {
+  letter-spacing: var(--tracking-normal);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  html {
+    @apply overflow-x-hidden;
+  }
+  body {
+    @apply bg-background text-foreground min-h-svh w-full;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Prevent focus zoom on mobile devices */
+  @media screen and (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@layer utilities {
+  .text-destructive {
+    color: hsl(var(--destructive));
+  }
+  .bg-destructive {
+    background-color: hsl(var(--destructive));
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+}
+
+@utility no-scrollbar {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+@utility faded-bottom {
+  @apply after:pointer-events-none after:absolute after:bottom-0 after:left-0 after:hidden after:h-32 after:w-full after:bg-[linear-gradient(180deg,_transparent_10%,_var(--background)_70%)] md:after:block;
+}
+
+/* styles.css */
+.CollapsibleContent {
+  overflow: hidden;
+}
+.CollapsibleContent[data-state="open"] {
+  animation: slideDown 300ms ease-out;
+}
+.CollapsibleContent[data-state="closed"] {
+  animation: slideUp 300ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/* Permission bootstrap loader */
+.loader {
+  width: 12px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  animation: l5 1s infinite linear alternate;
+}
+
+@keyframes l5 {
+  0% {
+    box-shadow:
+      20px 0 currentColor,
+      -20px 0 #0002;
+    background: currentColor;
+  }
+  33% {
+    box-shadow:
+      20px 0 currentColor,
+      -20px 0 #0002;
+    background: #0002;
+  }
+  66% {
+    box-shadow:
+      20px 0 #0002,
+      -20px 0 currentColor;
+    background: #0002;
+  }
+  100% {
+    box-shadow:
+      20px 0 #0002,
+      -20px 0 currentColor;
+    background: currentColor;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-animated-gradient {
+  background-size: 300% 300%;
+  animation: gradientShift 18s ease infinite;
+}
+
