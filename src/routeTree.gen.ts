@@ -22,6 +22,8 @@ import { Route as AuthenticatedAppProfileIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppOrdersIndexRouteImport } from './routes/_authenticated/app/orders/index'
 import { Route as AuthenticatedAppInvoicesIndexRouteImport } from './routes/_authenticated/app/invoices/index'
 import { Route as AuthenticatedAppDashboardIndexRouteImport } from './routes/_authenticated/app/dashboard/index'
+import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_authenticated/app/customers/index'
+import { Route as AuthenticatedAppBlocksIndexRouteImport } from './routes/_authenticated/app/blocks/index'
 import { Route as AuthenticatedAppAccountIndexRouteImport } from './routes/_authenticated/app/account/index'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/admin/settings/index'
 import { Route as AuthenticatedAdminRolePermissionsIndexRouteImport } from './routes/_authenticated/admin/role-permissions/index'
@@ -99,6 +101,18 @@ const AuthenticatedAppDashboardIndexRoute =
     path: '/app/dashboard/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppCustomersIndexRoute =
+  AuthenticatedAppCustomersIndexRouteImport.update({
+    id: '/app/customers/',
+    path: '/app/customers/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppBlocksIndexRoute =
+  AuthenticatedAppBlocksIndexRouteImport.update({
+    id: '/app/blocks/',
+    path: '/app/blocks/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppAccountIndexRoute =
   AuthenticatedAppAccountIndexRouteImport.update({
     id: '/app/account/',
@@ -150,6 +164,8 @@ export interface FileRoutesByFullPath {
   '/admin/role-permissions/': typeof AuthenticatedAdminRolePermissionsIndexRoute
   '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/app/account/': typeof AuthenticatedAppAccountIndexRoute
+  '/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
+  '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
   '/app/invoices/': typeof AuthenticatedAppInvoicesIndexRoute
   '/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
@@ -170,6 +186,8 @@ export interface FileRoutesByTo {
   '/admin/role-permissions': typeof AuthenticatedAdminRolePermissionsIndexRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
   '/app/account': typeof AuthenticatedAppAccountIndexRoute
+  '/app/blocks': typeof AuthenticatedAppBlocksIndexRoute
+  '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardIndexRoute
   '/app/invoices': typeof AuthenticatedAppInvoicesIndexRoute
   '/app/orders': typeof AuthenticatedAppOrdersIndexRoute
@@ -192,6 +210,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/role-permissions/': typeof AuthenticatedAdminRolePermissionsIndexRoute
   '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/_authenticated/app/account/': typeof AuthenticatedAppAccountIndexRoute
+  '/_authenticated/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
+  '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/_authenticated/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
   '/_authenticated/app/invoices/': typeof AuthenticatedAppInvoicesIndexRoute
   '/_authenticated/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
@@ -214,6 +234,8 @@ export interface FileRouteTypes {
     | '/admin/role-permissions/'
     | '/admin/settings/'
     | '/app/account/'
+    | '/app/blocks/'
+    | '/app/customers/'
     | '/app/dashboard/'
     | '/app/invoices/'
     | '/app/orders/'
@@ -234,6 +256,8 @@ export interface FileRouteTypes {
     | '/admin/role-permissions'
     | '/admin/settings'
     | '/app/account'
+    | '/app/blocks'
+    | '/app/customers'
     | '/app/dashboard'
     | '/app/invoices'
     | '/app/orders'
@@ -255,6 +279,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/role-permissions/'
     | '/_authenticated/admin/settings/'
     | '/_authenticated/app/account/'
+    | '/_authenticated/app/blocks/'
+    | '/_authenticated/app/customers/'
     | '/_authenticated/app/dashboard/'
     | '/_authenticated/app/invoices/'
     | '/_authenticated/app/orders/'
@@ -365,6 +391,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/customers/': {
+      id: '/_authenticated/app/customers/'
+      path: '/app/customers'
+      fullPath: '/app/customers/'
+      preLoaderRoute: typeof AuthenticatedAppCustomersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/blocks/': {
+      id: '/_authenticated/app/blocks/'
+      path: '/app/blocks'
+      fullPath: '/app/blocks/'
+      preLoaderRoute: typeof AuthenticatedAppBlocksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/account/': {
       id: '/_authenticated/app/account/'
       path: '/app/account'
@@ -418,6 +458,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRolePermissionsIndexRoute: typeof AuthenticatedAdminRolePermissionsIndexRoute
   AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
   AuthenticatedAppAccountIndexRoute: typeof AuthenticatedAppAccountIndexRoute
+  AuthenticatedAppBlocksIndexRoute: typeof AuthenticatedAppBlocksIndexRoute
+  AuthenticatedAppCustomersIndexRoute: typeof AuthenticatedAppCustomersIndexRoute
   AuthenticatedAppDashboardIndexRoute: typeof AuthenticatedAppDashboardIndexRoute
   AuthenticatedAppInvoicesIndexRoute: typeof AuthenticatedAppInvoicesIndexRoute
   AuthenticatedAppOrdersIndexRoute: typeof AuthenticatedAppOrdersIndexRoute
@@ -435,6 +477,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminRolePermissionsIndexRoute,
   AuthenticatedAdminSettingsIndexRoute: AuthenticatedAdminSettingsIndexRoute,
   AuthenticatedAppAccountIndexRoute: AuthenticatedAppAccountIndexRoute,
+  AuthenticatedAppBlocksIndexRoute: AuthenticatedAppBlocksIndexRoute,
+  AuthenticatedAppCustomersIndexRoute: AuthenticatedAppCustomersIndexRoute,
   AuthenticatedAppDashboardIndexRoute: AuthenticatedAppDashboardIndexRoute,
   AuthenticatedAppInvoicesIndexRoute: AuthenticatedAppInvoicesIndexRoute,
   AuthenticatedAppOrdersIndexRoute: AuthenticatedAppOrdersIndexRoute,

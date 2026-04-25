@@ -6,6 +6,7 @@ export type OrderStatus =
 
 export interface OrderCustomer {
   id: string;
+  tenantId?: string;
   fullName: string;
   phoneNumber: string;
   alternatePhone?: string | null;
@@ -16,22 +17,34 @@ export interface OrderCustomer {
 
 export interface OrderCategory {
   id: string;
+  tenantId?: string;
   name: string;
   description?: string | null;
 }
 
 export interface OrderBlock {
   id: string;
+  tenantId?: string;
+  customerId?: string;
+  categoryId?: string;
   blockNumber: string;
   readyMadeSize?: string | null;
   sizeLabel?: string | null;
   fitNotes?: string | null;
   versionNo?: number;
+  previousBlockId?: string | null;
   description?: string | null;
   status?: string;
   isDefault?: boolean;
+  lastUsedAt?: string | null;
   remarks?: string | null;
+  legacyId?: number | null;
 }
+
+export type OrderItemMeasurements = Record<
+  string,
+  string | number | undefined
+>;
 
 export interface OrderItem {
   id: string;
@@ -43,6 +56,7 @@ export interface OrderItem {
   unitPrice: string | number;
   lineTotal: string | number;
   notes?: string | null;
+  measurements?: OrderItemMeasurements;
   category?: OrderCategory | null;
   block?: OrderBlock | null;
 }
@@ -59,16 +73,13 @@ export interface Order {
   totalAmount: string | number;
   advanceAmount: string | number;
   balanceAmount: string | number;
+  createdById?: string;
+  updatedById?: string;
+  createdAt?: string;
+  updatedAt?: string;
   customer: OrderCustomer;
   items: OrderItem[];
   _count?: {
     items: number;
   };
-}
-
-export interface OrdersResponse {
-  items: Order[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
 }

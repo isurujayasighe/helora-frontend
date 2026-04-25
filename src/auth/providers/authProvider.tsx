@@ -20,8 +20,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const baseURL = appConfig.API_URL || "/api";
 
-        const { data } = await axios.post(
-          `${baseURL}/auth-service/api/Auth/refresh`,
+        const response = await axios.post(
+          `${baseURL}/auth/refresh`,
           {},
           {
             withCredentials: true,
@@ -31,10 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         );
 
-        const token = data?.data?.token;
+        const accessToken = response.data?.accessToken;
+        const user = response.data?.user;
 
-        if (token) {
-          setAuth(token);
+        if (accessToken && user) {
+          setAuth({
+            accessToken,
+            user,
+          });
           return;
         }
 
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [status, setAuth, logout]);
 
   if (status === "idle") {
-    return <EnterpriseLottieLoader/>;
+    return <EnterpriseLottieLoader />;
   }
 
   return <>{children}</>;

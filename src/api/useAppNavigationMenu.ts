@@ -21,9 +21,14 @@ const MOCK_MENU_RESPONSE: MenuItem[] = [
     url: "/app/orders",
     icon: "SendToBack",
   },
+  {
+    title: "Customers",
+    url: "/app/customers",
+    icon: "Customers",
+  },
    {
-    title: "Invoices",
-    url: "/app/invoices",
+    title: "Blocks",
+    url: "/app/blocks",
     icon: "FileChartLine",
   },
   {
