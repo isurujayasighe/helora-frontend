@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { covalentHubClient } from "@/services/clients/covalent.client";
 
 export type CustomerLookupItem = {
@@ -7,27 +7,28 @@ export type CustomerLookupItem = {
   phoneNumber: string | null;
   alternatePhone: string | null;
   town: string | null;
+  hospitalName?: string | null;
 };
 
-type CustomerLookupApiResponse = {
+type CustomerLookupResponse = {
   success: boolean;
   data: CustomerLookupItem[];
 };
 
 export type CustomerLookupParams = {
-  search: string;
+  search?: string;
   limit?: number;
 };
 
 const lookupCustomers = async (
   params: CustomerLookupParams
-): Promise<CustomerLookupApiResponse> => {
-  const response = await covalentHubClient.get<CustomerLookupApiResponse>(
+): Promise<CustomerLookupResponse> => {
+  const response = await covalentHubClient.get<CustomerLookupResponse>(
     "/customers/lookup",
     {
       params: {
-        search: params.search.trim(),
-        limit: params.limit ?? 10,
+        search: params.search || undefined,
+        limit: params.limit ?? 8,
       },
     }
   );
@@ -35,8 +36,19 @@ const lookupCustomers = async (
   return response.data;
 };
 
-export const useCustomerLookup = () => {
-  return useMutation({
-    mutationFn: lookupCustomers,
+export const customerLookupQueryKeys = {
+  all: ["customer-lookup"] as const,
+  list: (params: CustomerLookupParams) =>
+    [...customerLookupQueryKeys.all, params] as const,
+};
+
+export const useCustomerLookup = (params: CustomerLookupParams) => {
+  const enabled = Boolean(params.search && params.search.trim().length >= 2);
+
+  return useQuery({
+    queryKey: customerLookupQueryKeys.list(params),
+    queryFn: () => lookupCustomers(params),
+    enabled,
+    placeholderData: (previousData) => previousData,
   });
 };

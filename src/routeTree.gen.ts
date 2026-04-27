@@ -21,6 +21,7 @@ import { Route as AuthenticatedAppSupportIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppProfileIndexRouteImport } from './routes/_authenticated/app/profile/index'
 import { Route as AuthenticatedAppOrdersIndexRouteImport } from './routes/_authenticated/app/orders/index'
 import { Route as AuthenticatedAppInvoicesIndexRouteImport } from './routes/_authenticated/app/invoices/index'
+import { Route as AuthenticatedAppGroupOrdersIndexRouteImport } from './routes/_authenticated/app/group-orders/index'
 import { Route as AuthenticatedAppDashboardIndexRouteImport } from './routes/_authenticated/app/dashboard/index'
 import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_authenticated/app/customers/index'
 import { Route as AuthenticatedAppBlocksIndexRouteImport } from './routes/_authenticated/app/blocks/index'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedAdminRolePermissionsIndexRouteImport } from './ro
 import { Route as AuthenticatedAdminPendingIndexRouteImport } from './routes/_authenticated/admin/pending/index'
 import { Route as AuthenticatedAdminDashboardIndexRouteImport } from './routes/_authenticated/admin/dashboard/index'
 import { Route as AuthenticatedAdminActivityLogIndexRouteImport } from './routes/_authenticated/admin/activity-log/index'
+import { Route as AuthenticatedAppGroupOrdersGroupOrderIdRouteImport } from './routes/_authenticated/app/group-orders/$groupOrderId'
 
 const R403Route = R403RouteImport.update({
   id: '/403',
@@ -95,6 +97,12 @@ const AuthenticatedAppInvoicesIndexRoute =
     path: '/app/invoices/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppGroupOrdersIndexRoute =
+  AuthenticatedAppGroupOrdersIndexRouteImport.update({
+    id: '/app/group-orders/',
+    path: '/app/group-orders/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppDashboardIndexRoute =
   AuthenticatedAppDashboardIndexRouteImport.update({
     id: '/app/dashboard/',
@@ -149,6 +157,12 @@ const AuthenticatedAdminActivityLogIndexRoute =
     path: '/admin/activity-log/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppGroupOrdersGroupOrderIdRoute =
+  AuthenticatedAppGroupOrdersGroupOrderIdRouteImport.update({
+    id: '/app/group-orders/$groupOrderId',
+    path: '/app/group-orders/$groupOrderId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -158,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/reset-password': typeof authResetPasswordRoute
   '/admin/users': typeof AuthenticatedAdminUsersRouteRoute
+  '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   '/admin/activity-log/': typeof AuthenticatedAdminActivityLogIndexRoute
   '/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
   '/admin/pending/': typeof AuthenticatedAdminPendingIndexRoute
@@ -167,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
+  '/app/group-orders/': typeof AuthenticatedAppGroupOrdersIndexRoute
   '/app/invoices/': typeof AuthenticatedAppInvoicesIndexRoute
   '/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
   '/app/profile/': typeof AuthenticatedAppProfileIndexRoute
@@ -180,6 +196,7 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/reset-password': typeof authResetPasswordRoute
   '/admin/users': typeof AuthenticatedAdminUsersRouteRoute
+  '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   '/admin/activity-log': typeof AuthenticatedAdminActivityLogIndexRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardIndexRoute
   '/admin/pending': typeof AuthenticatedAdminPendingIndexRoute
@@ -189,6 +206,7 @@ export interface FileRoutesByTo {
   '/app/blocks': typeof AuthenticatedAppBlocksIndexRoute
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardIndexRoute
+  '/app/group-orders': typeof AuthenticatedAppGroupOrdersIndexRoute
   '/app/invoices': typeof AuthenticatedAppInvoicesIndexRoute
   '/app/orders': typeof AuthenticatedAppOrdersIndexRoute
   '/app/profile': typeof AuthenticatedAppProfileIndexRoute
@@ -204,6 +222,7 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRouteRoute
+  '/_authenticated/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   '/_authenticated/admin/activity-log/': typeof AuthenticatedAdminActivityLogIndexRoute
   '/_authenticated/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
   '/_authenticated/admin/pending/': typeof AuthenticatedAdminPendingIndexRoute
@@ -213,6 +232,7 @@ export interface FileRoutesById {
   '/_authenticated/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/_authenticated/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
+  '/_authenticated/app/group-orders/': typeof AuthenticatedAppGroupOrdersIndexRoute
   '/_authenticated/app/invoices/': typeof AuthenticatedAppInvoicesIndexRoute
   '/_authenticated/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
   '/_authenticated/app/profile/': typeof AuthenticatedAppProfileIndexRoute
@@ -228,6 +248,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin/users'
+    | '/app/group-orders/$groupOrderId'
     | '/admin/activity-log/'
     | '/admin/dashboard/'
     | '/admin/pending/'
@@ -237,6 +258,7 @@ export interface FileRouteTypes {
     | '/app/blocks/'
     | '/app/customers/'
     | '/app/dashboard/'
+    | '/app/group-orders/'
     | '/app/invoices/'
     | '/app/orders/'
     | '/app/profile/'
@@ -250,6 +272,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin/users'
+    | '/app/group-orders/$groupOrderId'
     | '/admin/activity-log'
     | '/admin/dashboard'
     | '/admin/pending'
@@ -259,6 +282,7 @@ export interface FileRouteTypes {
     | '/app/blocks'
     | '/app/customers'
     | '/app/dashboard'
+    | '/app/group-orders'
     | '/app/invoices'
     | '/app/orders'
     | '/app/profile'
@@ -273,6 +297,7 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(auth)/reset-password'
     | '/_authenticated/admin/users'
+    | '/_authenticated/app/group-orders/$groupOrderId'
     | '/_authenticated/admin/activity-log/'
     | '/_authenticated/admin/dashboard/'
     | '/_authenticated/admin/pending/'
@@ -282,6 +307,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/blocks/'
     | '/_authenticated/app/customers/'
     | '/_authenticated/app/dashboard/'
+    | '/_authenticated/app/group-orders/'
     | '/_authenticated/app/invoices/'
     | '/_authenticated/app/orders/'
     | '/_authenticated/app/profile/'
@@ -384,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppInvoicesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/group-orders/': {
+      id: '/_authenticated/app/group-orders/'
+      path: '/app/group-orders'
+      fullPath: '/app/group-orders/'
+      preLoaderRoute: typeof AuthenticatedAppGroupOrdersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/dashboard/': {
       id: '/_authenticated/app/dashboard/'
       path: '/app/dashboard'
@@ -447,11 +480,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminActivityLogIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/group-orders/$groupOrderId': {
+      id: '/_authenticated/app/group-orders/$groupOrderId'
+      path: '/app/group-orders/$groupOrderId'
+      fullPath: '/app/group-orders/$groupOrderId'
+      preLoaderRoute: typeof AuthenticatedAppGroupOrdersGroupOrderIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminUsersRouteRoute: typeof AuthenticatedAdminUsersRouteRoute
+  AuthenticatedAppGroupOrdersGroupOrderIdRoute: typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   AuthenticatedAdminActivityLogIndexRoute: typeof AuthenticatedAdminActivityLogIndexRoute
   AuthenticatedAdminDashboardIndexRoute: typeof AuthenticatedAdminDashboardIndexRoute
   AuthenticatedAdminPendingIndexRoute: typeof AuthenticatedAdminPendingIndexRoute
@@ -461,6 +502,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppBlocksIndexRoute: typeof AuthenticatedAppBlocksIndexRoute
   AuthenticatedAppCustomersIndexRoute: typeof AuthenticatedAppCustomersIndexRoute
   AuthenticatedAppDashboardIndexRoute: typeof AuthenticatedAppDashboardIndexRoute
+  AuthenticatedAppGroupOrdersIndexRoute: typeof AuthenticatedAppGroupOrdersIndexRoute
   AuthenticatedAppInvoicesIndexRoute: typeof AuthenticatedAppInvoicesIndexRoute
   AuthenticatedAppOrdersIndexRoute: typeof AuthenticatedAppOrdersIndexRoute
   AuthenticatedAppProfileIndexRoute: typeof AuthenticatedAppProfileIndexRoute
@@ -469,6 +511,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminUsersRouteRoute: AuthenticatedAdminUsersRouteRoute,
+  AuthenticatedAppGroupOrdersGroupOrderIdRoute:
+    AuthenticatedAppGroupOrdersGroupOrderIdRoute,
   AuthenticatedAdminActivityLogIndexRoute:
     AuthenticatedAdminActivityLogIndexRoute,
   AuthenticatedAdminDashboardIndexRoute: AuthenticatedAdminDashboardIndexRoute,
@@ -480,6 +524,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppBlocksIndexRoute: AuthenticatedAppBlocksIndexRoute,
   AuthenticatedAppCustomersIndexRoute: AuthenticatedAppCustomersIndexRoute,
   AuthenticatedAppDashboardIndexRoute: AuthenticatedAppDashboardIndexRoute,
+  AuthenticatedAppGroupOrdersIndexRoute: AuthenticatedAppGroupOrdersIndexRoute,
   AuthenticatedAppInvoicesIndexRoute: AuthenticatedAppInvoicesIndexRoute,
   AuthenticatedAppOrdersIndexRoute: AuthenticatedAppOrdersIndexRoute,
   AuthenticatedAppProfileIndexRoute: AuthenticatedAppProfileIndexRoute,

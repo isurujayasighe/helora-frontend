@@ -54,16 +54,16 @@ export function BlocksTable({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-sm">
+        <table className="w-full min-w-230 text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-semibold">Block No</th>
-              <th className="px-4 py-3 font-semibold">Created Date</th>
-              <th className="px-4 py-3 font-semibold">Category</th>
-              <th className="px-4 py-3 font-semibold">Last Used Date</th>
-              <th className="px-4 py-3 font-semibold">Ready Made Size</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 text-right font-semibold">Action</th>
+              <th className="px-4 py-3 font-semibold text-[10px]">Block No</th>
+              <th className="px-4 py-3 font-semibold text-[10px]">Created Date</th>
+              <th className="px-4 py-3 font-semibold text-[10px]">Category</th>
+              <th className="px-4 py-3 font-semibold text-[10px]">Last Used Date</th>
+              <th className="px-4 py-3 font-semibold text-[10px]">Ready Made Size</th>
+              <th className="px-4 py-3 font-semibold text-[10px]">Status</th>
+              <th className="px-4 py-3 text-right font-semibold text-[10px]">Action</th>
             </tr>
           </thead>
 
@@ -85,7 +85,7 @@ export function BlocksTable({
                   </div>
 
                   {block.description && (
-                    <p className="mt-1 max-w-[220px] truncate text-xs text-slate-500">
+                    <p className="mt-1 max-w-55 truncate text-xs text-slate-500">
                       {block.description}
                     </p>
                   )}
