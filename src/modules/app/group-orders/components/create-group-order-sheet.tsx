@@ -1,340 +1,796 @@
 "use client";
 
-import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "framer-motion";
+import * as React from "react";
+import { z } from "zod";
+import { motion } from "framer-motion";
 import {
-  ArrowLeft,
+  Building2,
   CalendarDays,
-  CircleDollarSign,
+  Check,
+  ChevronsUpDown,
+  ClipboardList,
+  Loader2,
+  MapPin,
   PackagePlus,
   Phone,
-  RefreshCcw,
-  UsersRound,
+  UserRound,
 } from "lucide-react";
 
-import { PermissionGate } from "@/auth/rbac/PermissionGate";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-import { useGetGroupOrderById } from "../api/useGetGroupOrderById";
-import { AddOrderToGroupDialog } from "../components/add-order-to-group-order-dialog";
+import { useCustomerLookup } from "@/api/useGetCustomerLookup";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0 },
+type GroupOrderStatus =
+  | "DRAFT"
+  | "CONFIRMED"
+  | "IN_PROGRESS"
+  | "READY"
+  | "PARTIALLY_DELIVERED"
+  | "DELIVERED"
+  | "CANCELLED";
+
+type CustomerOption = {
+  id: string;
+  fullName: string;
+  phoneNumber?: string | null;
+  town?: string | null;
+  hospitalName?: string | null;
 };
 
-const formatDate = (value?: string | null) => {
-  if (!value) return "-";
-
-  return new Intl.DateTimeFormat("en-LK", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  }).format(new Date(value));
+export type CreateGroupOrderPayload = {
+  groupOrderNumber: string;
+  title: string;
+  coordinatorCustomerId?: string;
+  hospitalName: string;
+  town: string;
+  contactName: string;
+  contactPhone: string;
+  deliveryAddress: string;
+  deliveryTown: string;
+  status: GroupOrderStatus;
+  expectedDeliveryDate?: string;
+  notes?: string;
 };
 
-const formatCurrency = (value?: string | number | null) => {
-  return new Intl.NumberFormat("en-LK", {
-    style: "currency",
-    currency: "LKR",
-    maximumFractionDigits: 0,
-  }).format(Number(value ?? 0));
+type CreateGroupOrderDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated?: () => void;
+  isLoading?: boolean;
+  onSubmit?: (payload: CreateGroupOrderPayload) => Promise<void> | void;
 };
 
-export function GroupOrderDetailsPage() {
-  const navigate = useNavigate();
+const createGroupOrderSchema = z.object({
+  groupOrderNumber: z.string().min(1, "Group order number is required"),
+  title: z.string().min(1, "Title is required"),
+  coordinatorCustomerId: z.string().min(1, "Coordinator customer is required"),
+  hospitalName: z.string().min(1, "Hospital name is required"),
+  town: z.string().min(1, "Town is required"),
+  contactName: z.string().min(1, "Contact name is required"),
+  contactPhone: z.string().min(1, "Contact phone is required"),
+  deliveryAddress: z.string().min(1, "Delivery address is required"),
+  deliveryTown: z.string().min(1, "Delivery town is required"),
+  status: z.enum([
+    "DRAFT",
+    "CONFIRMED",
+    "IN_PROGRESS",
+    "READY",
+    "PARTIALLY_DELIVERED",
+    "DELIVERED",
+    "CANCELLED",
+  ]),
+  expectedDeliveryDate: z.string().optional(),
+  notes: z.string().optional(),
+});
 
-  const { groupOrderId } = useParams({
-    from: "/_authenticated/app/group-orders/$groupOrderId",
-  });
+type FormErrors = Partial<Record<keyof CreateGroupOrderPayload, string>>;
 
-  const search = useSearch({
-    from: "/_authenticated/app/group-orders/$groupOrderId",
-  });
+const defaultForm: CreateGroupOrderPayload = {
+  groupOrderNumber: "GRP-00001",
+  title: "",
+  coordinatorCustomerId: "",
+  hospitalName: "",
+  town: "",
+  contactName: "",
+  contactPhone: "",
+  deliveryAddress: "",
+  deliveryTown: "",
+  status: "DRAFT",
+  expectedDeliveryDate: "",
+  notes: "",
+};
 
-  const isAddOrderOpen = search.addOrder === true;
+export function CreateGroupOrderDialog({
+  open,
+  onOpenChange,
+  onCreated,
+  isLoading = false,
+  onSubmit,
+}: CreateGroupOrderDialogProps) {
+  const [form, setForm] = React.useState<CreateGroupOrderPayload>(defaultForm);
+  const [errors, setErrors] = React.useState<FormErrors>({});
+
+  const [customerDropdownOpen, setCustomerDropdownOpen] =
+    React.useState(false);
+
+  const [customerSearch, setCustomerSearch] = React.useState("");
+  const [debouncedCustomerSearch, setDebouncedCustomerSearch] =
+    React.useState("");
+
+  const [selectedCustomer, setSelectedCustomer] =
+    React.useState<CustomerOption | null>(null);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedCustomerSearch(customerSearch.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [customerSearch]);
 
   const {
-    data,
-    isLoading,
-    isFetching,
-    refetch,
-  } = useGetGroupOrderById(groupOrderId);
+    data: customerLookupResponse,
+    isLoading: isCustomersLoading,
+    isFetching: isCustomersFetching,
+  } = useCustomerLookup({
+    search: debouncedCustomerSearch || undefined,
+    enabled: open,
+  });
 
-  const groupOrder = data?.data;
+  const customers: CustomerOption[] = React.useMemo(() => {
+    const response = customerLookupResponse as any;
 
-  const handleBack = () => {
-    navigate({
-      to: "/app/group-orders",
-    });
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    if (Array.isArray(response?.data?.items)) {
+      return response.data.items;
+    }
+
+    if (Array.isArray(response?.items)) {
+      return response.items;
+    }
+
+    return [];
+  }, [customerLookupResponse]);
+
+  const isCustomerSearching = isCustomersLoading || isCustomersFetching;
+
+  const updateField = <K extends keyof CreateGroupOrderPayload>(
+    key: K,
+    value: CreateGroupOrderPayload[K]
+  ) => {
+    setForm((previous) => ({
+      ...previous,
+      [key]: value,
+    }));
+
+    setErrors((previous) => ({
+      ...previous,
+      [key]: undefined,
+    }));
   };
 
-  const handleOpenAddOrder = () => {
-    navigate({
-      to: "/app/group-orders/$groupOrderId",
-      params: {
-        groupOrderId,
-      },
-      search: (previous) => ({
-        ...previous,
-        addOrder: true,
-      }),
-    });
+  const handleCustomerChange = (customerId: string) => {
+    const customer = customers.find((item) => item.id === customerId);
+
+    if (!customer) return;
+
+    setSelectedCustomer(customer);
+
+    setForm((previous) => ({
+      ...previous,
+      coordinatorCustomerId: customer.id,
+      contactName: customer.fullName || previous.contactName,
+      contactPhone: customer.phoneNumber || previous.contactPhone,
+      town: customer.town || previous.town,
+      deliveryTown: customer.town || previous.deliveryTown,
+      hospitalName: customer.hospitalName || previous.hospitalName,
+    }));
+
+    setErrors((previous) => ({
+      ...previous,
+      coordinatorCustomerId: undefined,
+      contactName: undefined,
+      contactPhone: undefined,
+      town: undefined,
+      deliveryTown: undefined,
+      hospitalName: undefined,
+    }));
+
+    setCustomerDropdownOpen(false);
   };
 
-  const handleAddOrderOpenChange = (open: boolean) => {
-    navigate({
-      to: "/app/group-orders/$groupOrderId",
-      params: {
-        groupOrderId,
-      },
-      search: (previous) => ({
-        ...previous,
-        addOrder: open ? true : undefined,
-      }),
-      replace: true,
-    });
+  const resetForm = () => {
+    setForm(defaultForm);
+    setErrors({});
+    setCustomerSearch("");
+    setDebouncedCustomerSearch("");
+    setSelectedCustomer(null);
+    setCustomerDropdownOpen(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
-        <div className="h-40 animate-pulse rounded-2xl bg-slate-100" />
-      </div>
-    );
-  }
+  const handleClose = () => {
+    onOpenChange(false);
+  };
 
-  if (!groupOrder) {
-    return (
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Group order not found
-          </h2>
-          <Button variant="outline" className="mt-4" onClick={handleBack}>
-            Back to group orders
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleSubmit = async () => {
+    const result = createGroupOrderSchema.safeParse(form);
+
+    if (!result.success) {
+      const fieldErrors: FormErrors = {};
+
+      result.error.issues.forEach((issue) => {
+        const key = issue.path[0] as keyof CreateGroupOrderPayload;
+        fieldErrors[key] = issue.message;
+      });
+
+      setErrors(fieldErrors);
+      return;
+    }
+
+    const payload: CreateGroupOrderPayload = {
+      ...result.data,
+      coordinatorCustomerId: result.data.coordinatorCustomerId || undefined,
+      expectedDeliveryDate: result.data.expectedDeliveryDate
+        ? new Date(result.data.expectedDeliveryDate).toISOString()
+        : undefined,
+      notes: result.data.notes?.trim() || undefined,
+    };
+
+    await onSubmit?.(payload);
+
+    onCreated?.();
+    resetForm();
+    onOpenChange(false);
+  };
+
+  React.useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
 
   return (
-    <PermissionGate action="read" subject="Orders">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key="group-order-details"
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className="mx-auto flex w-full flex-col gap-6 px-4 py-4 pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-7xl">
+        <DialogHeader className="border-b border-slate-200 px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <Button
-                type="button"
-                variant="ghost"
-                className="-ml-2 mb-2 gap-2"
-                onClick={handleBack}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
+              <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-950">
+                <PackagePlus className="h-5 w-5 text-blue-600" />
+                Create Group Order
+              </DialogTitle>
 
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-blue-700">
-                <UsersRound className="h-3.5 w-3.5" />
-                {groupOrder.groupOrderNumber}
-              </div>
-
-              <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
-                {groupOrder.title || "Untitled group order"}
-              </h1>
-
-              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-500">
-                <span>{groupOrder.hospitalName || "-"}</span>
-                <span>{groupOrder.town || groupOrder.deliveryTown || "-"}</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5" />
-                  {groupOrder.contactPhone ||
-                    groupOrder.coordinatorCustomer?.phoneNumber ||
-                    "-"}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Expected {formatDate(groupOrder.expectedDeliveryDate)}
-                </span>
-              </div>
+              <p className="mt-1 text-sm text-slate-500">
+                Create a batch order for hospital uniforms, nurses, or grouped
+                customer orders.
+              </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-2"
-                onClick={() => refetch()}
-                disabled={isFetching}
-              >
-                <RefreshCcw
-                  className={cn("h-4 w-4", isFetching && "animate-spin")}
-                />
-                Refresh
-              </Button>
+            <Badge className="rounded-full border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-50">
+              Group Order
+            </Badge>
+          </div>
+        </DialogHeader>
 
-              <Button
-                type="button"
-                className="gap-2"
-                onClick={handleOpenAddOrder}
-              >
+        <div className="max-h-[calc(92vh-145px)] overflow-y-auto bg-slate-50/70 px-5 py-5">
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+            <div className="space-y-5">
+              <Card className="rounded-2xl border-slate-200 shadow-none">
+                <CardContent className="p-5">
+                  <SectionHeader
+                    icon={ClipboardList}
+                    title="Group Order Details"
+                    description="Basic information used to identify this batch order."
+                  />
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <FormField
+                      label="Group Order Number"
+                      error={errors.groupOrderNumber}
+                    >
+                      <Input
+                        value={form.groupOrderNumber}
+                        onChange={(event) =>
+                          updateField("groupOrderNumber", event.target.value)
+                        }
+                        placeholder="GRP-00001"
+                      />
+                    </FormField>
+
+                    <FormField label="Status" error={errors.status}>
+                      <Select
+                        value={form.status}
+                        onValueChange={(value) =>
+                          updateField("status", value as GroupOrderStatus)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          <SelectItem value="DRAFT">Draft</SelectItem>
+                          <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                          <SelectItem value="IN_PROGRESS">
+                            In Progress
+                          </SelectItem>
+                          <SelectItem value="READY">Ready</SelectItem>
+                          <SelectItem value="PARTIALLY_DELIVERED">
+                            Partially Delivered
+                          </SelectItem>
+                          <SelectItem value="DELIVERED">Delivered</SelectItem>
+                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormField>
+
+                    <FormField
+                      label="Title"
+                      error={errors.title}
+                      className="md:col-span-2"
+                    >
+                      <Input
+                        value={form.title}
+                        onChange={(event) =>
+                          updateField("title", event.target.value)
+                        }
+                        placeholder="Horana Hospital Nurses - April Batch"
+                      />
+                    </FormField>
+
+                    <FormField
+                      label="Hospital Name"
+                      error={errors.hospitalName}
+                    >
+                      <Input
+                        value={form.hospitalName}
+                        onChange={(event) =>
+                          updateField("hospitalName", event.target.value)
+                        }
+                        placeholder="Horana Hospital"
+                      />
+                    </FormField>
+
+                    <FormField label="Town" error={errors.town}>
+                      <Input
+                        value={form.town}
+                        onChange={(event) =>
+                          updateField("town", event.target.value)
+                        }
+                        placeholder="Horana"
+                      />
+                    </FormField>
+
+                    <FormField
+                      label="Expected Delivery Date"
+                      error={errors.expectedDeliveryDate}
+                      className="md:col-span-2"
+                    >
+                      <div className="relative">
+                        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          type="date"
+                          value={form.expectedDeliveryDate || ""}
+                          onChange={(event) =>
+                            updateField(
+                              "expectedDeliveryDate",
+                              event.target.value
+                            )
+                          }
+                          className="pl-9"
+                        />
+                      </div>
+                    </FormField>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-none">
+                <CardContent className="p-5">
+                  <SectionHeader
+                    icon={UserRound}
+                    title="Coordinator"
+                    description="Select the customer coordinating this group order. Search by name, phone, or town."
+                  />
+
+                  <div className="mt-5">
+                    <FormField
+                      label="Coordinator Customer"
+                      error={errors.coordinatorCustomerId}
+                    >
+                      <Popover
+                        open={customerDropdownOpen}
+                        onOpenChange={setCustomerDropdownOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={customerDropdownOpen}
+                            className={cn(
+                              "h-auto min-h-11 w-full justify-between px-3 py-2 text-left font-normal",
+                              !selectedCustomer && "text-slate-500"
+                            )}
+                          >
+                            {selectedCustomer ? (
+                              <div className="flex min-w-0 flex-col items-start">
+                                <span className="truncate font-medium text-slate-900">
+                                  {selectedCustomer.fullName}
+                                </span>
+
+                                <span className="truncate text-xs text-slate-500">
+                                  {selectedCustomer.phoneNumber || "No phone"} ·{" "}
+                                  {selectedCustomer.town || "No town"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span>Select or search customer</span>
+                            )}
+
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
+                          </Button>
+                        </PopoverTrigger>
+
+                        <PopoverContent
+                          align="start"
+                          className="w-full p-0"
+                        >
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              value={customerSearch}
+                              onValueChange={setCustomerSearch}
+                              placeholder="Search customer name, phone, town..."
+                            />
+
+                            <CommandList>
+                              {isCustomerSearching ? (
+                                <div className="flex items-center gap-2 px-3 py-3 text-sm text-slate-500">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Searching customers...
+                                </div>
+                              ) : customers.length > 0 ? (
+                                <CommandGroup heading="Customers">
+                                  {customers.map((customer) => {
+                                    const isSelected =
+                                      form.coordinatorCustomerId ===
+                                      customer.id;
+
+                                    return (
+                                      <CommandItem
+                                        key={customer.id}
+                                        value={customer.id}
+                                        onSelect={() =>
+                                          handleCustomerChange(customer.id)
+                                        }
+                                        className="cursor-pointer"
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            isSelected
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+
+                                        <div className="flex min-w-0 flex-col">
+                                          <span className="truncate font-medium">
+                                            {customer.fullName}
+                                          </span>
+
+                                          <span className="truncate text-xs text-slate-500">
+                                            {customer.phoneNumber ||
+                                              "No phone"}{" "}
+                                            · {customer.town || "No town"}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </CommandGroup>
+                              ) : (
+                                <CommandEmpty>
+                                  <div className="px-3 py-4 text-center">
+                                    <p className="text-sm font-medium text-slate-700">
+                                      No customers found
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                      Try searching by customer name, phone
+                                      number, or town.
+                                    </p>
+                                  </div>
+                                </CommandEmpty>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </FormField>
+                  </div>
+
+                  {selectedCustomer && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 rounded-2xl border border-slate-200 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-950">
+                            {selectedCustomer.fullName}
+                          </p>
+
+                          <p className="mt-1 text-sm text-slate-500">
+                            {selectedCustomer.phoneNumber || "No phone"} ·{" "}
+                            {selectedCustomer.town || "No town"}
+                          </p>
+                        </div>
+
+                        <Badge
+                          variant="outline"
+                          className="rounded-full border-green-100 bg-green-50 text-green-700"
+                        >
+                          Selected
+                        </Badge>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <Separator className="my-5" />
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      label="Contact Name"
+                      error={errors.contactName}
+                    >
+                      <div className="relative">
+                        <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          value={form.contactName}
+                          onChange={(event) =>
+                            updateField("contactName", event.target.value)
+                          }
+                          placeholder="Dinesha Shamali"
+                          className="pl-9"
+                        />
+                      </div>
+                    </FormField>
+
+                    <FormField
+                      label="Contact Phone"
+                      error={errors.contactPhone}
+                    >
+                      <div className="relative">
+                        <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          value={form.contactPhone}
+                          onChange={(event) =>
+                            updateField("contactPhone", event.target.value)
+                          }
+                          placeholder="0718370292"
+                          className="pl-9"
+                        />
+                      </div>
+                    </FormField>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-5">
+              <Card className="rounded-2xl border-slate-200 shadow-none">
+                <CardContent className="p-5">
+                  <SectionHeader
+                    icon={MapPin}
+                    title="Delivery Details"
+                    description="Where the complete batch should be delivered."
+                  />
+
+                  <div className="mt-5 space-y-4">
+                    <FormField
+                      label="Delivery Address"
+                      error={errors.deliveryAddress}
+                    >
+                      <Textarea
+                        value={form.deliveryAddress}
+                        onChange={(event) =>
+                          updateField("deliveryAddress", event.target.value)
+                        }
+                        placeholder="No 12, Main Street, Horana"
+                        className="min-h-24 resize-none"
+                      />
+                    </FormField>
+
+                    <FormField
+                      label="Delivery Town"
+                      error={errors.deliveryTown}
+                    >
+                      <Input
+                        value={form.deliveryTown}
+                        onChange={(event) =>
+                          updateField("deliveryTown", event.target.value)
+                        }
+                        placeholder="Horana"
+                      />
+                    </FormField>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-none">
+                <CardContent className="p-5">
+                  <SectionHeader
+                    icon={Building2}
+                    title="Notes"
+                    description="Special notes for this batch order."
+                  />
+
+                  <div className="mt-5">
+                    <FormField label="Notes" error={errors.notes}>
+                      <Textarea
+                        value={form.notes || ""}
+                        onChange={(event) =>
+                          updateField("notes", event.target.value)
+                        }
+                        placeholder="Deliver all uniforms together."
+                        className="min-h-32 resize-none"
+                      />
+                    </FormField>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl bg-slate-950 p-4 text-white">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-300">
+                      Preview
+                    </p>
+
+                    <p className="mt-2 text-base font-semibold">
+                      {form.title || "Group order title"}
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-300">
+                      {form.hospitalName || "Hospital"} ·{" "}
+                      {form.town || "Town"}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Badge className="bg-white/10 text-white hover:bg-white/10">
+                        {form.groupOrderNumber || "GRP-00001"}
+                      </Badge>
+
+                      <Badge className="bg-white/10 text-white hover:bg-white/10">
+                        {form.status}
+                      </Badge>
+
+                      {selectedCustomer && (
+                        <Badge className="bg-white/10 text-white hover:bg-white/10">
+                          {selectedCustomer.fullName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">
+            This will create the group order header. Orders can be added after
+            opening the group order.
+          </p>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="gap-2"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
                 <PackagePlus className="h-4 w-4" />
-                Add Order
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Total Orders" value={groupOrder.totalOrders ?? 0} />
-            <StatCard label="Total Qty" value={groupOrder.totalQty ?? 0} />
-            <StatCard
-              label="Total Amount"
-              value={formatCurrency(groupOrder.totalAmount)}
-            />
-            <StatCard
-              label="Balance"
-              value={formatCurrency(groupOrder.balanceAmount)}
-              highlight={Number(groupOrder.balanceAmount ?? 0) > 0}
-            />
-          </div>
-
-          <Card className="rounded-2xl border-slate-200 shadow-none">
-            <CardContent className="p-5">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-sm font-semibold text-slate-950">
-                  Coordinator
-                </h2>
-                <p className="text-sm text-slate-600">
-                  {groupOrder.coordinatorCustomer?.fullName ||
-                    groupOrder.contactName ||
-                    "-"}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {groupOrder.contactPhone ||
-                    groupOrder.coordinatorCustomer?.phoneNumber ||
-                    "-"}{" "}
-                  · {groupOrder.coordinatorCustomer?.town || "-"}
-                </p>
-              </div>
-
-              {groupOrder.deliveryAddress && (
-                <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Delivery Address
-                  </p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {groupOrder.deliveryAddress}
-                  </p>
-                </div>
               )}
-
-              {groupOrder.notes && (
-                <div className="mt-4 rounded-xl bg-blue-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                    Notes
-                  </p>
-                  <p className="mt-1 text-sm text-blue-800">
-                    {groupOrder.notes}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-slate-200 shadow-none">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-950">
-                    Orders in this group
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Add customer orders under this batch and track delivery
-                    together.
-                  </p>
-                </div>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  className="gap-2"
-                  onClick={handleOpenAddOrder}
-                >
-                  <PackagePlus className="h-4 w-4" />
-                  Add Order
-                </Button>
-              </div>
-
-              <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                <CircleDollarSign className="mx-auto h-8 w-8 text-slate-400" />
-                <h3 className="mt-3 text-sm font-semibold text-slate-900">
-                  Orders table goes here
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  You can connect this section to the group order detail response
-                  orders array.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <AddOrderToGroupDialog
-            open={isAddOrderOpen}
-            onOpenChange={handleAddOrderOpenChange}
-            groupOrder={{
-              id: groupOrder.id,
-              groupOrderNumber: groupOrder.groupOrderNumber,
-              title: groupOrder.title,
-              hospitalName: groupOrder.hospitalName,
-              town: groupOrder.town,
-              deliveryAddress: groupOrder.deliveryAddress,
-              deliveryTown: groupOrder.deliveryTown,
-              expectedDeliveryDate: groupOrder.expectedDeliveryDate,
-            }}
-            onCreated={() => refetch()}
-          />
-        </motion.div>
-      </AnimatePresence>
-    </PermissionGate>
+              Create Group Order
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-type StatCardProps = {
-  label: string;
-  value: string | number;
-  highlight?: boolean;
-};
-
-function StatCard({ label, value, highlight }: StatCardProps) {
+function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
   return (
-    <div
-      className={cn(
-        "flex flex-col rounded-lg border bg-white p-5",
-        highlight ? "border-amber-200" : "border-slate-200"
-      )}
-    >
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <Icon className="h-5 w-5" />
+      </div>
 
-      <p
-        className={cn(
-          "mt-2 text-2xl font-semibold",
-          highlight ? "text-amber-700" : "text-slate-900"
-        )}
-      >
-        {value}
-      </p>
+      <div>
+        <h2 className="text-sm font-semibold text-slate-950">{title}</h2>
+        <p className="mt-1 text-sm text-slate-500">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  error,
+  children,
+  className,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-2", className)}>
+      <Label>{label}</Label>
+      {children}
+
+      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 }

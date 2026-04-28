@@ -11,6 +11,9 @@ This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
 
 one call from customer and create multi orders
 
+
+call order/ online orders auto gen order nos 
+
 messurements table separate to view 
 customer view and block view 
 edit messurements

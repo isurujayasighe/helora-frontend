@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 import { useGetGroupOrders } from "./api/useGetGroupOrders";
 import { GroupOrdersTable } from "./components/group-orders-list";
-import { GroupOrderDetailsPage } from "./components/create-group-order-sheet";
+import { CreateGroupOrderDialog } from "./components/create-group-order-sheet";
 import type { GroupOrderStatus } from "./types/group-orders.types";
 
 const fadeUp = {
@@ -51,14 +51,18 @@ const GROUP_ORDER_STATUSES: Array<{
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
+type GroupOrdersSearch = {
+  create?: boolean;
+};
+
 export default function GroupOrdersPage() {
   const navigate = useNavigate();
 
-  const searchParams = useSearch({
-    from: "/_authenticated/app/group-orders/$groupOrderId",
-  });
+  const routeSearch = useSearch({
+    strict: false,
+  }) as GroupOrdersSearch;
 
-  const isCreateOpen = searchParams.addOrder === true;
+  const isCreateOpen = Boolean(routeSearch.create);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -71,11 +75,11 @@ export default function GroupOrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setDebouncedSearch(searchTerm.trim());
     }, 400);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [searchTerm]);
 
   useEffect(() => {
@@ -185,15 +189,11 @@ export default function GroupOrdersPage() {
           initial="hidden"
           animate="visible"
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="mx-auto flex w-full flex-col gap-6 px-4 py-4 pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
+          className="mx-auto flex w-full flex-col gap-6 px-4 py-4 sm:w:max-w-7xl pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex flex-col gap-1">
-              <div className="mb-1 inline-flex w-fit items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-blue-700">
-                <UsersRound className="h-3.5 w-3.5" />
-                Batch Orders
-              </div>
-
+             
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
                 Group Orders
               </h1>
@@ -234,13 +234,6 @@ export default function GroupOrdersPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Draft Groups" value={stats.draft} />
-            <StatCard label="Active Groups" value={stats.active} />
-            <StatCard label="Delivered" value={stats.delivered} />
-            <StatCard label="Linked Orders" value={stats.linkedOrders} />
-          </div>
-
           <Card className="rounded-lg border-slate-200 bg-white shadow-none">
             <CardContent className="p-4 sm:p-5">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -271,7 +264,7 @@ export default function GroupOrdersPage() {
                       setStatusFilter(value as GroupOrderStatus | "all")
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full ">
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
 
@@ -349,14 +342,15 @@ export default function GroupOrdersPage() {
                   </span>
                 )}
 
-                <button
+                <Button
                   type="button"
-                  className="ml-auto inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700"
+                  variant="link"
+                  className="ml-auto inline-flex items-center text-xs text-blue-600 hover:text-blue-700"
                   onClick={handleClearFilters}
                 >
-                  <Filter className="h-3.5 w-3.5" />
+                 
                   Clear all filters
-                </button>
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -376,10 +370,19 @@ export default function GroupOrdersPage() {
             )}
           </div>
 
-          <GroupOrderDetailsPage
+          <CreateGroupOrderDialog
             open={isCreateOpen}
             onOpenChange={handleCreateDialogOpenChange}
             onCreated={() => refetch()}
+            onSubmit={async (payload: any) => {
+              console.log("CREATE_GROUP_ORDER_PAYLOAD", payload);
+
+              /**
+               * Replace this with your mutation:
+               *
+               * await createGroupOrderMutation.mutateAsync(payload);
+               */
+            }}
           />
         </motion.div>
       </AnimatePresence>
