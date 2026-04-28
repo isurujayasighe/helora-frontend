@@ -73,7 +73,7 @@ export function AuthenticatedLayout() {
               </Link>
 
               <Link
-                to="/app/invoices"
+                to="/app/orders"
                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 <FileText className="h-4 w-4" />

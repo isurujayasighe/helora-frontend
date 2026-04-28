@@ -338,7 +338,7 @@ export default function Dashboard() {
                       className="text-blue-600 hover:text-blue-700"
                       asChild
                     >
-                      <Link to="/app/invoices">View All</Link>
+                      <Link to="/app/orders">View All</Link>
                     </Button>
                   </CardHeader>
                   <CardContent>

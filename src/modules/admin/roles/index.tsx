@@ -26,7 +26,7 @@ export default function AccessControlPage() {
   const [activeTab, setActiveTab] = React.useState("roles");
 
   return (
-    <PermissionGate action="read" subject="TenantRolePermission">
+    <PermissionGate action="read" subject="all">
       <AnimatePresence mode="wait">
         <motion.div
           key="tenant-accounts"

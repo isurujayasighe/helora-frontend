@@ -1,7 +1,7 @@
 window.__APP_CONFIG__ = {
   API_URL:
     window.__APP_CONFIG__?.API_URL ||
-    "http://localhost:3000/api/v1",
+    "https://helora-backend-production.up.railway.app/api/v1",
 
   IDENTITY_BASE_URL:
     window.__APP_CONFIG__?.IDENTITY_BASE_URL ||

@@ -93,7 +93,7 @@ export function RolesTable() {
   };
 
   return (
-    <PermissionGate action="read" subject="TenantRolePermission">
+    <PermissionGate action="read" subject="all">
       <AnimatePresence mode="wait">
         <motion.div
           key="roles-table"

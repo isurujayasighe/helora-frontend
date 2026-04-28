@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect,  useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarDays,
   Download,
-  Filter,
   Plus,
   RefreshCcw,
   Search,
-  UsersRound,
 } from "lucide-react";
 
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
@@ -110,36 +108,6 @@ export default function GroupOrdersPage() {
     hasNextPage: false,
     hasPreviousPage: false,
   };
-
-  const stats = useMemo(() => {
-    const draft = groupOrdersList.filter((item) => item.status === "DRAFT")
-      .length;
-
-    const active = groupOrdersList.filter((item) =>
-      [
-        "CONFIRMED",
-        "IN_PROGRESS",
-        "READY",
-        "PARTIALLY_DELIVERED",
-      ].includes(item.status)
-    ).length;
-
-    const delivered = groupOrdersList.filter(
-      (item) => item.status === "DELIVERED"
-    ).length;
-
-    const linkedOrders = groupOrdersList.reduce(
-      (sum, item) => sum + (item.totalOrders ?? item._count?.orders ?? 0),
-      0
-    );
-
-    return {
-      draft,
-      active,
-      delivered,
-      linkedOrders,
-    };
-  }, [groupOrdersList]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -390,22 +358,6 @@ export default function GroupOrdersPage() {
   );
 }
 
-type StatCardProps = {
-  label: string;
-  value: string | number;
-};
-
-function StatCard({ label, value }: StatCardProps) {
-  return (
-    <div className="flex flex-col rounded-lg border border-slate-200 bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-
-      <p className="mt-2 text-3xl font-semibold text-slate-900">{value}</p>
-    </div>
-  );
-}
 
 function GroupOrdersSkeleton() {
   return (

@@ -167,7 +167,6 @@ export function CreateGroupOrderDialog({
     isFetching: isCustomersFetching,
   } = useCustomerLookup({
     search: debouncedCustomerSearch || undefined,
-    enabled: open,
   });
 
   const customers: CustomerOption[] = React.useMemo(() => {

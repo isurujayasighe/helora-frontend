@@ -19,8 +19,7 @@ import { cn } from "@/lib/utils";
 import { useGetBlocks } from "./api/useGetBlocks";
 import { BlocksTable } from "./components/blocks-table";
 import { BlockDetailsDialog } from "./components/block-details-dialog";
-import { AddBlockDialog } from "./components/create-new-block-dialog";
-import { EditBlockDialog } from "./components/edit-block-details-dialog";
+
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -38,11 +37,11 @@ export default function BlocksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
-  const [addBlockOpen, setAddBlockOpen] = useState(false);
-  const [selectedEditBlockId, setSelectedEditBlockId] = useState<string | null>(
+  const [_addBlockOpen, setAddBlockOpen] = useState(false);
+  const [_selectedEditBlockId, setSelectedEditBlockId] = useState<string | null>(
     null,
   );
-  const [editBlockOpen, setEditBlockOpen] = useState(false);
+  const [_editBlockOpen, setEditBlockOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -340,21 +339,7 @@ export default function BlocksPage() {
               }}
             />
 
-            <AddBlockDialog
-              open={addBlockOpen}
-              onOpenChange={setAddBlockOpen}
-            />
-            <EditBlockDialog
-              blockId={selectedEditBlockId}
-              open={editBlockOpen}
-              onOpenChange={(open) => {
-                setEditBlockOpen(open);
-
-                if (!open) {
-                  setSelectedEditBlockId(null);
-                }
-              }}
-            />
+          
           </div>
         </motion.div>
       </AnimatePresence>

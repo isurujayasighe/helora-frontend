@@ -40,7 +40,7 @@ const fadeUp = {
 };
 
 export default function AccountPage() {
-  const activeCustomer = useAuthStore((state) => state.activeCustomer);
+  const activeCustomer = useAuthStore((state) => state.user);
 
   // --- Filter & Pagination States ---
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,7 +77,7 @@ export default function AccountPage() {
     isFetching,
     refetch,
   } = useGetAccountDetails({
-    customerNo: activeCustomer?.customerId || "",
+    customerNo: activeCustomer?.id || "",
     invoiceNo: debouncedSearch,
     status: statusFilter,
     fromDate: dateRange.start,

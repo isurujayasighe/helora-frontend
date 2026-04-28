@@ -23,7 +23,7 @@ const triggerStyles = cn(
 
 export default function SettingsPage() {
   return (
-    <PermissionGate action="read" subject="TenantSettings">
+    <PermissionGate action="read" subject="all">
       <AnimatePresence mode="wait">
         <motion.div
           key="settings-container"

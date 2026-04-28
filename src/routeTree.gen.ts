@@ -20,7 +20,6 @@ import { Route as AuthenticatedAdminUsersRouteRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppSupportIndexRouteImport } from './routes/_authenticated/app/support/index'
 import { Route as AuthenticatedAppProfileIndexRouteImport } from './routes/_authenticated/app/profile/index'
 import { Route as AuthenticatedAppOrdersIndexRouteImport } from './routes/_authenticated/app/orders/index'
-import { Route as AuthenticatedAppInvoicesIndexRouteImport } from './routes/_authenticated/app/invoices/index'
 import { Route as AuthenticatedAppGroupOrdersIndexRouteImport } from './routes/_authenticated/app/group-orders/index'
 import { Route as AuthenticatedAppDashboardIndexRouteImport } from './routes/_authenticated/app/dashboard/index'
 import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_authenticated/app/customers/index'
@@ -89,12 +88,6 @@ const AuthenticatedAppOrdersIndexRoute =
   AuthenticatedAppOrdersIndexRouteImport.update({
     id: '/app/orders/',
     path: '/app/orders/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppInvoicesIndexRoute =
-  AuthenticatedAppInvoicesIndexRouteImport.update({
-    id: '/app/invoices/',
-    path: '/app/invoices/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppGroupOrdersIndexRoute =
@@ -183,7 +176,6 @@ export interface FileRoutesByFullPath {
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
   '/app/group-orders/': typeof AuthenticatedAppGroupOrdersIndexRoute
-  '/app/invoices/': typeof AuthenticatedAppInvoicesIndexRoute
   '/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
   '/app/profile/': typeof AuthenticatedAppProfileIndexRoute
   '/app/support/': typeof AuthenticatedAppSupportIndexRoute
@@ -207,7 +199,6 @@ export interface FileRoutesByTo {
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardIndexRoute
   '/app/group-orders': typeof AuthenticatedAppGroupOrdersIndexRoute
-  '/app/invoices': typeof AuthenticatedAppInvoicesIndexRoute
   '/app/orders': typeof AuthenticatedAppOrdersIndexRoute
   '/app/profile': typeof AuthenticatedAppProfileIndexRoute
   '/app/support': typeof AuthenticatedAppSupportIndexRoute
@@ -233,7 +224,6 @@ export interface FileRoutesById {
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/_authenticated/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
   '/_authenticated/app/group-orders/': typeof AuthenticatedAppGroupOrdersIndexRoute
-  '/_authenticated/app/invoices/': typeof AuthenticatedAppInvoicesIndexRoute
   '/_authenticated/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
   '/_authenticated/app/profile/': typeof AuthenticatedAppProfileIndexRoute
   '/_authenticated/app/support/': typeof AuthenticatedAppSupportIndexRoute
@@ -259,7 +249,6 @@ export interface FileRouteTypes {
     | '/app/customers/'
     | '/app/dashboard/'
     | '/app/group-orders/'
-    | '/app/invoices/'
     | '/app/orders/'
     | '/app/profile/'
     | '/app/support/'
@@ -283,7 +272,6 @@ export interface FileRouteTypes {
     | '/app/customers'
     | '/app/dashboard'
     | '/app/group-orders'
-    | '/app/invoices'
     | '/app/orders'
     | '/app/profile'
     | '/app/support'
@@ -308,7 +296,6 @@ export interface FileRouteTypes {
     | '/_authenticated/app/customers/'
     | '/_authenticated/app/dashboard/'
     | '/_authenticated/app/group-orders/'
-    | '/_authenticated/app/invoices/'
     | '/_authenticated/app/orders/'
     | '/_authenticated/app/profile/'
     | '/_authenticated/app/support/'
@@ -401,13 +388,6 @@ declare module '@tanstack/react-router' {
       path: '/app/orders'
       fullPath: '/app/orders/'
       preLoaderRoute: typeof AuthenticatedAppOrdersIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/invoices/': {
-      id: '/_authenticated/app/invoices/'
-      path: '/app/invoices'
-      fullPath: '/app/invoices/'
-      preLoaderRoute: typeof AuthenticatedAppInvoicesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/group-orders/': {
@@ -503,7 +483,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCustomersIndexRoute: typeof AuthenticatedAppCustomersIndexRoute
   AuthenticatedAppDashboardIndexRoute: typeof AuthenticatedAppDashboardIndexRoute
   AuthenticatedAppGroupOrdersIndexRoute: typeof AuthenticatedAppGroupOrdersIndexRoute
-  AuthenticatedAppInvoicesIndexRoute: typeof AuthenticatedAppInvoicesIndexRoute
   AuthenticatedAppOrdersIndexRoute: typeof AuthenticatedAppOrdersIndexRoute
   AuthenticatedAppProfileIndexRoute: typeof AuthenticatedAppProfileIndexRoute
   AuthenticatedAppSupportIndexRoute: typeof AuthenticatedAppSupportIndexRoute
@@ -525,7 +504,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCustomersIndexRoute: AuthenticatedAppCustomersIndexRoute,
   AuthenticatedAppDashboardIndexRoute: AuthenticatedAppDashboardIndexRoute,
   AuthenticatedAppGroupOrdersIndexRoute: AuthenticatedAppGroupOrdersIndexRoute,
-  AuthenticatedAppInvoicesIndexRoute: AuthenticatedAppInvoicesIndexRoute,
   AuthenticatedAppOrdersIndexRoute: AuthenticatedAppOrdersIndexRoute,
   AuthenticatedAppProfileIndexRoute: AuthenticatedAppProfileIndexRoute,
   AuthenticatedAppSupportIndexRoute: AuthenticatedAppSupportIndexRoute,

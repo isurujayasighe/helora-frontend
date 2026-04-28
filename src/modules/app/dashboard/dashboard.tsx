@@ -9,57 +9,20 @@ import {
   Plus,
 } from "lucide-react";
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
-import { useAuthStore } from "@/auth/store/authStore";
-
-import { useGetInvoices } from "../invoice/api/useGetInvoices";
-import { useGetOrders } from "../orders/api/useGetOrders";
-import { useGetAccountDetails } from "../account/api/useGetAccounts";
-import { StatCardSkeleton } from "./components/stat-card-skeleton";
 import { GroupedStatCard } from "./components/stat-card";
-import { SectionSpinner } from "./components/section-spinner";
-import { OrdersStatusPieCard } from "./components/order-status-pie-chart";
 import { AnimatePresence, motion } from "framer-motion";
 import { fadeUp } from "@/components/motions/MotionFade";
 import { cn } from "@/lib/utils";
-import { InvoiceOverviewPieCard } from "./components/invoice-status-pie-chart";
 import { UpcomingPromisedOrders } from "./components/promissed-orders";
 import { RecentOrdersTableCard } from "./components/recent-orders-table";
 import { Button } from "@/components/ui/button";
 import { CreateOrderDialog } from "@/components/layout/create-order-dialog";
+import { useNavigate } from "@tanstack/react-router";
 
 export default function Dashboard() {
-  const user = useAuthStore((state) => state.user);
   const [recentOrdersPage, setRecentOrdersPage] = useState(1);
 const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
-
-  const {
-    data: invoiceData,
-    isLoading: isLoadingInvoices,
-    isFetching,
-  } = useGetInvoices({
-    customerNo: user?.id || "",
-    page: 1,
-    pageSize: 1,
-  });
-
-  const {
-    data: orderData,
-    isLoading: isLoadingOrders,
-    isFetching: isFetchingOrders,
-  } = useGetOrders({
-    customerNo: user?.id || "",
-    page: 1,
-    pageSize: 20,
-  });
-
-  const { isFetching: isFetchingAccounts } = useGetAccountDetails({
-    customerNo: user?.id || "",
-    page: 1,
-    pageSize: 10,
-  });
-
-  const isRefreshingStats =
-    isFetching || isFetchingOrders || isFetchingAccounts;
+ const navigate = useNavigate();
 
   const upcomingOrders = [
     {
@@ -160,7 +123,7 @@ const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
     <Button
       variant="outline"
       className="h-10  border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      onClick={() => navigate({ to: "/app/customers/create" })}
+      onClick={() => navigate({ to: "/app/customers" })}
     ><Plus className="mr-2 h-3.5 w-3.5" />
       Add Customer
     </Button>
@@ -185,7 +148,7 @@ const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
     <Button
       variant="outline"
       className="h-10  border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      onClick={() => navigate({ to: "/app/blocks/create" })}
+      onClick={() => navigate({ to: "/app/blocks" })}
     >
       <Plus className="mr-2 h-3.5 w-3.5" />
       Add Block
@@ -195,16 +158,8 @@ const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
           </section>
 
           <section className="relative">
-            {isRefreshingStats && <SectionSpinner />}
-
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {isLoadingInvoices ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <StatCardSkeleton key={i} />
-                ))
-              ) : (
-                <>
-                  <GroupedStatCard
+              <GroupedStatCard
                     title="Total Customers"
                     value="1,284"
                     icon={Users}
@@ -241,9 +196,8 @@ const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
                     accent="danger"
                     valueVariant="danger"
                   />
-                </>
-              )}
-            </div>
+              </div>
+            
           </section>
 
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
@@ -257,22 +211,6 @@ const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
                 currentPage={recentOrdersPage}
                 totalPages={5}
                 onPageChange={setRecentOrdersPage}
-              />
-            </div>
-          </section>
-
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2">
-            <div className="min-w-0">
-              <OrdersStatusPieCard
-                orderData={orderData}
-                isLoading={isLoadingOrders}
-              />
-            </div>
-
-            <div className="min-w-0">
-              <InvoiceOverviewPieCard
-                invoiceData={invoiceData}
-                isLoading={isLoadingInvoices}
               />
             </div>
           </section>

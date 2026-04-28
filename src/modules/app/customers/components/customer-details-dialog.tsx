@@ -349,7 +349,7 @@ function OrdersTable({ orders }: { orders: CustomerOrder[] }) {
                 <td className="px-4 py-4">
                   <div>
                     <Link
-                      to="/app/orders/$orderId"
+                      to="/app/orders"
                       params={{ orderId: order.id }}
                       className="font-normal  hover:underline"
                     >
@@ -416,7 +416,7 @@ function BlocksTable({ blocks }: { blocks: CustomerBlock[] }) {
                 <td className="px-4 py-4">
   <div className="flex items-center gap-2">
     <Link
-      to="/app/blocks/$blockId"
+      to="/app/blocks"
       params={{ blockId: block.id }}
      className="font-normal  hover:underline"
     >

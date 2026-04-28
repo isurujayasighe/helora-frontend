@@ -2,15 +2,9 @@
 
 import {
   Blocks,
-  CalendarDays,
-  FileText,
   History,
   PackageCheck,
-  Phone,
-  Ruler,
-  Tag,
   UserRound,
-  X,
 } from "lucide-react";
 
 import {
@@ -19,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useGetBlockById } from "../api/useGetBlockById";
@@ -249,22 +242,6 @@ export function BlockDetailsDialog({
   );
 }
 
-function MetricBox({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="min-w-32 rounded-lg border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
-    </div>
-  );
-}
 
 function InfoGroup({
   title,
@@ -335,7 +312,7 @@ function AssignedCustomersTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-160 text-left text-sm">
         <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
           <tr>
             <th className="px-3 py-2 font-semibold">Customer</th>
@@ -402,7 +379,7 @@ function VersionHistoryTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-[520px] text-left text-sm">
+      <table className="w-full min-w-130 text-left text-sm">
         <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
           <tr>
             <th className="px-3 py-2 font-semibold">Type</th>
@@ -468,7 +445,7 @@ function OrderUsageTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-[760px] text-left text-sm">
+      <table className="w-full min-w-190 text-left text-sm">
         <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
           <tr>
             <th className="px-3 py-2 font-semibold">Order</th>

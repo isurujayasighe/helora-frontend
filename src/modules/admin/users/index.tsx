@@ -41,9 +41,9 @@ export default function SystemUserPage() {
   const { userId, action } = Route.useSearch();
 
   const [search, setSearch] = useState("");
-  const isSuperAdmin = useCan("manage", "TenantUsers");
-  const canDelete = useCan("delete", "TenantUsers");
-  const canCreateAccount = useCan("create", "TenantUsers");
+  const isSuperAdmin = useCan("manage", "all");
+  const canDelete = useCan("delete", "all");
+  const canCreateAccount = useCan("create", "all");
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -126,7 +126,7 @@ export default function SystemUserPage() {
   };
 
   return (
-    <PermissionGate action="read" subject="TenantUsers">
+    <PermissionGate action="read" subject="all">
       <div className="flex h-full w-full flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
