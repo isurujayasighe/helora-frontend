@@ -244,7 +244,6 @@ function RecursiveMenuItem({
                 <DropdownMenuItem key={subItem.title} asChild>
                   <Link
                     to={subItem.url}
-                    params={{ tenantId }}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-indigo-50 hover:text-blue-700 focus:bg-blue-100 focus:text-white"
                   >
                     {subItem.icon && (
