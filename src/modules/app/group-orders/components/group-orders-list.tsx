@@ -1,11 +1,12 @@
+import { CalendarDays, ChevronRight, Hospital, UsersRound } from "lucide-react";
 import {
-  CalendarDays,
-  ChevronRight,
-  CircleDollarSign,
-  Hospital,
-  Phone,
-  UsersRound,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GroupOrder, GroupOrderStatus } from "../types/group-orders.types";
@@ -18,16 +19,6 @@ const formatDate = (value?: string | null) => {
     month: "short",
     day: "2-digit",
   }).format(new Date(value));
-};
-
-const formatCurrency = (value?: string | number | null) => {
-  const amount = Number(value ?? 0);
-
-  return new Intl.NumberFormat("en-LK", {
-    style: "currency",
-    currency: "LKR",
-    maximumFractionDigits: 0,
-  }).format(amount);
 };
 
 const statusClassName = (status: GroupOrderStatus) => {
@@ -88,26 +79,46 @@ export function GroupOrdersTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Group Order</th>
-              <th className="px-4 py-3 font-semibold">Coordinator</th>
-              <th className="px-4 py-3 font-semibold">Hospital</th>
-              <th className="px-4 py-3 font-semibold">Expected Date</th>
-              <th className="px-4 py-3 text-center font-semibold">Orders</th>
-              <th className="px-4 py-3 text-center font-semibold">Qty</th>
-              <th className="px-4 py-3 text-right font-semibold">Total</th>
-              <th className="px-4 py-3 text-right font-semibold">Advance</th>
-              <th className="px-4 py-3 text-right font-semibold">Balance</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 text-right font-semibold">Action</th>
-            </tr>
-          </thead>
+        <Table className="min-w-295">
+          <TableHeader>
+            <TableRow className="border-b border-slate-200 bg-slate-50 hover:bg-slate-50">
+              <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Order ID
+              </TableHead>
 
-          <tbody className="divide-y divide-slate-100">
+              <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Coordinator
+              </TableHead>
+
+              <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Hospital
+              </TableHead>
+
+              <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Phone
+              </TableHead>
+
+              <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Delivery Date
+              </TableHead>
+
+              <TableHead className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Orders
+              </TableHead>
+
+              <TableHead className="px-4 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Status
+              </TableHead>
+
+              <TableHead className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Action
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
             {groupOrders.map((groupOrder) => {
               const coordinatorName =
                 groupOrder.coordinatorCustomer?.fullName ||
@@ -122,142 +133,94 @@ export function GroupOrdersTable({
               const totalOrders =
                 groupOrder.totalOrders ?? groupOrder._count?.orders ?? 0;
 
-              const balanceAmount = Number(groupOrder.balanceAmount ?? 0);
-
               return (
-                <tr
+                <TableRow
                   key={groupOrder.id}
-                  className="transition-colors hover:bg-slate-50/70"
+                  className="border-slate-100 transition-colors hover:bg-slate-50/70"
                 >
-                  <td className="px-4 py-4">
+                  <TableCell className="px-4 py-4">
                     <div className="min-w-0">
                       <button
                         type="button"
                         onClick={() => onViewGroupOrder(groupOrder.id)}
-                        className="font-semibold text-blue-700 hover:text-blue-800 hover:underline"
+                        className="text-xs font-normal text-slate-700 hover:text-slate-800 hover:underline"
                       >
                         {groupOrder.groupOrderNumber}
                       </button>
-
-                      <p className="mt-0.5 max-w-[280px] truncate font-medium text-slate-900">
-                        {groupOrder.title || "Untitled group order"}
-                      </p>
-
-                      {groupOrder.notes && (
-                        <p className="mt-0.5 max-w-[280px] truncate text-xs text-slate-500">
-                          {groupOrder.notes}
-                        </p>
-                      )}
                     </div>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4">
+                  <TableCell className="px-4 py-4">
                     <div className="min-w-0">
-                      <p className="max-w-[180px] truncate font-medium text-slate-900">
+                      <p className="max-w-45 truncate text-xs text-slate-900">
                         {coordinatorName}
                       </p>
-
-                      <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-slate-500">
-                        <Phone className="h-3.5 w-3.5" />
-                        {coordinatorPhone}
-                      </p>
                     </div>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4">
+                  <TableCell className="px-4 py-4">
                     <div className="min-w-0">
-                      <p className="inline-flex max-w-[190px] items-center gap-1.5 truncate font-medium text-slate-800">
+                      <p className="inline-flex max-w-47.5 items-center gap-1.5 truncate text-xs text-slate-800">
                         <Hospital className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                         {groupOrder.hospitalName || "-"}
                       </p>
+                    </div>
+                  </TableCell>
 
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {groupOrder.deliveryTown ||
-                          groupOrder.town ||
-                          groupOrder.coordinatorCustomer?.town ||
-                          "-"}
+                  <TableCell className="px-4 py-4">
+                    <div className="min-w-0">
+                      <p className="max-w-45 truncate text-xs font-medium text-slate-900">
+                        {coordinatorPhone}
                       </p>
                     </div>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4">
-                    <span className="inline-flex items-center gap-1.5 text-slate-700">
-                      <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                  <TableCell className="px-4 py-4">
+                    <span className="inline-flex items-center gap-1.5 text-slate-700 text-xs">
+                      <CalendarDays className="h-3.5 w-3.5 text-slate-400 " />
                       {formatDate(groupOrder.expectedDeliveryDate)}
                     </span>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-center">
+                  <TableCell className="px-4 py-4 text-center">
                     <span className="inline-flex min-w-9 justify-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                       {totalOrders}
                     </span>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-center">
-                    <span className="inline-flex min-w-9 justify-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
-                      {groupOrder.totalQty ?? 0}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-4 text-right font-semibold text-slate-900">
-                    {formatCurrency(groupOrder.totalAmount)}
-                  </td>
-
-                  <td className="px-4 py-4 text-right text-slate-700">
-                    {formatCurrency(groupOrder.advanceAmount)}
-                  </td>
-
-                  <td
-                    className={cn(
-                      "px-4 py-4 text-right font-semibold",
-                      balanceAmount > 0 ? "text-amber-700" : "text-emerald-700"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold",
-                        balanceAmount > 0
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-emerald-50 text-emerald-700"
-                      )}
-                    >
-                      <CircleDollarSign className="h-3.5 w-3.5" />
-                      {formatCurrency(groupOrder.balanceAmount)}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-4">
+                  <TableCell className="px-4 py-4">
                     <span
                       className={cn(
                         "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide",
-                        statusClassName(groupOrder.status)
+                        statusClassName(groupOrder.status),
                       )}
                     >
                       {readableStatus(groupOrder.status)}
                     </span>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-right">
+                  <TableCell className="px-4 py-4 text-right">
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="gap-2"
+                      size="icon"
                       onClick={() => onViewGroupOrder(groupOrder.id)}
+                      className="h-8 w-8 rounded-full text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
+                      aria-label={`View group order ${groupOrder.groupOrderNumber}`}
+                      title="View details"
                     >
-                      View
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">
+      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between text-xs">
+        <p className="text-sm text-slate-500 text-xs">
           Showing page{" "}
           <span className="font-medium text-slate-900">{currentPage}</span> of{" "}
           <span className="font-medium text-slate-900">

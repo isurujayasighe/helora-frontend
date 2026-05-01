@@ -1,10 +1,11 @@
 import { useAuthStore } from "@/auth/store/authStore";
+import { appConfig } from "@/config/runtime-config";
 
 const IDENTITY_BASE_URL =
-  import.meta.env.VITE_IDENTITY_BASE_URL || "http://localhost:5174";
+  appConfig.IDENTITY_BASE_URL || "http://localhost:5174";
 
 const PRODUCT_CODE =
-  import.meta.env.VITE_PRODUCT_CODE || "customerportal";
+  appConfig.PRODUCT_CODE || "customerportal";
 
 function getTenantFromHost(hostname = window.location.hostname) {
   const parts = hostname.split(".");

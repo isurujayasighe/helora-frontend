@@ -1,0 +1,7 @@
+export function formatCurrency(value?: string | number | null) {
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    maximumFractionDigits: 0,
+  }).format(Number(value ?? 0));
+};

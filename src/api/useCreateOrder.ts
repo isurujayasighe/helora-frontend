@@ -45,6 +45,8 @@ export type CreateOrderPayload = {
   orderNumber?: string;
   orderDate?: string;
   promisedDate?: string;
+  completedAt?: string;
+  deliveredAt?: string;
   status?: OrderStatus;
   orderSource?: OrderSource;
   paymentStatus?: PaymentStatus;
@@ -70,6 +72,12 @@ export type CreateOrderPayload = {
     notes?: string;
     tailorNote?: string;
     status?: OrderItemStatus;
+
+    /**
+     * Use this only if backend supports creating a new measurement
+     * during order creation when measurementId is missing.
+     */
+    measurements?: Record<string, string | number | undefined>;
   }>;
 };
 
@@ -82,9 +90,9 @@ type CreateOrderResponse = {
 const cleanObject = <T extends Record<string, unknown>>(value: T) => {
   return Object.fromEntries(
     Object.entries(value).filter(
-      ([, item]) => item !== undefined && item !== null && item !== ""
-    )
-  ) as T;
+      ([, item]) => item !== undefined && item !== null && item !== "",
+    ),
+  ) as Partial<T>;
 };
 
 const createOrder = async (payload: CreateOrderPayload) => {
@@ -93,7 +101,7 @@ const createOrder = async (payload: CreateOrderPayload) => {
     {
       ...cleanObject(payload),
       items: payload.items.map((item) => cleanObject(item)),
-    }
+    },
   );
 
   return response.data;
@@ -107,6 +115,8 @@ export const useCreateOrder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["group-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["measurements"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
   });
 };

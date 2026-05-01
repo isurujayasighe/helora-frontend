@@ -14,6 +14,10 @@ const SUBJECT_MAP: Record<string, Subjects> = {
   blocks: "Blocks",
   orders: "Orders",
   audit: "Audit",
+  dashboard: "Dashboard",
+  settings: "Settings",
+  profile: "Profile",
+  support: "Support",
 };
 
 export function defineAbilityFromPermissions(

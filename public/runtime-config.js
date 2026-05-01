@@ -1,11 +1,13 @@
 window.__APP_CONFIG__ = {
   API_URL:
     window.__APP_CONFIG__?.API_URL ||
-    "https://helora-backend-production.up.railway.app/api/v1",
+    "http://localhost:3000/api/v1",
+
+    // "https://helora-backend-production.up.railway.app/api/v1",
 
   IDENTITY_BASE_URL:
     window.__APP_CONFIG__?.IDENTITY_BASE_URL ||
-    "https://identity.covalent-cloud.co.uk",
+    "http://localhost:5174",
 
   ROOT_DOMAIN:
     window.__APP_CONFIG__?.ROOT_DOMAIN ||

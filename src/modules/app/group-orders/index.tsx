@@ -157,7 +157,7 @@ export default function GroupOrdersPage() {
           initial="hidden"
           animate="visible"
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="mx-auto flex w-full flex-col gap-6 px-4 py-4 sm:w:max-w-7xl pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
+          className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10 mt-4"
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex flex-col gap-1">

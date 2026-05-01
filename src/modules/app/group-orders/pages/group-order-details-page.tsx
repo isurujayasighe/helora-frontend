@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 
 import { useGetGroupOrderById } from "../api/useGetGroupOrderById";
 import { AddOrderToGroupDialog } from "../components/add-order-to-group-order-dialog";
+import { EnterpriseLottieLoader } from "@/components/common/IntialLoader";
+import { GroupOrderOrdersTable } from "../components/group-order-orders-table";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -95,11 +97,7 @@ export function GroupOrderDetailsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
-        <div className="h-40 animate-pulse rounded-2xl bg-slate-100" />
-      </div>
-    );
+    return <EnterpriseLottieLoader />;
   }
 
   if (!groupOrder) {
@@ -129,7 +127,7 @@ export function GroupOrderDetailsPage() {
           initial="hidden"
           animate="visible"
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="mx-auto flex w-full flex-col gap-6 px-4 py-4 pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
+          className="mx-auto flex w-full lg:max-w-10/12 flex-col gap-6 px-4 py-4 pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -196,7 +194,10 @@ export function GroupOrderDetailsPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Total Orders" value={groupOrder.totalOrders ?? 0} />
+            <StatCard
+              label="Total Orders"
+              value={groupOrder.totalOrders ?? 0}
+            />
             <StatCard label="Total Qty" value={groupOrder.totalQty ?? 0} />
             <StatCard
               label="Total Amount"
@@ -209,50 +210,83 @@ export function GroupOrderDetailsPage() {
             />
           </div>
 
-          <Card className="rounded-2xl border-slate-200 shadow-none">
-            <CardContent className="p-5">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-sm font-semibold text-slate-950">
-                  Coordinator
-                </h2>
-                <p className="text-sm text-slate-600">
-                  {groupOrder.coordinatorCustomer?.fullName ||
-                    groupOrder.contactName ||
-                    "-"}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {groupOrder.contactPhone ||
-                    groupOrder.coordinatorCustomer?.phoneNumber ||
-                    "-"}{" "}
-                  · {groupOrder.coordinatorCustomer?.town || "-"}
-                </p>
+          <Card className="rounded-lg border-slate-200 shadow-none">
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <div className="flex min-w-55 items-center gap-2">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
+                    {(
+                      groupOrder.coordinatorCustomer?.fullName ||
+                      groupOrder.contactName ||
+                      "?"
+                    )
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Coordinator
+                    </p>
+                    <h2 className="truncate text-sm font-semibold text-slate-950">
+                      {groupOrder.coordinatorCustomer?.fullName ||
+                        groupOrder.contactName ||
+                        "-"}
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="h-8 w-px bg-slate-100" />
+
+                <div className="flex min-w-32.5 flex-col">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Phone
+                  </span>
+                  <span className="truncate text-xs font-medium text-slate-700">
+                    {groupOrder.contactPhone ||
+                      groupOrder.coordinatorCustomer?.phoneNumber ||
+                      "-"}
+                  </span>
+                </div>
+
+                <div className="flex min-w-30 flex-col">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Town
+                  </span>
+                  <span className="truncate text-xs font-medium text-slate-700">
+                    {groupOrder.coordinatorCustomer?.town || "-"}
+                  </span>
+                </div>
+
+                {groupOrder.deliveryAddress && (
+                  <div className="flex min-w-55 flex-1 flex-col">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Delivery Address
+                    </span>
+                    <span className="line-clamp-1 text-xs font-medium text-slate-700">
+                      {groupOrder.deliveryAddress}
+                    </span>
+                  </div>
+                )}
+
+                {groupOrder.notes && (
+                  <div className="flex min-w-55 flex-1 flex-col rounded-md bg-blue-50 px-2.5 py-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+                      Notes
+                    </span>
+                    <span className="line-clamp-1 text-xs font-semibold text-blue-700">
+                      {groupOrder.notes}
+                    </span>
+                  </div>
+                )}
               </div>
-
-              {groupOrder.deliveryAddress && (
-                <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Delivery Address
-                  </p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {groupOrder.deliveryAddress}
-                  </p>
-                </div>
-              )}
-
-              {groupOrder.notes && (
-                <div className="mt-4 rounded-xl bg-blue-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                    Notes
-                  </p>
-                  <p className="mt-1 text-sm text-blue-800">
-                    {groupOrder.notes}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-slate-200 shadow-none">
+          <Card className="rounded-lg border-slate-200 shadow-none">
             <CardContent className="p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -277,7 +311,7 @@ export function GroupOrderDetailsPage() {
 
               <div className="mt-5">
                 {orders.length > 0 ? (
-                  <GroupOrderOrdersTable orders={orders} />
+                  <GroupOrderOrdersTable orders={groupOrder.orders ?? []} />
                 ) : (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
                     <CircleDollarSign className="mx-auto h-8 w-8 text-slate-400" />
@@ -325,103 +359,22 @@ function StatCard({ label, value, highlight }: StatCardProps) {
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border bg-white p-5",
-        highlight ? "border-amber-200" : "border-slate-200"
+        "rounded-xl border bg-white px-3.5 py-3",
+        highlight ? "border-amber-200 bg-amber-50/40" : "border-slate-200",
       )}
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
 
       <p
         className={cn(
-          "mt-2 text-2xl font-semibold",
-          highlight ? "text-amber-700" : "text-slate-900"
+          "mt-1 text-lg font-bold leading-none",
+          highlight ? "text-amber-700" : "text-slate-900",
         )}
       >
         {value}
       </p>
-    </div>
-  );
-}
-
-type GroupOrderOrdersTableProps = {
-  orders: Array<{
-    id: string;
-    orderNumber: string;
-    status: string;
-    paymentStatus: string;
-    totalQty: number;
-    totalAmount: string | number;
-    advanceAmount: string | number;
-    balanceAmount: string | number;
-    promisedDate: string | null;
-    customer?: {
-      fullName: string;
-      phoneNumber: string | null;
-    };
-  }>;
-};
-
-function GroupOrderOrdersTable({ orders }: GroupOrderOrdersTableProps) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-slate-200">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Order</th>
-              <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 text-center font-semibold">Qty</th>
-              <th className="px-4 py-3 text-right font-semibold">Total</th>
-              <th className="px-4 py-3 text-right font-semibold">Advance</th>
-              <th className="px-4 py-3 text-right font-semibold">Balance</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Payment</th>
-              <th className="px-4 py-3 font-semibold">Promised</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100">
-            {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-semibold text-blue-700">
-                  {order.orderNumber}
-                </td>
-                <td className="px-4 py-3">
-                  <p className="font-medium text-slate-900">
-                    {order.customer?.fullName || "-"}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {order.customer?.phoneNumber || "-"}
-                  </p>
-                </td>
-                <td className="px-4 py-3 text-center">{order.totalQty}</td>
-                <td className="px-4 py-3 text-right">
-                  {formatCurrency(order.totalAmount)}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {formatCurrency(order.advanceAmount)}
-                </td>
-                <td className="px-4 py-3 text-right font-semibold text-amber-700">
-                  {formatCurrency(order.balanceAmount)}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                    {order.status.replaceAll("_", " ")}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                    {order.paymentStatus.replaceAll("_", " ")}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{formatDate(order.promisedDate)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

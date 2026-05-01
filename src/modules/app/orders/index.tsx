@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Download,
-  Plus,
-  Search,
-} from "lucide-react";
+import { Download, Plus, Search } from "lucide-react";
 
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
@@ -27,6 +24,12 @@ const fadeUp = {
 const PAGE_SIZE = 10;
 
 export default function OrdersPage() {
+  const navigate = useNavigate({ from: "/app/orders/" });
+
+  const orderSearch = useSearch({
+    from: "/_authenticated/app/orders/",
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -36,7 +39,30 @@ export default function OrdersPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const isCreateOpen = Boolean(orderSearch.addOrder);
+
+  const createOrderPrefill = useMemo(
+    () => ({
+      customerId: orderSearch.customerId,
+      measurementId: orderSearch.measurementId,
+      blockId: orderSearch.blockId,
+      categoryId: orderSearch.categoryId,
+    }),
+    [
+      orderSearch.customerId,
+      orderSearch.measurementId,
+      orderSearch.blockId,
+      orderSearch.categoryId,
+    ],
+  );
+
+  const hasCreateOrderPrefill = Boolean(
+    createOrderPrefill.customerId ||
+      createOrderPrefill.measurementId ||
+      createOrderPrefill.blockId ||
+      createOrderPrefill.categoryId,
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -65,6 +91,7 @@ export default function OrdersPage() {
   });
 
   const ordersList = ordersResponse?.data.items ?? [];
+
   const pagination = ordersResponse?.data.pagination ?? {
     page: currentPage,
     pageSize: PAGE_SIZE,
@@ -77,7 +104,7 @@ export default function OrdersPage() {
   const stats = useMemo(() => {
     const pending = ordersList.filter((o) => o.status === "PENDING").length;
     const inProgress = ordersList.filter(
-      (o) => o.status === "IN_PROGRESS"
+      (o) => o.status === "IN_PROGRESS",
     ).length;
     const completed = ordersList.filter((o) => o.status === "COMPLETED").length;
 
@@ -87,6 +114,44 @@ export default function OrdersPage() {
       completed,
     };
   }, [ordersList]);
+
+  const clearCreateOrderSearch = () => {
+    navigate({
+      replace: true,
+      search: (previous) => ({
+        ...previous,
+        addOrder: undefined,
+        customerId: undefined,
+        measurementId: undefined,
+        blockId: undefined,
+        categoryId: undefined,
+      }),
+    });
+  };
+
+  const handleCreateDialogOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      navigate({
+        search: (previous) => ({
+          ...previous,
+          addOrder: true,
+        }),
+      });
+
+      return;
+    }
+
+    clearCreateOrderSearch();
+  };
+
+  const handleOpenCreateOrder = () => {
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        addOrder: true,
+      }),
+    });
+  };
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -122,6 +187,13 @@ export default function OrdersPage() {
                 Manage tailoring orders, inspect item details, and review linked
                 customer and block information.
               </p>
+
+              {hasCreateOrderPrefill && isCreateOpen && (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                  Customer, block, category, and measurement are loaded from the
+                  dashboard flow.
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -130,7 +202,7 @@ export default function OrdersPage() {
                 Export
               </Button>
 
-              <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+              <Button className="gap-2" onClick={handleOpenCreateOrder}>
                 <Plus className="h-4 w-4" />
                 Create Order
               </Button>
@@ -248,6 +320,7 @@ export default function OrdersPage() {
               )}
 
               <button
+                type="button"
                 className="ml-auto text-sm text-blue-600 hover:text-blue-700"
                 onClick={handleClearFilters}
               >
@@ -256,26 +329,20 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div
-            className={cn(
-              isFetching && "opacity-70"
-            )}
-          >
+          <div className={cn(isFetching && "opacity-70")}>
             {isLoading ? (
               <div className="flex min-h-80 items-center justify-center text-sm text-slate-500">
                 Loading orders...
               </div>
             ) : (
-              <>
-                <OrdersTable
-                  orders={ordersList}
-                  currentPage={pagination.page}
-                  totalPages={pagination.totalPages}
-                  totalCount={pagination.totalItems}
-                  onPageChange={setCurrentPage}
-                  onViewDetails={handleViewDetails}
-                />
-              </>
+              <OrdersTable
+                orders={ordersList}
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                totalCount={pagination.totalItems}
+                onPageChange={setCurrentPage}
+                onViewDetails={handleViewDetails}
+              />
             )}
           </div>
 
@@ -287,10 +354,13 @@ export default function OrdersPage() {
 
           <CreateOrderDialog
             open={isCreateOpen}
-            onOpenChange={setIsCreateOpen}
+            onOpenChange={handleCreateDialogOpenChange}
+            prefill={createOrderPrefill}
             onSubmit={async (payload) => {
               console.log("create order payload", payload);
+
               await refetch();
+              clearCreateOrderSearch();
             }}
           />
         </motion.div>
