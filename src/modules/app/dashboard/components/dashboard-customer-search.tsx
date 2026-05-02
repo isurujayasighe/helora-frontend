@@ -739,7 +739,7 @@ export function DashboardCustomerSearchCard() {
 
   return (
     <>
-      <Card className="relative z-30 overflow-visible rounded-3xl border-slate-200 bg-white shadow-sm">
+      <Card className="relative z-30 overflow-visible rounded-lg border-slate-200 bg-white shadow-sm">
         <CardContent className="p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-[1fr_220px] sm:items-end">
             <div className="min-w-0">

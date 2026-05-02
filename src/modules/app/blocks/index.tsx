@@ -5,21 +5,38 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Blocks,
   Download,
+  Grid2x2,
   PackageCheck,
   Plus,
+  RefreshCw,
   Search,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 import { useGetBlocks } from "./api/useGetBlocks";
 import { BlocksTable } from "./components/blocks-table";
 import { BlockDetailsDialog } from "./components/block-details-dialog";
-
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -28,18 +45,27 @@ const fadeUp = {
 
 const PAGE_SIZE = 10;
 
+const blockStatusOptions = [
+  { value: "all", label: "All status" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "ARCHIVED", label: "Archived" },
+];
+
 export default function BlocksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [customerId, setCustomerId] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
+
   const [_addBlockOpen, setAddBlockOpen] = useState(false);
   const [_selectedEditBlockId, setSelectedEditBlockId] = useState<string | null>(
-    null,
+    null
   );
   const [_editBlockOpen, setEditBlockOpen] = useState(false);
 
@@ -59,13 +85,14 @@ export default function BlocksPage() {
     data: blocksResponse,
     isLoading,
     isFetching,
+    refetch,
   } = useGetBlocks({
     page: currentPage,
     pageSize: PAGE_SIZE,
     search: debouncedSearch || undefined,
     categoryId: categoryId || undefined,
     customerId: customerId || undefined,
-    status: status || undefined,
+    status: status === "all" ? undefined : status,
   });
 
   const blocksList = blocksResponse?.data.items ?? [];
@@ -81,291 +108,391 @@ export default function BlocksPage() {
 
   const stats = useMemo(() => {
     const activeBlocks = blocksList.filter(
-      (block) => block.status === "ACTIVE",
+      (block: any) => block.status === "ACTIVE"
     ).length;
 
-    const defaultBlocks = blocksList.filter((block) =>
-      block.customerBlocks?.some((item) => item.isDefault),
+    const defaultBlocks = blocksList.filter((block: any) =>
+      block.customerBlocks?.some((item: any) => item.isDefault)
     ).length;
 
     const totalOrderUses = blocksList.reduce(
-      (sum, block) => sum + (block._count?.orderItems ?? 0),
-      0,
+      (sum: number, block: any) => sum + (block._count?.orderItems ?? 0),
+      0
     );
 
     return {
-      totalBlocks: blocksList.length,
+      totalBlocks: pagination.totalItems,
       activeBlocks,
       defaultBlocks,
       totalOrderUses,
     };
-  }, [blocksList]);
+  }, [blocksList, pagination.totalItems]);
+
+  const handleViewBlock = (blockId: string) => {
+    setSelectedBlockId(blockId);
+    setBlockDetailsOpen(true);
+  };
 
   const handleClearFilters = () => {
     setSearchTerm("");
     setDebouncedSearch("");
     setCategoryId("");
     setCustomerId("");
-    setStatus("");
+    setStatus("all");
     setCurrentPage(1);
   };
 
+  const hasFilters = Boolean(
+    debouncedSearch || categoryId || customerId || status !== "all"
+  );
+
   return (
     <PermissionGate action="read" subject="Blocks">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key="blocks-page"
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className="mx-auto flex w-full flex-col gap-6 px-4 py-4 pb-10 sm:px-6 sm:py-6 lg:px-8 xl:px-10"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Blocks
-              </h1>
-              <p className="text-sm text-slate-500">
-                Manage customer tailoring blocks, categories, usage, and active
-                status.
-              </p>
-            </div>
+      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="helora-blocks-page"
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex h-full flex-col gap-4 p-3 md:p-5"
+          >
+            {/* Header */}
+            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+                  <Grid2x2 className="h-5 w-5" />
+                </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-
-              <Button className="gap-2" onClick={() => setAddBlockOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Add Block
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              label="Total Blocks"
-              value={stats.totalBlocks}
-              icon={Blocks}
-            />
-            <StatCard
-              label="Active Blocks"
-              value={stats.activeBlocks}
-              icon={ShieldCheck}
-            />
-            <StatCard
-              label="Default Blocks"
-              value={stats.defaultBlocks}
-              icon={Blocks}
-            />
-            <StatCard
-              label="Order Uses"
-              value={stats.totalOrderUses}
-              icon={PackageCheck}
-            />
-          </div>
-
-          <div className="flex flex-col rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
-              <div className="flex flex-col xl:col-span-3">
-                <label className="mb-2 block text-xs font-medium text-slate-500">
-                  Search
-                </label>
-
-                <div className="relative flex items-center">
-                  <Search className="absolute left-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Search block no, customer, phone, size..."
-                    className="pl-9"
-                  />
+                <div className="min-w-0">
+                  <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
+                    Blocks
+                  </h1>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Manage reusable tailoring blocks, customer fits, categories,
+                    and order usage.
+                  </p>
                 </div>
               </div>
 
-              <div className="flex flex-col xl:col-span-2">
-                <label className="mb-2 block text-xs font-medium text-slate-500">
-                  Category ID
-                </label>
-
-                <Input
-                  value={categoryId}
-                  onChange={(event) => setCategoryId(event.target.value)}
-                  placeholder="categoryId"
-                />
-              </div>
-
-              <div className="flex flex-col xl:col-span-2">
-                <label className="mb-2 block text-xs font-medium text-slate-500">
-                  Customer ID
-                </label>
-
-                <Input
-                  value={customerId}
-                  onChange={(event) => setCustomerId(event.target.value)}
-                  placeholder="customerId"
-                />
-              </div>
-
-              <div className="flex flex-col xl:col-span-1">
-                <label className="mb-2 block text-xs font-medium text-slate-500">
-                  Status
-                </label>
-
-                <select
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isLoading || isFetching}
+                  className="h-9 rounded-lg bg-white font-bold"
                 >
-                  <option value="">All</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                  <option value="ARCHIVED">Archived</option>
-                </select>
+                  <RefreshCw
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      isFetching && "animate-spin"
+                    )}
+                  />
+                  Refresh
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg bg-white font-bold"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={() => setAddBlockOpen(true)}
+                  className="h-9 rounded-lg font-bold shadow-sm"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Block
+                </Button>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                Page Size: {PAGE_SIZE}
-              </span>
+            {/* Stats */}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <BlockStatCard
+                title="Total Blocks"
+                value={stats.totalBlocks}
+                description="All reusable block records"
+                icon={Blocks}
+              />
 
-              {debouncedSearch && (
-                <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                  Search: {debouncedSearch}
-                </span>
-              )}
+              <BlockStatCard
+                title="Active Blocks"
+                value={stats.activeBlocks}
+                description="Available for new orders"
+                icon={ShieldCheck}
+              />
 
-              {categoryId && (
-                <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                  Category: {categoryId}
-                </span>
-              )}
+              <BlockStatCard
+                title="Default Blocks"
+                value={stats.defaultBlocks}
+                description="Main blocks for customers"
+                icon={Star}
+              />
 
-              {customerId && (
-                <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                  Customer: {customerId}
-                </span>
-              )}
-
-              {status && (
-                <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                  Status: {status}
-                </span>
-              )}
-
-              <button
-                type="button"
-                className="ml-auto text-sm font-medium text-blue-600 hover:text-blue-700"
-                onClick={handleClearFilters}
-              >
-                Clear all filters
-              </button>
+              <BlockStatCard
+                title="Order Uses"
+                value={stats.totalOrderUses}
+                description="Times blocks were used in orders"
+                icon={PackageCheck}
+              />
             </div>
-          </div>
 
-          <div className={cn(isFetching && "opacity-70")}>
-            {isLoading ? (
-              <div className="flex min-h-80 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm text-slate-500">
-                Loading blocks...
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <BlocksTable
-                  blocks={blocksList}
-                  onViewBlock={(blockId) => {
-                    setSelectedBlockId(blockId);
-                    setBlockDetailsOpen(true);
-                  }}
-                  onEditBlock={(blockId) => {
-                    setSelectedEditBlockId(blockId);
-                    setEditBlockOpen(true);
-                  }}
-                />
+            {/* Filters */}
+            <Card className="rounded-lg border-slate-200 shadow-sm">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+                  <div className="grid w-full gap-3 md:grid-cols-2 xl:max-w-5xl xl:grid-cols-[minmax(0,1.6fr)_180px_180px_180px]">
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Search
+                      </label>
 
-                <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-slate-500">
-                    Showing page{" "}
-                    <span className="font-medium text-slate-900">
-                      {pagination.page}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-medium text-slate-900">
-                      {pagination.totalPages}
-                    </span>{" "}
-                    —{" "}
-                    <span className="font-medium text-slate-900">
-                      {pagination.totalItems}
-                    </span>{" "}
-                    blocks
-                  </p>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!pagination.hasPreviousPage}
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
+                        <Input
+                          value={searchTerm}
+                          onChange={(event) =>
+                            setSearchTerm(event.target.value)
+                          }
+                          placeholder="Search block no, customer, phone, size..."
+                          className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Category
+                      </label>
+
+                      <Input
+                        value={categoryId}
+                        onChange={(event) => setCategoryId(event.target.value)}
+                        placeholder="Category ID"
+                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Customer
+                      </label>
+
+                      <Input
+                        value={customerId}
+                        onChange={(event) => setCustomerId(event.target.value)}
+                        placeholder="Customer ID"
+                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Status
+                      </label>
+
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus:ring-0">
+                          <SelectValue placeholder="All status" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {blockStatusOptions.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
                     >
-                      Previous
-                    </Button>
+                      Page size: {PAGE_SIZE}
+                    </Badge>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!pagination.hasNextPage}
-                      onClick={() => setCurrentPage((prev) => prev + 1)}
-                    >
-                      Next
-                    </Button>
+                    {debouncedSearch && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Search: {debouncedSearch}
+                      </Badge>
+                    )}
+
+                    {categoryId && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Category: {categoryId}
+                      </Badge>
+                    )}
+
+                    {customerId && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Customer: {customerId}
+                      </Badge>
+                    )}
+
+                    {status !== "all" && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Status: {formatBlockStatus(status)}
+                      </Badge>
+                    )}
+
+                    {hasFilters && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleClearFilters}
+                        className="h-10 rounded-lg font-bold text-slate-500 hover:text-slate-900"
+                      >
+                        Clear
+                      </Button>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-            <BlockDetailsDialog
-              blockId={selectedBlockId}
-              open={blockDetailsOpen}
-              onOpenChange={(open) => {
-                setBlockDetailsOpen(open);
+              </CardContent>
+            </Card>
 
-                if (!open) {
-                  setSelectedBlockId(null);
-                }
-              }}
-            />
+            {/* Table */}
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base font-black text-slate-950">
+                      Block List
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+                      View customer blocks, default fit, category, status, and
+                      order usage.
+                    </CardDescription>
+                  </div>
 
-          
-          </div>
-        </motion.div>
-      </AnimatePresence>
+                  <Badge
+                    variant="outline"
+                    className="hidden rounded-lg px-3 py-1 font-bold text-slate-600 sm:inline-flex"
+                  >
+                    {pagination.totalItems} blocks
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent
+                className={cn(
+                  "min-h-0 flex-1 overflow-auto p-0",
+                  isFetching && "opacity-70"
+                )}
+              >
+                {isLoading ? (
+                  <BlocksLoadingState />
+                ) : (
+                  <BlocksTable
+                    blocks={blocksList}
+                    onViewBlock={handleViewBlock}
+                    onEditBlock={(blockId: string) => {
+                      setSelectedEditBlockId(blockId);
+                      setEditBlockOpen(true);
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
+
+        <BlockDetailsDialog
+          blockId={selectedBlockId}
+          open={blockDetailsOpen}
+          onOpenChange={(open) => {
+            setBlockDetailsOpen(open);
+
+            if (!open) {
+              setSelectedBlockId(null);
+            }
+          }}
+        />
+      </div>
     </PermissionGate>
   );
 }
 
-type StatCardProps = {
-  label: string;
+type BlockStatCardProps = {
+  title: string;
   value: number;
+  description: string;
   icon: React.ElementType;
 };
 
-function StatCard({ label, value, icon: Icon }: StatCardProps) {
+function BlockStatCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+}: BlockStatCardProps) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-5">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-          {label}
-        </p>
-        <p className="mt-2 text-3xl font-semibold text-slate-900">{value}</p>
-      </div>
+    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-slate-500">{title}</p>
 
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-        <Icon className="h-5 w-5" />
-      </div>
+            <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+              {value}
+            </p>
+
+            <p className="mt-1 text-xs font-semibold text-slate-400">
+              {description}
+            </p>
+          </div>
+
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BlocksLoadingState() {
+  return (
+    <div className="grid gap-3 p-4">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-16 animate-pulse rounded-lg bg-slate-100"
+        />
+      ))}
     </div>
   );
+}
+
+function formatBlockStatus(status: string) {
+  const map: Record<string, string> = {
+    ACTIVE: "Active",
+    INACTIVE: "Inactive",
+    ARCHIVED: "Archived",
+  };
+
+  return map[status] ?? status;
 }

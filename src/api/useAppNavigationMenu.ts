@@ -25,6 +25,13 @@ const MOCK_MENU_RESPONSE: MenuItem[] = [
     title: "Orders",
     url: "/app/group-orders",
     icon: "SendToBack",
+    items: [
+      {
+        title: "All Group Orders",  
+        url: "/app/group-orders",
+        icon: "SendToBack",
+      },
+    ],
   },
   {
     title: "Customers",

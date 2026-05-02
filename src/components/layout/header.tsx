@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
+import { SidebarTrigger } from '../ui/sidebar'
 
 interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
   fixed?: boolean
@@ -36,7 +37,7 @@ export const Header = ({
       )}
       {...props}
     >
-      {/* <SidebarTrigger variant='ghost' className='scale-125 sm:scale-100' /> */}
+      <SidebarTrigger variant='ghost' className='scale-125 sm:scale-100' />
       
       {children}
     </header>

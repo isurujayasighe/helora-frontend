@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link, Outlet, useMatches } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { SidebarProvider } from "@/components/ui/sidebar"; // Ensure SidebarTrigger is imported
-import { AppSideBar } from "./app-sidebar";
+import { EnterpriseSidebar } from "./app-sidebar";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 
@@ -27,8 +27,8 @@ export function AuthenticatedLayout() {
   const isFixedLayout = staticData?.layout === "fixed";
   const tenant = useTenantStore((state) => state.tenant);
   return (
-    <SidebarProvider defaultOpen={false}>
-      <AppSideBar />
+    <SidebarProvider defaultOpen={true}>
+      <EnterpriseSidebar />
 
       <div
         id="content"

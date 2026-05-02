@@ -16,17 +16,22 @@ import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-pas
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as authActivateAccountRouteImport } from './routes/(auth)/activate-account'
-import { Route as AuthenticatedAdminUsersRouteRouteImport } from './routes/_authenticated/admin/users/route'
+import { Route as AuthenticatedAppWhatsappRouteRouteImport } from './routes/_authenticated/app/whatsapp/route'
+import { Route as AuthenticatedAppUsersRouteRouteImport } from './routes/_authenticated/app/users/route'
+import { Route as AuthenticatedAppMeasurementsRouteRouteImport } from './routes/_authenticated/app/measurements/route'
+import { Route as AuthenticatedAppCategoryRouteRouteImport } from './routes/_authenticated/app/category/route'
 import { Route as AuthenticatedAppSupportIndexRouteImport } from './routes/_authenticated/app/support/index'
+import { Route as AuthenticatedAppSettingsIndexRouteImport } from './routes/_authenticated/app/settings/index'
+import { Route as AuthenticatedAppRolePermissionIndexRouteImport } from './routes/_authenticated/app/role-permission/index'
 import { Route as AuthenticatedAppProfileIndexRouteImport } from './routes/_authenticated/app/profile/index'
 import { Route as AuthenticatedAppOrdersIndexRouteImport } from './routes/_authenticated/app/orders/index'
 import { Route as AuthenticatedAppGroupOrdersIndexRouteImport } from './routes/_authenticated/app/group-orders/index'
+import { Route as AuthenticatedAppEmployeesIndexRouteImport } from './routes/_authenticated/app/employees/index'
 import { Route as AuthenticatedAppDashboardIndexRouteImport } from './routes/_authenticated/app/dashboard/index'
 import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_authenticated/app/customers/index'
 import { Route as AuthenticatedAppBlocksIndexRouteImport } from './routes/_authenticated/app/blocks/index'
+import { Route as AuthenticatedAppAttendanceIndexRouteImport } from './routes/_authenticated/app/attendance/index'
 import { Route as AuthenticatedAppAccountIndexRouteImport } from './routes/_authenticated/app/account/index'
-import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/admin/settings/index'
-import { Route as AuthenticatedAdminRolePermissionsIndexRouteImport } from './routes/_authenticated/admin/role-permissions/index'
 import { Route as AuthenticatedAdminPendingIndexRouteImport } from './routes/_authenticated/admin/pending/index'
 import { Route as AuthenticatedAdminDashboardIndexRouteImport } from './routes/_authenticated/admin/dashboard/index'
 import { Route as AuthenticatedAdminActivityLogIndexRouteImport } from './routes/_authenticated/admin/activity-log/index'
@@ -66,16 +71,46 @@ const authActivateAccountRoute = authActivateAccountRouteImport.update({
   path: '/activate-account',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminUsersRouteRoute =
-  AuthenticatedAdminUsersRouteRouteImport.update({
-    id: '/admin/users',
-    path: '/admin/users',
+const AuthenticatedAppWhatsappRouteRoute =
+  AuthenticatedAppWhatsappRouteRouteImport.update({
+    id: '/app/whatsapp',
+    path: '/app/whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppUsersRouteRoute =
+  AuthenticatedAppUsersRouteRouteImport.update({
+    id: '/app/users',
+    path: '/app/users',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppMeasurementsRouteRoute =
+  AuthenticatedAppMeasurementsRouteRouteImport.update({
+    id: '/app/measurements',
+    path: '/app/measurements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppCategoryRouteRoute =
+  AuthenticatedAppCategoryRouteRouteImport.update({
+    id: '/app/category',
+    path: '/app/category',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppSupportIndexRoute =
   AuthenticatedAppSupportIndexRouteImport.update({
     id: '/app/support/',
     path: '/app/support/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppSettingsIndexRoute =
+  AuthenticatedAppSettingsIndexRouteImport.update({
+    id: '/app/settings/',
+    path: '/app/settings/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppRolePermissionIndexRoute =
+  AuthenticatedAppRolePermissionIndexRouteImport.update({
+    id: '/app/role-permission/',
+    path: '/app/role-permission/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppProfileIndexRoute =
@@ -96,6 +131,12 @@ const AuthenticatedAppGroupOrdersIndexRoute =
     path: '/app/group-orders/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppEmployeesIndexRoute =
+  AuthenticatedAppEmployeesIndexRouteImport.update({
+    id: '/app/employees/',
+    path: '/app/employees/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppDashboardIndexRoute =
   AuthenticatedAppDashboardIndexRouteImport.update({
     id: '/app/dashboard/',
@@ -114,22 +155,16 @@ const AuthenticatedAppBlocksIndexRoute =
     path: '/app/blocks/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppAttendanceIndexRoute =
+  AuthenticatedAppAttendanceIndexRouteImport.update({
+    id: '/app/attendance/',
+    path: '/app/attendance/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppAccountIndexRoute =
   AuthenticatedAppAccountIndexRouteImport.update({
     id: '/app/account/',
     path: '/app/account/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminSettingsIndexRoute =
-  AuthenticatedAdminSettingsIndexRouteImport.update({
-    id: '/admin/settings/',
-    path: '/admin/settings/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminRolePermissionsIndexRoute =
-  AuthenticatedAdminRolePermissionsIndexRouteImport.update({
-    id: '/admin/role-permissions/',
-    path: '/admin/role-permissions/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminPendingIndexRoute =
@@ -164,20 +199,25 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
   '/reset-password': typeof authResetPasswordRoute
-  '/admin/users': typeof AuthenticatedAdminUsersRouteRoute
+  '/app/category': typeof AuthenticatedAppCategoryRouteRoute
+  '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
+  '/app/users': typeof AuthenticatedAppUsersRouteRoute
+  '/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   '/admin/activity-log/': typeof AuthenticatedAdminActivityLogIndexRoute
   '/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
   '/admin/pending/': typeof AuthenticatedAdminPendingIndexRoute
-  '/admin/role-permissions/': typeof AuthenticatedAdminRolePermissionsIndexRoute
-  '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/app/account/': typeof AuthenticatedAppAccountIndexRoute
+  '/app/attendance/': typeof AuthenticatedAppAttendanceIndexRoute
   '/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
+  '/app/employees/': typeof AuthenticatedAppEmployeesIndexRoute
   '/app/group-orders/': typeof AuthenticatedAppGroupOrdersIndexRoute
   '/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
   '/app/profile/': typeof AuthenticatedAppProfileIndexRoute
+  '/app/role-permission/': typeof AuthenticatedAppRolePermissionIndexRoute
+  '/app/settings/': typeof AuthenticatedAppSettingsIndexRoute
   '/app/support/': typeof AuthenticatedAppSupportIndexRoute
 }
 export interface FileRoutesByTo {
@@ -187,20 +227,25 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
   '/reset-password': typeof authResetPasswordRoute
-  '/admin/users': typeof AuthenticatedAdminUsersRouteRoute
+  '/app/category': typeof AuthenticatedAppCategoryRouteRoute
+  '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
+  '/app/users': typeof AuthenticatedAppUsersRouteRoute
+  '/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   '/admin/activity-log': typeof AuthenticatedAdminActivityLogIndexRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardIndexRoute
   '/admin/pending': typeof AuthenticatedAdminPendingIndexRoute
-  '/admin/role-permissions': typeof AuthenticatedAdminRolePermissionsIndexRoute
-  '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
   '/app/account': typeof AuthenticatedAppAccountIndexRoute
+  '/app/attendance': typeof AuthenticatedAppAttendanceIndexRoute
   '/app/blocks': typeof AuthenticatedAppBlocksIndexRoute
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardIndexRoute
+  '/app/employees': typeof AuthenticatedAppEmployeesIndexRoute
   '/app/group-orders': typeof AuthenticatedAppGroupOrdersIndexRoute
   '/app/orders': typeof AuthenticatedAppOrdersIndexRoute
   '/app/profile': typeof AuthenticatedAppProfileIndexRoute
+  '/app/role-permission': typeof AuthenticatedAppRolePermissionIndexRoute
+  '/app/settings': typeof AuthenticatedAppSettingsIndexRoute
   '/app/support': typeof AuthenticatedAppSupportIndexRoute
 }
 export interface FileRoutesById {
@@ -212,20 +257,25 @@ export interface FileRoutesById {
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
-  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRouteRoute
+  '/_authenticated/app/category': typeof AuthenticatedAppCategoryRouteRoute
+  '/_authenticated/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
+  '/_authenticated/app/users': typeof AuthenticatedAppUsersRouteRoute
+  '/_authenticated/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/_authenticated/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   '/_authenticated/admin/activity-log/': typeof AuthenticatedAdminActivityLogIndexRoute
   '/_authenticated/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
   '/_authenticated/admin/pending/': typeof AuthenticatedAdminPendingIndexRoute
-  '/_authenticated/admin/role-permissions/': typeof AuthenticatedAdminRolePermissionsIndexRoute
-  '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/_authenticated/app/account/': typeof AuthenticatedAppAccountIndexRoute
+  '/_authenticated/app/attendance/': typeof AuthenticatedAppAttendanceIndexRoute
   '/_authenticated/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/_authenticated/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
+  '/_authenticated/app/employees/': typeof AuthenticatedAppEmployeesIndexRoute
   '/_authenticated/app/group-orders/': typeof AuthenticatedAppGroupOrdersIndexRoute
   '/_authenticated/app/orders/': typeof AuthenticatedAppOrdersIndexRoute
   '/_authenticated/app/profile/': typeof AuthenticatedAppProfileIndexRoute
+  '/_authenticated/app/role-permission/': typeof AuthenticatedAppRolePermissionIndexRoute
+  '/_authenticated/app/settings/': typeof AuthenticatedAppSettingsIndexRoute
   '/_authenticated/app/support/': typeof AuthenticatedAppSupportIndexRoute
 }
 export interface FileRouteTypes {
@@ -237,20 +287,25 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/admin/users'
+    | '/app/category'
+    | '/app/measurements'
+    | '/app/users'
+    | '/app/whatsapp'
     | '/app/group-orders/$groupOrderId'
     | '/admin/activity-log/'
     | '/admin/dashboard/'
     | '/admin/pending/'
-    | '/admin/role-permissions/'
-    | '/admin/settings/'
     | '/app/account/'
+    | '/app/attendance/'
     | '/app/blocks/'
     | '/app/customers/'
     | '/app/dashboard/'
+    | '/app/employees/'
     | '/app/group-orders/'
     | '/app/orders/'
     | '/app/profile/'
+    | '/app/role-permission/'
+    | '/app/settings/'
     | '/app/support/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -260,20 +315,25 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/admin/users'
+    | '/app/category'
+    | '/app/measurements'
+    | '/app/users'
+    | '/app/whatsapp'
     | '/app/group-orders/$groupOrderId'
     | '/admin/activity-log'
     | '/admin/dashboard'
     | '/admin/pending'
-    | '/admin/role-permissions'
-    | '/admin/settings'
     | '/app/account'
+    | '/app/attendance'
     | '/app/blocks'
     | '/app/customers'
     | '/app/dashboard'
+    | '/app/employees'
     | '/app/group-orders'
     | '/app/orders'
     | '/app/profile'
+    | '/app/role-permission'
+    | '/app/settings'
     | '/app/support'
   id:
     | '__root__'
@@ -284,20 +344,25 @@ export interface FileRouteTypes {
     | '/(auth)/forgot-password'
     | '/(auth)/login'
     | '/(auth)/reset-password'
-    | '/_authenticated/admin/users'
+    | '/_authenticated/app/category'
+    | '/_authenticated/app/measurements'
+    | '/_authenticated/app/users'
+    | '/_authenticated/app/whatsapp'
     | '/_authenticated/app/group-orders/$groupOrderId'
     | '/_authenticated/admin/activity-log/'
     | '/_authenticated/admin/dashboard/'
     | '/_authenticated/admin/pending/'
-    | '/_authenticated/admin/role-permissions/'
-    | '/_authenticated/admin/settings/'
     | '/_authenticated/app/account/'
+    | '/_authenticated/app/attendance/'
     | '/_authenticated/app/blocks/'
     | '/_authenticated/app/customers/'
     | '/_authenticated/app/dashboard/'
+    | '/_authenticated/app/employees/'
     | '/_authenticated/app/group-orders/'
     | '/_authenticated/app/orders/'
     | '/_authenticated/app/profile/'
+    | '/_authenticated/app/role-permission/'
+    | '/_authenticated/app/settings/'
     | '/_authenticated/app/support/'
   fileRoutesById: FileRoutesById
 }
@@ -362,11 +427,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authActivateAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/users': {
-      id: '/_authenticated/admin/users'
-      path: '/admin/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AuthenticatedAdminUsersRouteRouteImport
+    '/_authenticated/app/whatsapp': {
+      id: '/_authenticated/app/whatsapp'
+      path: '/app/whatsapp'
+      fullPath: '/app/whatsapp'
+      preLoaderRoute: typeof AuthenticatedAppWhatsappRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/users': {
+      id: '/_authenticated/app/users'
+      path: '/app/users'
+      fullPath: '/app/users'
+      preLoaderRoute: typeof AuthenticatedAppUsersRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/measurements': {
+      id: '/_authenticated/app/measurements'
+      path: '/app/measurements'
+      fullPath: '/app/measurements'
+      preLoaderRoute: typeof AuthenticatedAppMeasurementsRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/category': {
+      id: '/_authenticated/app/category'
+      path: '/app/category'
+      fullPath: '/app/category'
+      preLoaderRoute: typeof AuthenticatedAppCategoryRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/support/': {
@@ -374,6 +460,20 @@ declare module '@tanstack/react-router' {
       path: '/app/support'
       fullPath: '/app/support/'
       preLoaderRoute: typeof AuthenticatedAppSupportIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/settings/': {
+      id: '/_authenticated/app/settings/'
+      path: '/app/settings'
+      fullPath: '/app/settings/'
+      preLoaderRoute: typeof AuthenticatedAppSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/role-permission/': {
+      id: '/_authenticated/app/role-permission/'
+      path: '/app/role-permission'
+      fullPath: '/app/role-permission/'
+      preLoaderRoute: typeof AuthenticatedAppRolePermissionIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/profile/': {
@@ -397,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppGroupOrdersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/employees/': {
+      id: '/_authenticated/app/employees/'
+      path: '/app/employees'
+      fullPath: '/app/employees/'
+      preLoaderRoute: typeof AuthenticatedAppEmployeesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/dashboard/': {
       id: '/_authenticated/app/dashboard/'
       path: '/app/dashboard'
@@ -418,25 +525,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBlocksIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/attendance/': {
+      id: '/_authenticated/app/attendance/'
+      path: '/app/attendance'
+      fullPath: '/app/attendance/'
+      preLoaderRoute: typeof AuthenticatedAppAttendanceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/account/': {
       id: '/_authenticated/app/account/'
       path: '/app/account'
       fullPath: '/app/account/'
       preLoaderRoute: typeof AuthenticatedAppAccountIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/settings/': {
-      id: '/_authenticated/admin/settings/'
-      path: '/admin/settings'
-      fullPath: '/admin/settings/'
-      preLoaderRoute: typeof AuthenticatedAdminSettingsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/role-permissions/': {
-      id: '/_authenticated/admin/role-permissions/'
-      path: '/admin/role-permissions'
-      fullPath: '/admin/role-permissions/'
-      preLoaderRoute: typeof AuthenticatedAdminRolePermissionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/pending/': {
@@ -471,41 +571,52 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminUsersRouteRoute: typeof AuthenticatedAdminUsersRouteRoute
+  AuthenticatedAppCategoryRouteRoute: typeof AuthenticatedAppCategoryRouteRoute
+  AuthenticatedAppMeasurementsRouteRoute: typeof AuthenticatedAppMeasurementsRouteRoute
+  AuthenticatedAppUsersRouteRoute: typeof AuthenticatedAppUsersRouteRoute
+  AuthenticatedAppWhatsappRouteRoute: typeof AuthenticatedAppWhatsappRouteRoute
   AuthenticatedAppGroupOrdersGroupOrderIdRoute: typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
   AuthenticatedAdminActivityLogIndexRoute: typeof AuthenticatedAdminActivityLogIndexRoute
   AuthenticatedAdminDashboardIndexRoute: typeof AuthenticatedAdminDashboardIndexRoute
   AuthenticatedAdminPendingIndexRoute: typeof AuthenticatedAdminPendingIndexRoute
-  AuthenticatedAdminRolePermissionsIndexRoute: typeof AuthenticatedAdminRolePermissionsIndexRoute
-  AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
   AuthenticatedAppAccountIndexRoute: typeof AuthenticatedAppAccountIndexRoute
+  AuthenticatedAppAttendanceIndexRoute: typeof AuthenticatedAppAttendanceIndexRoute
   AuthenticatedAppBlocksIndexRoute: typeof AuthenticatedAppBlocksIndexRoute
   AuthenticatedAppCustomersIndexRoute: typeof AuthenticatedAppCustomersIndexRoute
   AuthenticatedAppDashboardIndexRoute: typeof AuthenticatedAppDashboardIndexRoute
+  AuthenticatedAppEmployeesIndexRoute: typeof AuthenticatedAppEmployeesIndexRoute
   AuthenticatedAppGroupOrdersIndexRoute: typeof AuthenticatedAppGroupOrdersIndexRoute
   AuthenticatedAppOrdersIndexRoute: typeof AuthenticatedAppOrdersIndexRoute
   AuthenticatedAppProfileIndexRoute: typeof AuthenticatedAppProfileIndexRoute
+  AuthenticatedAppRolePermissionIndexRoute: typeof AuthenticatedAppRolePermissionIndexRoute
+  AuthenticatedAppSettingsIndexRoute: typeof AuthenticatedAppSettingsIndexRoute
   AuthenticatedAppSupportIndexRoute: typeof AuthenticatedAppSupportIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminUsersRouteRoute: AuthenticatedAdminUsersRouteRoute,
+  AuthenticatedAppCategoryRouteRoute: AuthenticatedAppCategoryRouteRoute,
+  AuthenticatedAppMeasurementsRouteRoute:
+    AuthenticatedAppMeasurementsRouteRoute,
+  AuthenticatedAppUsersRouteRoute: AuthenticatedAppUsersRouteRoute,
+  AuthenticatedAppWhatsappRouteRoute: AuthenticatedAppWhatsappRouteRoute,
   AuthenticatedAppGroupOrdersGroupOrderIdRoute:
     AuthenticatedAppGroupOrdersGroupOrderIdRoute,
   AuthenticatedAdminActivityLogIndexRoute:
     AuthenticatedAdminActivityLogIndexRoute,
   AuthenticatedAdminDashboardIndexRoute: AuthenticatedAdminDashboardIndexRoute,
   AuthenticatedAdminPendingIndexRoute: AuthenticatedAdminPendingIndexRoute,
-  AuthenticatedAdminRolePermissionsIndexRoute:
-    AuthenticatedAdminRolePermissionsIndexRoute,
-  AuthenticatedAdminSettingsIndexRoute: AuthenticatedAdminSettingsIndexRoute,
   AuthenticatedAppAccountIndexRoute: AuthenticatedAppAccountIndexRoute,
+  AuthenticatedAppAttendanceIndexRoute: AuthenticatedAppAttendanceIndexRoute,
   AuthenticatedAppBlocksIndexRoute: AuthenticatedAppBlocksIndexRoute,
   AuthenticatedAppCustomersIndexRoute: AuthenticatedAppCustomersIndexRoute,
   AuthenticatedAppDashboardIndexRoute: AuthenticatedAppDashboardIndexRoute,
+  AuthenticatedAppEmployeesIndexRoute: AuthenticatedAppEmployeesIndexRoute,
   AuthenticatedAppGroupOrdersIndexRoute: AuthenticatedAppGroupOrdersIndexRoute,
   AuthenticatedAppOrdersIndexRoute: AuthenticatedAppOrdersIndexRoute,
   AuthenticatedAppProfileIndexRoute: AuthenticatedAppProfileIndexRoute,
+  AuthenticatedAppRolePermissionIndexRoute:
+    AuthenticatedAppRolePermissionIndexRoute,
+  AuthenticatedAppSettingsIndexRoute: AuthenticatedAppSettingsIndexRoute,
   AuthenticatedAppSupportIndexRoute: AuthenticatedAppSupportIndexRoute,
 }
 

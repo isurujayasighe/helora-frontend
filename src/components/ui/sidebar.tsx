@@ -25,7 +25,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+const SIDEBAR_WIDTH = "15rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "5rem" // Your updated width
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -218,8 +218,8 @@ function Sidebar({
         className={cn(
           "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
-            ? "left-0 group-data-[collapsible=offExamples]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offExamples]:right-[calc(var(--sidebar-width)*-1)]",
+            ? "left-0 group-data-[collapsible=offExamples]:-left-(--sidebar-width)"
+            : "right-0 group-data-[collapsible=offExamples]:-right-(--sidebar-width)",
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
@@ -321,7 +321,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn("gap-0 p-2 h-14 flex flex-col bg-sidebar", className)}
+      className={cn("gap-0 h-14 flex flex-col bg-sidebar", className)}
       {...props}
     />
   )
@@ -486,12 +486,12 @@ function SidebarMenuButton({
   className,
   ...props
 }: React.ComponentProps<"button"> & {
-  asChild?: boolean
-  isActive?: boolean
-  tooltip?: string | React.ComponentProps<typeof TooltipContent>
+  asChild?: boolean;
+  isActive?: boolean;
+  tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
-  const Comp = asChild ? Slot.Root : "button"
-  const { isMobile, state } = useSidebar()
+  const Comp = asChild ? Slot.Root : "button";
+  const { isMobile, state } = useSidebar();
 
   const button = (
     <Comp
@@ -501,19 +501,27 @@ function SidebarMenuButton({
       data-active={isActive}
       className={cn(
         sidebarMenuButtonVariants({ variant, size }),
-        // ADD THESE CLASSES BELOW:
-        "group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0",
-        "group-data-[collapsible=icon]:[&>span]:hidden", // This hides the text labels
+
+        /**
+         * Collapsed sidebar behavior
+         * Keep icon centered and make button square.
+         * Do NOT globally hide all spans here.
+         */
+        "group-data-[collapsible=icon]:h-11!",
+        "group-data-[collapsible=icon]:w-11!",
+        "group-data-[collapsible=icon]:justify-center",
+        "group-data-[collapsible=icon]:px-0",
+
         className
       )}
       {...props}
     />
-  )
+  );
 
-  if (!tooltip) return button
+  if (!tooltip) return button;
 
   if (typeof tooltip === "string") {
-    tooltip = { children: tooltip }
+    tooltip = { children: tooltip };
   }
 
   return (
@@ -522,12 +530,12 @@ function SidebarMenuButton({
       <TooltipContent
         side="right"
         align="center"
-        className="bg-slate-900 text-white"
+        className="border-slate-800 bg-slate-900 text-white"
         hidden={state !== "collapsed" || isMobile}
         {...tooltip}
       />
     </Tooltip>
-  )
+  );
 }
 
 function SidebarMenuAction({
