@@ -1,66 +1,67 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { covalentHubClient } from "@/services/clients/covalent.client";
 import type { AxiosError } from "axios";
 
-/* ------------------------------------------------------------------ */
-/* 1. Types & Constants                                               */
-/* ------------------------------------------------------------------ */
+import { covalentHubClient } from "@/services/clients/covalent.client";
+import type { ApiResponse } from "@/types/api-response.types";
+import type {
+  Role,
+  RoleListQueryParams,
+  RolesListResponse,
+} from "../modules/app/roles/types/role.types";
 
-export interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-}
-
-interface RolesApiResponse {
-  success: boolean;
-  data: Role[]; // The actual array is here
-  error: null | string;
-}
+/* ------------------------------------------------------------------ */
+/* Query Keys                                                         */
+/* ------------------------------------------------------------------ */
 
 export const roleKeys = {
   all: ["roles"] as const,
   lists: () => [...roleKeys.all, "list"] as const,
+  list: (params?: RoleListQueryParams) =>
+    [...roleKeys.lists(), params ?? {}] as const,
   detail: (id: string) => [...roleKeys.all, "detail", id] as const,
 };
 
 /* ------------------------------------------------------------------ */
-/* 2. The Fetcher                                                     */
+/* Fetcher                                                            */
 /* ------------------------------------------------------------------ */
 
-export const getRoles = async (): Promise<Role[]> => {
-  // Your interceptor returns response.data automatically
-  const response = await covalentHubClient.get<RolesApiResponse>("/auth-service/api/TenantRoles");
-  
-  // Access the array from the RolesApiResponse object
-  return response.data.data; 
+export const getRoles = async (
+  params?: RoleListQueryParams,
+): Promise<RolesListResponse> => {
+  const response = await covalentHubClient.get<ApiResponse<RolesListResponse>>(
+    "/roles",
+    {
+      params,
+    },
+  );
+
+  return response.data.data;
 };
 
 /* ------------------------------------------------------------------ */
-/* 3. The Hook                                                        */
+/* Hook                                                               */
 /* ------------------------------------------------------------------ */
 
-type UseGetRolesOptions<TData = Role[]> = {
-  select?: (data: Role[]) => TData;
-  // Use Omit to prevent the user from overriding the internal logic 
-  // and ensure the Generic types align with TanStack Query's expectations
-  config?: Omit<UseQueryOptions<Role[], AxiosError, TData>, 'queryKey' | 'queryFn' | 'select'>;
+type UseGetRolesOptions<TData = RolesListResponse> = {
+  params?: RoleListQueryParams;
+  select?: (data: RolesListResponse) => TData;
+  config?: Omit<
+    UseQueryOptions<RolesListResponse, AxiosError, TData>,
+    "queryKey" | "queryFn" | "select"
+  >;
 };
 
-export const useGetRoles = <TData = Role[]>({ 
-  select, 
-  config 
+export const useGetRoles = <TData = RolesListResponse>({
+  params,
+  select,
+  config,
 }: UseGetRolesOptions<TData> = {}) => {
-  // Explicitly map the generics: <SourceData, ErrorType, TransformedData>
-  return useQuery<Role[], AxiosError, TData>({
-    queryKey: roleKeys.lists(),
-    queryFn: getRoles,
-    
+  return useQuery<RolesListResponse, AxiosError, TData>({
+    queryKey: roleKeys.list(params),
+    queryFn: () => getRoles(params),
     select,
-    
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    
     ...config,
   });
 };

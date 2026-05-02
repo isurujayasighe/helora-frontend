@@ -1,9 +1,9 @@
+import { pageKeys } from "@/api/useGetPages"
 import { covalentHubClient } from "@/services/clients/covalent.client"
 import { queryClient, type MutationConfig } from "@/services/clients/queryClient"
 import { showToastError, showToastSuccess } from "@/utils/show-toast-success"
 import { useMutation } from "@tanstack/react-query"
 import type { AxiosError } from "axios"
-import { roleKeys } from "@/api/useGetRoles" // Importing the keys factory we made yesterday
 
 interface Params {
     roleId: string
@@ -31,7 +31,7 @@ export const useDeleteRole = (
             showToastSuccess("Delete Role", "Role successfully deleted!")
             
             // Invalidate the specific query key we defined yesterday
-            queryClient.invalidateQueries({ queryKey: roleKeys.lists() })
+            queryClient.invalidateQueries({ queryKey: pageKeys.lists() })
         },
         ...config
     })

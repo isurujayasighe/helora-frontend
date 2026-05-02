@@ -260,7 +260,7 @@ function RolesTabContent() {
         </div>
       </CardHeader>
 
-      <CardContent className="min-h-0 flex-1 overflow-auto p-4">
+      <CardContent className="min-h-0 flex-1 overflow-auto p-4 gap-0">
         <RolesTable />
       </CardContent>
     </Card>
