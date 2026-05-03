@@ -450,7 +450,9 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
-      className={cn("group/menu-item relative w-full flex justify-center", className)}
+      className={cn(  "group/menu-item relative flex w-full min-w-0 flex-col",
+        "group-data-[collapsible=icon]:w-full",
+        "group-data-[collapsible=icon]:items-center", className)}
       {...props}
     />
   )
@@ -486,12 +488,12 @@ function SidebarMenuButton({
   className,
   ...props
 }: React.ComponentProps<"button"> & {
-  asChild?: boolean;
-  isActive?: boolean;
-  tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+  asChild?: boolean
+  isActive?: boolean
+  tooltip?: string | React.ComponentProps<typeof TooltipContent>
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
-  const Comp = asChild ? Slot.Root : "button";
-  const { isMobile, state } = useSidebar();
+  const Comp = asChild ? Slot.Root : "button"
+  const { isMobile, state } = useSidebar()
 
   const button = (
     <Comp
@@ -503,25 +505,43 @@ function SidebarMenuButton({
         sidebarMenuButtonVariants({ variant, size }),
 
         /**
-         * Collapsed sidebar behavior
-         * Keep icon centered and make button square.
-         * Do NOT globally hide all spans here.
+         * Expanded sidebar:
+         * parent takes full width.
+         *
+         * Collapsed sidebar:
+         * parent becomes centered square icon button.
          */
         "group-data-[collapsible=icon]:h-11!",
         "group-data-[collapsible=icon]:w-11!",
+        "group-data-[collapsible=icon]:min-w-11!",
         "group-data-[collapsible=icon]:justify-center",
+        "group-data-[collapsible=icon]:gap-0",
         "group-data-[collapsible=icon]:px-0",
+
+        /**
+         * Keep SVG icon visible.
+         */
+        "group-data-[collapsible=icon]:[&>svg]:size-5",
+        "group-data-[collapsible=icon]:[&>svg]:shrink-0",
+
+        /**
+         * Hide direct text span and chevron in collapsed mode.
+         * This will NOT hide the svg icon.
+         */
+        "group-data-[collapsible=icon]:[&>span]:hidden",
+        "group-data-[collapsible=icon]:[&>svg+span]:hidden",
+        "group-data-[collapsible=icon]:[&>svg:last-child]:hidden",
 
         className
       )}
       {...props}
     />
-  );
+  )
 
-  if (!tooltip) return button;
+  if (!tooltip) return button
 
   if (typeof tooltip === "string") {
-    tooltip = { children: tooltip };
+    tooltip = { children: tooltip }
   }
 
   return (
@@ -535,9 +555,8 @@ function SidebarMenuButton({
         {...tooltip}
       />
     </Tooltip>
-  );
+  )
 }
-
 function SidebarMenuAction({
   className,
   asChild = false,
@@ -612,7 +631,7 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
     <ul
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
-      className={cn("border-sidebar-border mx-3.5 translate-x-px gap-1 border-l px-2.5 py-0.5 group-data-[collapsible=icon]:hidden flex min-w-0 flex-col", className)}
+      className={cn("border-sidebar-border mx-3.5 ml-5 translate-x-px gap-1 border-l px-2.5 py-0.5 group-data-[collapsible=icon]:hidden flex min-w-0 flex-col", className)}
       {...props}
     />
   )
