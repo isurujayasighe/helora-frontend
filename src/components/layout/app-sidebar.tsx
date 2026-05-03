@@ -2,24 +2,30 @@ import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   BarChart3,
-  Boxes,
-  CalendarClock,
-  ChevronRight,
+  Blocks,
+  CalendarCheck2,
   ClipboardList,
   CreditCard,
-  LayoutDashboard,
-  LogOut,
+  Gauge,
   MessageCircle,
-  MoreHorizontal,
+  PackageCheck,
+  ReceiptText,
   Ruler,
   Scissors,
   Settings,
   ShieldCheck,
   Shirt,
   Tags,
-  User,
+  UserCog,
   Users,
+  UserRound,
+  UserRoundCheck,
+  ChevronDown,
+  MoreHorizontal,
+  User,
+  LogOut,
 } from "lucide-react";
+
 
 import {
   Sidebar,
@@ -71,7 +77,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   {
     title: "Dashboard",
     url: "/app/dashboard",
-    icon: LayoutDashboard,
+    icon: Gauge,
   },
   {
     title: "Customers",
@@ -80,17 +86,22 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     title: "Orders",
-    icon: ClipboardList,
+    icon: ReceiptText,
     children: [
+      {
+        title: "Create Order",
+        url: "/app/create-order-page",
+        icon: ClipboardList,
+      },
       {
         title: "All Orders",
         url: "/app/orders",
-        icon: ClipboardList,
+        icon: PackageCheck,
       },
       {
         title: "Group Orders",
         url: "/app/group-orders",
-        icon: Boxes,
+        icon: Blocks,
       },
     ],
   },
@@ -109,7 +120,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
         icon: Ruler,
       },
       {
-        title: "Category",
+        title: "Categories",
         url: "/app/category",
         icon: Tags,
       },
@@ -122,17 +133,17 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     title: "Staff",
-    icon: User,
+    icon: UserRoundCheck,
     children: [
       {
         title: "Employees",
         url: "/app/employees",
-        icon: User,
+        icon: UserRound,
       },
       {
         title: "Attendance",
         url: "/app/attendance",
-        icon: CalendarClock,
+        icon: CalendarCheck2,
       },
     ],
   },
@@ -153,7 +164,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
       {
         title: "Users",
         url: "/app/users",
-        icon: Users,
+        icon: UserCog,
       },
       {
         title: "Roles & Access",
@@ -365,7 +376,7 @@ function EnterpriseSidebarItem({
               {item.title}
             </span>
 
-            <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
+            <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 

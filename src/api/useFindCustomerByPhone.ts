@@ -41,6 +41,7 @@ export interface CustomerByPhone {
   phoneNumber: string;
   alternatePhone?: string | null;
   town?: string | null;
+  hospitalName:string | null;
   address?: string | null;
   notes?: string | null;
   createdById?: string;

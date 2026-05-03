@@ -69,6 +69,7 @@ export type CustomerDetails = {
   phoneNumber: string;
   alternatePhone: string | null;
   town: string | null;
+  hospitalName:string | null;
   address: string | null;
   notes: string | null;
   createdAt: string;

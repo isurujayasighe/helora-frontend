@@ -38,7 +38,6 @@ import { cn } from "@/lib/utils";
 import { useGetOrders } from "./api/useGetOrders";
 import { OrdersTable } from "./components/order-details-table";
 import { OrderDetailsDialog } from "@/components/layout/order-details-dialog";
-import { CreateOrderDialog } from "@/components/layout/create-order-dialog";
 import type { Order } from "@/types/orders";
 
 const fadeUp = {
@@ -51,8 +50,11 @@ const PAGE_SIZE = 10;
 const orderStatusOptions = [
   { value: "all", label: "All status" },
   { value: "PENDING", label: "Pending" },
-  { value: "IN_PROGRESS", label: "In Progress" },
-  { value: "COMPLETED", label: "Completed" },
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "CUTTING", label: "Cutting" },
+  { value: "SEWING", label: "Sewing" },
+  { value: "READY", label: "Ready" },
+  { value: "DELIVERED", label: "Delivered" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
@@ -73,29 +75,36 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const isCreateOpen = Boolean(orderSearch.addOrder);
+  /**
+   * Backward compatibility:
+   * Old flow opened create-order dialog using:
+   * /app/orders?addOrder=true&customerId=...
+   *
+   * New flow redirects that same URL state to:
+   * /app/order-create?customerId=...
+   */
+  useEffect(() => {
+    if (!orderSearch.addOrder) return;
 
-  const createOrderPrefill = useMemo(
-    () => ({
-      customerId: orderSearch.customerId,
-      measurementId: orderSearch.measurementId,
-      blockId: orderSearch.blockId,
-      categoryId: orderSearch.categoryId,
-    }),
-    [
-      orderSearch.customerId,
-      orderSearch.measurementId,
-      orderSearch.blockId,
-      orderSearch.categoryId,
-    ]
-  );
-
-  const hasCreateOrderPrefill = Boolean(
-    createOrderPrefill.customerId ||
-      createOrderPrefill.measurementId ||
-      createOrderPrefill.blockId ||
-      createOrderPrefill.categoryId
-  );
+    navigate({
+      to: "/app/create-order-page",
+      replace: true,
+      search: {
+        customerId: orderSearch.customerId,
+        measurementId: orderSearch.measurementId,
+        blockId: orderSearch.blockId,
+        categoryId: orderSearch.categoryId,
+        orderSource: "PHYSICAL_SHOP",
+      },
+    });
+  }, [
+    navigate,
+    orderSearch.addOrder,
+    orderSearch.customerId,
+    orderSearch.measurementId,
+    orderSearch.blockId,
+    orderSearch.categoryId,
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -135,10 +144,12 @@ export default function OrdersPage() {
   };
 
   const stats = useMemo(() => {
-    const pending = ordersList.filter((order) => order.status === "PENDING").length;
+    const pending = ordersList.filter(
+      (order) => order.status === "PENDING"
+    ).length;
 
-    const inProgress = ordersList.filter(
-      (order) => order.status === "IN_PROGRESS"
+    const inProgress = ordersList.filter((order) =>
+      ["CONFIRMED", "CUTTING", "SEWING", "READY"].includes(order.status)
     ).length;
 
     const completed = ordersList.filter(
@@ -147,7 +158,8 @@ export default function OrdersPage() {
 
     const overdue = ordersList.filter((order: any) => {
       const promised = order.promisedDate || order.expectedDeliveryDate;
-      const isCompleted = order.status === "COMPLETED";
+      const isCompleted =
+        order.status === "DELIVERED" || order.status === "CANCELLED";
 
       if (!promised || isCompleted) return false;
 
@@ -163,41 +175,12 @@ export default function OrdersPage() {
     };
   }, [ordersList, pagination.totalItems]);
 
-  const clearCreateOrderSearch = () => {
-    navigate({
-      replace: true,
-      search: (previous) => ({
-        ...previous,
-        addOrder: undefined,
-        customerId: undefined,
-        measurementId: undefined,
-        blockId: undefined,
-        categoryId: undefined,
-      }),
-    });
-  };
-
-  const handleCreateDialogOpenChange = (nextOpen: boolean) => {
-    if (nextOpen) {
-      navigate({
-        search: (previous) => ({
-          ...previous,
-          addOrder: true,
-        }),
-      });
-
-      return;
-    }
-
-    clearCreateOrderSearch();
-  };
-
   const handleOpenCreateOrder = () => {
     navigate({
-      search: (previous) => ({
-        ...previous,
-        addOrder: true,
-      }),
+      to: "/app/create-order-page",
+      search: {
+        orderSource: "PHYSICAL_SHOP",
+      },
     });
   };
 
@@ -213,6 +196,14 @@ export default function OrdersPage() {
     setOrderDate("");
     setPromisedDate("");
     setCurrentPage(1);
+  };
+
+  const handlePreviousPage = () => {
+    setCurrentPage((page) => Math.max(1, page - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((page) => Math.min(pagination.totalPages, page + 1));
   };
 
   const hasFilters = Boolean(
@@ -231,37 +222,41 @@ export default function OrdersPage() {
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="flex h-full flex-col gap-4 p-3 md:p-5"
           >
-            {/* Header */}
             <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
                   <Shirt className="h-5 w-5" />
                 </div>
 
                 <div className="min-w-0">
-                  <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
-                    Orders
-                  </h1>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    Manage tailoring orders, promised dates, customer details,
-                    blocks, and measurements.
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-xl font-bold text-slate-900">
+                      My Orders
+                    </h1>
 
-                  {hasCreateOrderPrefill && isCreateOpen && (
-                    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
-                      Customer, block, category, and measurement are already
-                      selected from the previous flow.
-                    </div>
-                  )}
+                    {isFetching && !isLoading && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-blue-50 text-blue-700"
+                      >
+                        Updating
+                      </Badge>
+                    )}
+                  </div>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    View, filter and manage customer garment orders.
+                  </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => refetch()}
-                  disabled={isLoading || isFetching}
-                  className="h-9 rounded-lg bg-white font-bold"
+                  disabled={isFetching}
+                  className="rounded-lg"
                 >
                   <RefreshCw
                     className={cn(
@@ -273,326 +268,222 @@ export default function OrdersPage() {
                 </Button>
 
                 <Button
+                  type="button"
                   variant="outline"
-                  className="h-9 rounded-lg bg-white font-bold"
+                  className="rounded-lg"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
 
-                <Button
-                  onClick={handleOpenCreateOrder}
-                  className="h-9 rounded-lg font-bold shadow-sm"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Order
-                </Button>
+                <PermissionGate action="create" subject="orders">
+                  <Button
+                    type="button"
+                    onClick={handleOpenCreateOrder}
+                    className="rounded-lg bg-slate-900 hover:bg-slate-800"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Order
+                  </Button>
+                </PermissionGate>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <OrderStatCard
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard
                 title="Total Orders"
                 value={stats.total}
-                description="All matching orders"
                 icon={PackageCheck}
+                description="All matching records"
               />
 
-              <OrderStatCard
+              <StatCard
                 title="Pending"
                 value={stats.pending}
-                description="Waiting to start"
                 icon={Clock}
+                description="Waiting to start"
               />
 
-              <OrderStatCard
+              <StatCard
                 title="In Progress"
                 value={stats.inProgress}
-                description="Currently being stitched"
                 icon={TimerReset}
+                description="Confirmed, cutting or sewing"
               />
 
-              <OrderStatCard
+              <StatCard
                 title="Overdue"
                 value={stats.overdue}
-                description="Promised date passed"
                 icon={TriangleAlert}
-                danger
+                description="Past promised date"
+                danger={stats.overdue > 0}
               />
             </div>
 
-            {/* Filters */}
-            <Card className="rounded-lg border-slate-200 shadow-sm">
-              <CardContent className="p-3 md:p-4">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-                  <div className="grid w-full gap-3 md:grid-cols-2 xl:max-w-5xl xl:grid-cols-[minmax(0,1.6fr)_180px_180px_180px]">
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Search
-                      </label>
-
-                      <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-
-                        <Input
-                          value={searchTerm}
-                          onChange={(event) => setSearchTerm(event.target.value)}
-                          placeholder="Search order number, customer name, or phone..."
-                          className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Status
-                      </label>
-
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus:ring-0">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                          {orderStatusOptions.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Order Date
-                      </label>
-
-                      <Input
-                        type="date"
-                        value={orderDate}
-                        onChange={(event) => setOrderDate(event.target.value)}
-                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Promised Date
-                      </label>
-
-                      <Input
-                        type="date"
-                        value={promisedDate}
-                        onChange={(event) => setPromisedDate(event.target.value)}
-                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                    >
-                      Page size: {PAGE_SIZE}
-                    </Badge>
-
-                    {debouncedSearch && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Search: {debouncedSearch}
-                      </Badge>
-                    )}
-
-                    {statusFilter !== "all" && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Status: {formatStatus(statusFilter)}
-                      </Badge>
-                    )}
-
-                    {orderDate && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Order: {orderDate}
-                      </Badge>
-                    )}
-
-                    {promisedDate && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Promised: {promisedDate}
-                      </Badge>
-                    )}
-
-                    {hasFilters && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={handleClearFilters}
-                        className="h-10 rounded-lg font-bold text-slate-500 hover:text-slate-900"
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Table */}
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
+            <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
               <CardHeader className="border-b border-slate-100 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <CardTitle className="text-base font-black text-slate-950">
+                    <CardTitle className="text-base font-bold text-slate-900">
                       Order List
                     </CardTitle>
-                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
-                      View orders, customer details, promised dates, and current
-                      tailoring progress.
+                    <CardDescription className="text-sm text-slate-500">
+                      Search by customer, order number, phone number or town.
                     </CardDescription>
                   </div>
 
-                  <Badge
-                    variant="outline"
-                    className="hidden rounded-lg px-3 py-1 font-bold text-slate-600 sm:inline-flex"
-                  >
-                    {pagination.totalItems} orders
-                  </Badge>
+                  {hasFilters && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleClearFilters}
+                      className="w-fit rounded-lg text-slate-600"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
 
-              <CardContent
-                className={cn(
-                  "min-h-0 flex-1 overflow-auto p-0",
-                  isFetching && "opacity-70"
-                )}
-              >
-                {isLoading ? (
-                  <OrdersLoadingState />
-                ) : (
-                  <OrdersTable
-                    orders={ordersList}
-                    currentPage={pagination.page}
-                    totalPages={pagination.totalPages}
-                    totalCount={pagination.totalItems}
-                    onPageChange={setCurrentPage}
-                    onViewDetails={handleViewDetails}
+              <CardContent className="space-y-4 p-4">
+                <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px_180px]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search orders..."
+                      className="rounded-lg border-slate-200 bg-white pl-9"
+                    />
+                  </div>
+
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger className="rounded-lg border-slate-200 bg-white">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {orderStatusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Input
+                    type="date"
+                    value={orderDate}
+                    onChange={(event) => setOrderDate(event.target.value)}
+                    className="rounded-lg border-slate-200 bg-white"
+                    aria-label="Order date"
                   />
-                )}
+
+                  <Input
+                    type="date"
+                    value={promisedDate}
+                    onChange={(event) => setPromisedDate(event.target.value)}
+                    className="rounded-lg border-slate-200 bg-white"
+                    aria-label="Promised date"
+                  />
+                </div>
+
+                <OrdersTable
+                  orders={ordersList}
+                  isLoading={isLoading}
+                  onViewDetails={handleViewDetails}
+                />
+
+                <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-slate-500">
+                    Page{" "}
+                    <span className="font-semibold text-slate-900">
+                      {pagination.page}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-semibold text-slate-900">
+                      {pagination.totalPages}
+                    </span>{" "}
+                    ·{" "}
+                    <span className="font-semibold text-slate-900">
+                      {pagination.totalItems}
+                    </span>{" "}
+                    orders
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePreviousPage}
+                      disabled={!pagination.hasPreviousPage || isFetching}
+                      className="rounded-lg"
+                    >
+                      Previous
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleNextPage}
+                      disabled={!pagination.hasNextPage || isFetching}
+                      className="rounded-lg"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         </AnimatePresence>
 
         <OrderDetailsDialog
-          order={selectedOrder}
           open={isDetailsOpen}
-          onOpenChange={(open) => {
-            setIsDetailsOpen(open);
-
-            if (!open) {
-              setSelectedOrder(null);
-            }
-          }}
-        />
-
-        <CreateOrderDialog
-          open={isCreateOpen}
-          onOpenChange={handleCreateDialogOpenChange}
-          prefill={createOrderPrefill}
+          onOpenChange={setIsDetailsOpen}
+          order={selectedOrder}
         />
       </div>
     </PermissionGate>
   );
 }
 
-type OrderStatCardProps = {
-  title: string;
-  value: number;
-  description: string;
-  icon: React.ElementType;
-  danger?: boolean;
-};
-
-function OrderStatCard({
+function StatCard({
   title,
   value,
-  description,
   icon: Icon,
+  description,
   danger,
-}: OrderStatCardProps) {
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  description: string;
+  danger?: boolean;
+}) {
   return (
-    <Card
-      className={cn(
-        "rounded-lg border-slate-200 bg-white shadow-sm",
-        danger && "border-red-200"
-      )}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-slate-500">{title}</p>
+    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+      <CardContent className="flex items-center gap-3 p-4">
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+            danger ? "bg-red-50 text-red-600" : "bg-slate-900 text-white"
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
 
-            <p
-              className={cn(
-                "mt-2 text-2xl font-black tracking-tight text-slate-950",
-                danger && "text-red-600"
-              )}
-            >
-              {value}
-            </p>
-
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              {description}
-            </p>
-          </div>
-
-          <div
-            className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700",
-              danger && "bg-red-50 text-red-600"
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-500">{title}</p>
+          <p className="mt-0.5 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="mt-0.5 truncate text-xs text-slate-400">
+            {description}
+          </p>
         </div>
       </CardContent>
     </Card>
   );
-}
-
-function OrdersLoadingState() {
-  return (
-    <div className="grid gap-3 p-4">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div
-          key={index}
-          className="h-16 animate-pulse rounded-lg bg-slate-100"
-        />
-      ))}
-    </div>
-  );
-}
-
-function formatStatus(status: string) {
-  const map: Record<string, string> = {
-    PENDING: "Pending",
-    IN_PROGRESS: "In Progress",
-    COMPLETED: "Completed",
-    CANCELLED: "Cancelled",
-  };
-
-  return map[status] ?? status;
 }

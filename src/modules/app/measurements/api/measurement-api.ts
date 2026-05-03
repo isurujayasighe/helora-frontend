@@ -3,7 +3,6 @@ import type {
   CreateMeasurementFieldPayload,
   MeasurementField,
   MeasurementFieldListParams,
-  MeasurementFieldsResponse,
   UpdateMeasurementFieldPayload,
 } from "../types/measurement-fields-types";
 import { covalentHubClient } from "@/services/clients/covalent.client";
@@ -16,33 +15,13 @@ export const measurementFieldKeys = {
   detail: (id?: string) => [...measurementFieldKeys.all, "detail", id] as const,
 };
 
-export function useMeasurementFieldsQuery(params: MeasurementFieldListParams) {
-  return useQuery({
-    queryKey: measurementFieldKeys.list(params),
-    queryFn: async (): Promise<MeasurementFieldsResponse> => {
-      const response = await covalentHubClient.get("/api/v1/measurement-fields", {
-        params: {
-          page: params.pageIndex + 1,
-          pageSize: params.pageSize,
-          search: params.search || undefined,
-          categoryId: params.categoryId || undefined,
-          inputType: params.inputType || undefined,
-          isActive: params.isActive,
-        },
-      });
-
-      return response.data.data ?? response.data;
-    },
-  });
-}
-
 export function useMeasurementFieldByIdQuery(fieldId?: string) {
   return useQuery({
     queryKey: measurementFieldKeys.detail(fieldId),
     enabled: Boolean(fieldId),
     queryFn: async (): Promise<MeasurementField> => {
       const response = await covalentHubClient.get(
-        `/api/v1/measurement-fields/${fieldId}`
+        `/measurement-fields/${fieldId}`
       );
 
       return response.data.data ?? response.data;
@@ -56,7 +35,7 @@ export function useCreateMeasurementField() {
   return useMutation({
     mutationFn: async (payload: CreateMeasurementFieldPayload) => {
       const response = await covalentHubClient.post(
-        "/api/v1/measurement-fields",
+        "/measurement-fields",
         payload
       );
 
@@ -82,7 +61,7 @@ export function useUpdateMeasurementField() {
       payload: UpdateMeasurementFieldPayload;
     }) => {
       const response = await covalentHubClient.patch(
-        `/api/v1/measurement-fields/${fieldId}`,
+        `/measurement-fields/${fieldId}`,
         payload
       );
 
@@ -106,7 +85,7 @@ export function useDeleteMeasurementField() {
   return useMutation({
     mutationFn: async (fieldId: string) => {
       const response = await covalentHubClient.delete(
-        `/api/v1/measurement-fields/${fieldId}`
+        `/measurement-fields/${fieldId}`
       );
 
       return response.data.data ?? response.data;

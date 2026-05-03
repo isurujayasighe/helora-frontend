@@ -30,6 +30,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 import type {
   MeasurementField,
   MeasurementInputType,
@@ -38,24 +39,43 @@ import {
   useCreateMeasurementField,
   useUpdateMeasurementField,
 } from "../api/measurement-api";
+import { useGetCategories } from "@/api/useGetCategories";
+
+const measurementInputTypeValues = [
+  "DECIMAL",
+  "NUMBER",
+  "TEXT",
+  "SELECT",
+  "MULTI_SELECT",
+  "BOOLEAN",
+] as const satisfies readonly MeasurementInputType[];
 
 const measurementFieldSchema = z.object({
   categoryId: z.string().min(1, "Category is required"),
+
   code: z
     .string()
     .min(2, "Code is required")
     .regex(
       /^[a-z][a-z0-9_]*$/,
-      "Use lowercase letters, numbers, and underscore only"
+      "Use lowercase letters, numbers, and underscore only",
     ),
+
   label: z.string().min(2, "Label is required"),
-  inputType: z.string().min(1, "Input type is required"),
-  unit: z.string().optional(),
+
+  inputType: z.enum(measurementInputTypeValues),
+
+  unit: z.string(),
+
   sortOrder: z.number().min(0),
+
   isRequired: z.boolean(),
+
   isActive: z.boolean(),
-  helpText: z.string().optional(),
-  optionsText: z.string().optional(),
+
+  helpText: z.string(),
+
+  optionsText: z.string(),
 });
 
 interface Props {
@@ -63,16 +83,6 @@ interface Props {
   field?: MeasurementField | null;
   onClose: () => void;
 }
-
-/**
- * Replace this with your real category query later.
- * For now this keeps the component usable.
- */
-const categoryOptions = [
-  { value: "category_cuid", label: "Uniform" },
-  { value: "saree_category_cuid", label: "Saree" },
-  { value: "blouse_category_cuid", label: "Blouse" },
-];
 
 const inputTypeOptions: Array<{
   value: MeasurementInputType;
@@ -122,6 +132,23 @@ export function MeasurementFieldFormDialog({ open, field, onClose }: Props) {
 
   const createField = useCreateMeasurementField();
   const updateField = useUpdateMeasurementField();
+
+  const {
+    data: categories = [],
+    isLoading: isCategoriesLoading,
+    isError: isCategoriesError,
+  } = useGetCategories({
+    enabled: open,
+  });
+
+  const categoryOptions = useMemo(() => {
+    return categories
+      .filter((category) => category.isActive)
+      .map((category) => ({
+        value: category.id,
+        label: category.name,
+      }));
+  }, [categories]);
 
   const isPending = createField.isPending || updateField.isPending;
 
@@ -173,8 +200,8 @@ export function MeasurementFieldFormDialog({ open, field, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-3xl">
-        <DialogHeader className="border-b bg-white px-5 py-4">
+      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-3xl gap-0">
+        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
               <Ruler className="h-5 w-5" />
@@ -194,223 +221,222 @@ export function MeasurementFieldFormDialog({ open, field, onClose }: Props) {
           </div>
         </DialogHeader>
 
-        <div className="max-h-[calc(92vh-150px)] overflow-y-auto bg-slate-50 p-5">
-          <form
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={Ruler}
-                title="Measurement field"
-                description="Basic details shown to staff when taking measurements."
-              />
+        <form
+          id="measurement-field-form"
+          className="flex max-h-[calc(92vh-92px)] flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            form.handleSubmit();
+          }}
+        >
+          <div className="flex-1 overflow-y-auto bg-slate-50 p-5">
+            <div className="space-y-4">
+              {isCategoriesError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                  Categories could not be loaded. Please refresh and try again.
+                </div>
+              )}
 
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <SelectField
-                  form={form}
-                  name="categoryId"
-                  label="Garment category"
-                  placeholder="Choose category"
-                  options={categoryOptions}
-                  required
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <SectionTitle
+                  icon={Ruler}
+                  title="Measurement field"
+                  description="Basic details shown to staff when taking measurements."
                 />
 
-                <TextField
-                  form={form}
-                  name="label"
-                  label="Field label"
-                  placeholder="Example: Chest"
-                  required
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <SelectField
+                    form={form}
+                    name="categoryId"
+                    label="Garment category"
+                    placeholder={
+                      isCategoriesLoading
+                        ? "Loading categories..."
+                        : "Choose category"
+                    }
+                    options={categoryOptions}
+                    disabled={isCategoriesLoading || isPending}
+                    required
+                  />
+
+                  <TextField
+                    form={form}
+                    name="label"
+                    label="Field label"
+                    placeholder="Example: Chest"
+                    required
+                    disabled={isPending}
+                  />
+
+                  <TextField
+                    form={form}
+                    name="code"
+                    label="Field code"
+                    placeholder="Example: chest"
+                    required
+                    disabled={isEdit || isPending}
+                    helpText={
+                      isEdit
+                        ? "Code cannot be changed after creating the field."
+                        : "Use lowercase letters, numbers, and underscore only."
+                    }
+                  />
+
+                  <NumberField
+                    form={form}
+                    name="sortOrder"
+                    label="Sort order"
+                    placeholder="Example: 1"
+                    required
+                    disabled={isPending}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <SectionTitle
+                  icon={Settings2}
+                  title="Input behavior"
+                  description="Choose how staff should enter this measurement."
                 />
 
-                <TextField
-                  form={form}
-                  name="code"
-                  label="Field code"
-                  placeholder="Example: chest"
-                  required
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <SelectField
+                    form={form}
+                    name="inputType"
+                    label="Input type"
+                    placeholder="Choose input type"
+                    options={inputTypeOptions.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                      description: option.description,
+                    }))}
+                    required
+                    disabled={isPending}
+                  />
+
+                  <SelectField
+                    form={form}
+                    name="unit"
+                    label="Unit"
+                    placeholder="Choose unit"
+                    options={unitOptions}
+                    disabled={isPending}
+                  />
+
+                  <TextareaField
+                    form={form}
+                    name="optionsText"
+                    label="Options"
+                    placeholder={"S\nM\nL\nXL"}
+                    description="Only required for Select or Multi Select. Add one option per line."
+                    disabled={isPending}
+                  />
+
+                  <TextareaField
+                    form={form}
+                    name="helpText"
+                    label="Help text"
+                    placeholder="Example: Measure around the chest"
+                    description="Shown as guidance when staff enters measurements."
+                    disabled={isPending}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <SectionTitle
+                  icon={SlidersHorizontal}
+                  title="Field settings"
+                  description="Control whether this field is required and visible."
                 />
 
-                <NumberField
-                  form={form}
-                  name="sortOrder"
-                  label="Display order"
-                  placeholder="Example: 1"
-                />
-              </div>
-            </section>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <SwitchField
+                    form={form}
+                    name="isRequired"
+                    label="Required field"
+                    description="Staff must enter this measurement before saving."
+                    disabled={isPending}
+                  />
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={Settings2}
-                title="Input setup"
-                description="Choose how staff should enter this measurement."
-              />
+                  <SwitchField
+                    form={form}
+                    name="isActive"
+                    label="Active field"
+                    description="Inactive fields are hidden from new measurement forms."
+                    disabled={isPending}
+                  />
+                </div>
+              </section>
+            </div>
+          </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <SelectField
-                  form={form}
-                  name="inputType"
-                  label="Input type"
-                  placeholder="Choose input type"
-                  options={inputTypeOptions.map((item) => ({
-                    value: item.value,
-                    label: item.label,
-                  }))}
-                  required
-                />
-
-                <SelectField
-                  form={form}
-                  name="unit"
-                  label="Unit"
-                  placeholder="Choose unit"
-                  options={unitOptions}
-                />
-              </div>
-
-              <form.Subscribe
-                selector={(state) => state.values.inputType}
-                children={(inputType) => {
-                  const shouldShowOptions =
-                    inputType === "SELECT" || inputType === "MULTI_SELECT";
-
-                  if (!shouldShowOptions) return null;
-
-                  return (
-                    <div className="mt-4">
-                      <form.Field
-                        name="optionsText"
-                        children={(field) => (
-                          <div className="grid gap-2">
-                            <Label className="font-bold text-slate-700">
-                              Options
-                            </Label>
-
-                            <Textarea
-                              value={field.state.value ?? ""}
-                              onBlur={field.handleBlur}
-                              onChange={(event) =>
-                                field.handleChange(event.target.value)
-                              }
-                              placeholder="Example: S, M, L"
-                              className="min-h-24 rounded-lg bg-slate-50 text-sm font-semibold shadow-none"
-                            />
-
-                            <p className="text-xs font-semibold text-slate-500">
-                              Add options separated by commas. Example: S, M, L
-                            </p>
-                          </div>
-                        )}
-                      />
-                    </div>
-                  );
-                }}
-              />
-            </section>
-
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={SlidersHorizontal}
-                title="Field rules"
-                description="Control whether this field is required and active."
-              />
-
-              <div className="mt-4 grid gap-3">
-                <SwitchField
-                  form={form}
-                  name="isRequired"
-                  label="Required field"
-                  description="Staff must enter this measurement before saving."
-                />
-
-                <SwitchField
-                  form={form}
-                  name="isActive"
-                  label="Active field"
-                  description="Show this field when taking new measurements."
-                />
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={HelpCircle}
-                title="Help text"
-                description="Add a short instruction for tailors or staff."
-              />
-
-              <div className="mt-4">
-                <form.Field
-                  name="helpText"
-                  children={(field) => (
-                    <div className="grid gap-2">
-                      <Label className="font-bold text-slate-700">
-                        Instruction
-                      </Label>
-
-                      <Textarea
-                        value={field.state.value ?? ""}
-                        onBlur={field.handleBlur}
-                        onChange={(event) =>
-                          field.handleChange(event.target.value)
-                        }
-                        placeholder="Example: Measure around chest"
-                        className="min-h-24 rounded-lg bg-slate-50 text-sm font-semibold shadow-none"
-                      />
-                    </div>
-                  )}
-                />
-              </div>
-            </section>
-          </form>
-        </div>
-
-        <DialogFooter className="border-t bg-white px-5 py-4">
-          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4">
             <Button
               type="button"
-              variant="ghost"
-              onClick={onClose}
+              variant="outline"
+              className="rounded-lg"
               disabled={isPending}
-              className="h-11 rounded-lg font-bold"
+              onClick={onClose}
             >
               Cancel
             </Button>
 
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
-                <Button
-                  type="button"
-                  onClick={form.handleSubmit}
-                  disabled={!canSubmit || isSubmitting || isPending}
-                  className="h-11 rounded-lg font-bold"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      {isEdit ? "Save Changes" : "Add Field"}
-                    </>
-                  )}
-                </Button>
+            <Button
+              type="submit"
+              form="measurement-field-form"
+              disabled={isPending || isCategoriesLoading}
+              className="rounded-lg bg-slate-900 hover:bg-slate-800"
+            >
+              {isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
               )}
-            />
-          </div>
-        </DialogFooter>
+              {isPending
+                ? isEdit
+                  ? "Saving..."
+                  : "Creating..."
+                : isEdit
+                  ? "Save Changes"
+                  : "Save Field"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
+}
+
+function getDefaultValues(field?: MeasurementField | null) {
+  return {
+    categoryId: field?.categoryId ?? "",
+    code: field?.code ?? "",
+    label: field?.label ?? "",
+    inputType: field?.inputType ?? "DECIMAL",
+    unit: field?.unit ?? "inch",
+    sortOrder: field?.sortOrder ?? 0,
+    isRequired: field?.isRequired ?? true,
+    isActive: field?.isActive ?? true,
+    helpText: field?.helpText ?? "",
+    optionsText: Array.isArray(field?.options) ? field.options.join("\n") : "",
+  };
+}
+
+function cleanOptional(value?: string) {
+  const cleaned = value?.trim();
+  return cleaned ? cleaned : undefined;
+}
+
+function parseOptions(value?: string) {
+  const options = value
+    ?.split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return options?.length ? options : undefined;
 }
 
 function SectionTitle({
@@ -424,17 +450,27 @@ function SectionTitle({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-        <Icon className="h-5 w-5" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+        <Icon className="h-4 w-4" />
       </div>
 
       <div>
-        <h3 className="text-base font-black text-slate-950">{title}</h3>
-        <p className="mt-1 text-sm font-medium text-slate-500">
+        <h3 className="text-sm font-black text-slate-950">{title}</h3>
+        <p className="mt-1 text-xs font-medium text-slate-500">
           {description}
         </p>
       </div>
     </div>
+  );
+}
+
+function FieldError({ errors }: { errors?: unknown[] }) {
+  if (!errors?.length) return null;
+
+  return (
+    <p className="text-xs font-medium text-red-600">
+      {String(errors[0])}
+    </p>
   );
 }
 
@@ -444,38 +480,43 @@ function TextField({
   label,
   placeholder,
   required,
+  disabled,
+  helpText,
 }: {
   form: any;
   name: string;
   label: string;
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
+  helpText?: string;
 }) {
   return (
-    <form.Field
-      name={name}
-      children={(field: any) => (
-        <div className="grid gap-2">
-          <Label className="font-bold text-slate-700">
-            {label} {required && <span className="text-red-500">*</span>}
+    <form.Field name={name}>
+      {(field: any) => (
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-slate-700">
+            {label}
+            {required && <span className="ml-1 text-red-500">*</span>}
           </Label>
 
           <Input
             value={field.state.value ?? ""}
+            disabled={disabled}
+            placeholder={placeholder}
+            className="rounded-lg"
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
-            placeholder={placeholder}
-            className={cn(
-              "h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none",
-              field.state.meta.errors.length &&
-                "border-red-500 focus-visible:ring-red-500"
-            )}
           />
+
+          {helpText && (
+            <p className="text-xs font-medium text-slate-500">{helpText}</p>
+          )}
 
           <FieldError errors={field.state.meta.errors} />
         </div>
       )}
-    />
+    </form.Field>
   );
 }
 
@@ -484,33 +525,40 @@ function NumberField({
   name,
   label,
   placeholder,
+  required,
+  disabled,
 }: {
   form: any;
   name: string;
   label: string;
   placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <form.Field
-      name={name}
-      children={(field: any) => (
-        <div className="grid gap-2">
-          <Label className="font-bold text-slate-700">{label}</Label>
+    <form.Field name={name}>
+      {(field: any) => (
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-slate-700">
+            {label}
+            {required && <span className="ml-1 text-red-500">*</span>}
+          </Label>
 
           <Input
             type="number"
             min={0}
             value={field.state.value ?? 0}
+            disabled={disabled}
+            placeholder={placeholder}
+            className="rounded-lg"
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(Number(event.target.value))}
-            placeholder={placeholder}
-            className="h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none"
           />
 
           <FieldError errors={field.state.meta.errors} />
         </div>
       )}
-    />
+    </form.Field>
   );
 }
 
@@ -521,38 +569,49 @@ function SelectField({
   placeholder,
   options,
   required,
+  disabled,
 }: {
   form: any;
   name: string;
   label: string;
-  placeholder: string;
-  options: Array<{ value: string; label: string }>;
+  placeholder?: string;
+  options: Array<{
+    value: string;
+    label: string;
+    description?: string;
+  }>;
   required?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <form.Field
-      name={name}
-      children={(field: any) => (
-        <div className="grid gap-2">
-          <Label className="font-bold text-slate-700">
-            {label} {required && <span className="text-red-500">*</span>}
+    <form.Field name={name}>
+      {(field: any) => (
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-slate-700">
+            {label}
+            {required && <span className="ml-1 text-red-500">*</span>}
           </Label>
 
-          <Select value={field.state.value} onValueChange={field.handleChange}>
-            <SelectTrigger
-              className={cn(
-                "h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none",
-                field.state.meta.errors.length &&
-                  "border-red-500 focus-visible:ring-red-500"
-              )}
-            >
+          <Select
+            value={field.state.value ?? ""}
+            disabled={disabled}
+            onValueChange={field.handleChange}
+          >
+            <SelectTrigger className="rounded-lg">
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
 
             <SelectContent>
               {options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  <div>
+                    <p className="font-medium">{option.label}</p>
+                    {option.description && (
+                      <p className="text-xs text-slate-500">
+                        {option.description}
+                      </p>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -561,7 +620,51 @@ function SelectField({
           <FieldError errors={field.state.meta.errors} />
         </div>
       )}
-    />
+    </form.Field>
+  );
+}
+
+function TextareaField({
+  form,
+  name,
+  label,
+  placeholder,
+  description,
+  disabled,
+}: {
+  form: any;
+  name: string;
+  label: string;
+  placeholder?: string;
+  description?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <form.Field name={name}>
+      {(field: any) => (
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-slate-700">{label}</Label>
+
+          <Textarea
+            value={field.state.value ?? ""}
+            disabled={disabled}
+            placeholder={placeholder}
+            className="min-h-24 rounded-lg"
+            onBlur={field.handleBlur}
+            onChange={(event) => field.handleChange(event.target.value)}
+          />
+
+          {description && (
+            <div className="flex items-start gap-2 text-xs font-medium text-slate-500">
+              <HelpCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p>{description}</p>
+            </div>
+          )}
+
+          <FieldError errors={field.state.meta.errors} />
+        </div>
+      )}
+    </form.Field>
   );
 }
 
@@ -570,69 +673,37 @@ function SwitchField({
   name,
   label,
   description,
+  disabled,
 }: {
   form: any;
   name: string;
   label: string;
   description: string;
+  disabled?: boolean;
 }) {
   return (
-    <form.Field
-      name={name}
-      children={(field: any) => (
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <form.Field name={name}>
+      {(field: any) => (
+        <div
+          className={cn(
+            "flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-3",
+            disabled && "opacity-60",
+          )}
+        >
           <div>
-            <Label className="font-black text-slate-900">{label}</Label>
-            <p className="mt-1 text-sm font-medium leading-5 text-slate-500">
+            <Label className="text-sm font-bold text-slate-800">{label}</Label>
+            <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
               {description}
             </p>
           </div>
 
           <Switch
             checked={Boolean(field.state.value)}
+            disabled={disabled}
             onCheckedChange={field.handleChange}
           />
         </div>
       )}
-    />
+    </form.Field>
   );
-}
-
-function FieldError({ errors }: { errors: unknown[] }) {
-  if (!errors.length) return null;
-
-  return (
-    <p className="text-sm font-semibold text-red-600">
-      {errors.join(", ")}
-    </p>
-  );
-}
-
-function getDefaultValues(field?: MeasurementField | null) {
-  return {
-    categoryId: field?.categoryId ?? "category_cuid",
-    code: field?.code ?? "",
-    label: field?.label ?? "",
-    inputType: field?.inputType ?? "DECIMAL",
-    unit: field?.unit ?? "inch",
-    sortOrder: field?.sortOrder ?? 1,
-    isRequired: field?.isRequired ?? true,
-    isActive: field?.isActive ?? true,
-    helpText: field?.helpText ?? "",
-    optionsText: field?.options?.join(", ") ?? "",
-  };
-}
-
-function cleanOptional(value?: string | null) {
-  const cleaned = value?.trim();
-  return cleaned ? cleaned : undefined;
-}
-
-function parseOptions(value?: string | null) {
-  const options = value
-    ?.split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return options?.length ? options : undefined;
 }

@@ -29,6 +29,7 @@ import { Route as AuthenticatedAppGroupOrdersIndexRouteImport } from './routes/_
 import { Route as AuthenticatedAppEmployeesIndexRouteImport } from './routes/_authenticated/app/employees/index'
 import { Route as AuthenticatedAppDashboardIndexRouteImport } from './routes/_authenticated/app/dashboard/index'
 import { Route as AuthenticatedAppCustomersIndexRouteImport } from './routes/_authenticated/app/customers/index'
+import { Route as AuthenticatedAppCreateOrderPageIndexRouteImport } from './routes/_authenticated/app/create-order-page/index'
 import { Route as AuthenticatedAppBlocksIndexRouteImport } from './routes/_authenticated/app/blocks/index'
 import { Route as AuthenticatedAppAttendanceIndexRouteImport } from './routes/_authenticated/app/attendance/index'
 import { Route as AuthenticatedAppAccountIndexRouteImport } from './routes/_authenticated/app/account/index'
@@ -149,6 +150,12 @@ const AuthenticatedAppCustomersIndexRoute =
     path: '/app/customers/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppCreateOrderPageIndexRoute =
+  AuthenticatedAppCreateOrderPageIndexRouteImport.update({
+    id: '/app/create-order-page/',
+    path: '/app/create-order-page/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppBlocksIndexRoute =
   AuthenticatedAppBlocksIndexRouteImport.update({
     id: '/app/blocks/',
@@ -210,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/app/account/': typeof AuthenticatedAppAccountIndexRoute
   '/app/attendance/': typeof AuthenticatedAppAttendanceIndexRoute
   '/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
+  '/app/create-order-page/': typeof AuthenticatedAppCreateOrderPageIndexRoute
   '/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
   '/app/employees/': typeof AuthenticatedAppEmployeesIndexRoute
@@ -238,6 +246,7 @@ export interface FileRoutesByTo {
   '/app/account': typeof AuthenticatedAppAccountIndexRoute
   '/app/attendance': typeof AuthenticatedAppAttendanceIndexRoute
   '/app/blocks': typeof AuthenticatedAppBlocksIndexRoute
+  '/app/create-order-page': typeof AuthenticatedAppCreateOrderPageIndexRoute
   '/app/customers': typeof AuthenticatedAppCustomersIndexRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardIndexRoute
   '/app/employees': typeof AuthenticatedAppEmployeesIndexRoute
@@ -268,6 +277,7 @@ export interface FileRoutesById {
   '/_authenticated/app/account/': typeof AuthenticatedAppAccountIndexRoute
   '/_authenticated/app/attendance/': typeof AuthenticatedAppAttendanceIndexRoute
   '/_authenticated/app/blocks/': typeof AuthenticatedAppBlocksIndexRoute
+  '/_authenticated/app/create-order-page/': typeof AuthenticatedAppCreateOrderPageIndexRoute
   '/_authenticated/app/customers/': typeof AuthenticatedAppCustomersIndexRoute
   '/_authenticated/app/dashboard/': typeof AuthenticatedAppDashboardIndexRoute
   '/_authenticated/app/employees/': typeof AuthenticatedAppEmployeesIndexRoute
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/app/account/'
     | '/app/attendance/'
     | '/app/blocks/'
+    | '/app/create-order-page/'
     | '/app/customers/'
     | '/app/dashboard/'
     | '/app/employees/'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/app/account'
     | '/app/attendance'
     | '/app/blocks'
+    | '/app/create-order-page'
     | '/app/customers'
     | '/app/dashboard'
     | '/app/employees'
@@ -355,6 +367,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/account/'
     | '/_authenticated/app/attendance/'
     | '/_authenticated/app/blocks/'
+    | '/_authenticated/app/create-order-page/'
     | '/_authenticated/app/customers/'
     | '/_authenticated/app/dashboard/'
     | '/_authenticated/app/employees/'
@@ -518,6 +531,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCustomersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/create-order-page/': {
+      id: '/_authenticated/app/create-order-page/'
+      path: '/app/create-order-page'
+      fullPath: '/app/create-order-page/'
+      preLoaderRoute: typeof AuthenticatedAppCreateOrderPageIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/blocks/': {
       id: '/_authenticated/app/blocks/'
       path: '/app/blocks'
@@ -582,6 +602,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAccountIndexRoute: typeof AuthenticatedAppAccountIndexRoute
   AuthenticatedAppAttendanceIndexRoute: typeof AuthenticatedAppAttendanceIndexRoute
   AuthenticatedAppBlocksIndexRoute: typeof AuthenticatedAppBlocksIndexRoute
+  AuthenticatedAppCreateOrderPageIndexRoute: typeof AuthenticatedAppCreateOrderPageIndexRoute
   AuthenticatedAppCustomersIndexRoute: typeof AuthenticatedAppCustomersIndexRoute
   AuthenticatedAppDashboardIndexRoute: typeof AuthenticatedAppDashboardIndexRoute
   AuthenticatedAppEmployeesIndexRoute: typeof AuthenticatedAppEmployeesIndexRoute
@@ -608,6 +629,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAccountIndexRoute: AuthenticatedAppAccountIndexRoute,
   AuthenticatedAppAttendanceIndexRoute: AuthenticatedAppAttendanceIndexRoute,
   AuthenticatedAppBlocksIndexRoute: AuthenticatedAppBlocksIndexRoute,
+  AuthenticatedAppCreateOrderPageIndexRoute:
+    AuthenticatedAppCreateOrderPageIndexRoute,
   AuthenticatedAppCustomersIndexRoute: AuthenticatedAppCustomersIndexRoute,
   AuthenticatedAppDashboardIndexRoute: AuthenticatedAppDashboardIndexRoute,
   AuthenticatedAppEmployeesIndexRoute: AuthenticatedAppEmployeesIndexRoute,
