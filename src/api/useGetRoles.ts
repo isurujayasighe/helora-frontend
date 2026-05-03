@@ -4,7 +4,6 @@ import type { AxiosError } from "axios";
 import { covalentHubClient } from "@/services/clients/covalent.client";
 import type { ApiResponse } from "@/types/api-response.types";
 import type {
-  Role,
   RoleListQueryParams,
   RolesListResponse,
 } from "../modules/app/roles/types/role.types";
@@ -34,6 +33,8 @@ export const getRoles = async (
       params,
     },
   );
+
+  console.log(response.data.data)
 
   return response.data.data;
 };

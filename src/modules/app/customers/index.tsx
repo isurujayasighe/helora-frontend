@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 
 import { useGetCustomers } from "./api/useGetCustomers";
 import { CustomersTable } from "./components/customer-details-table";
-import { CustomerDetailsDialog } from "./components/customer-details-dialog";
 import { CreateCustomerDialog } from "./components/create-customer-dialog";
 import {
   Card,
@@ -44,11 +43,11 @@ export default function CustomersPage() {
   const [townFilter, setTownFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+  const [_selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     null
   );
 
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [_detailsOpen, setDetailsOpen] = useState(false);
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
 
   useEffect(() => {
@@ -126,7 +125,7 @@ export default function CustomersPage() {
   const hasFilters = Boolean(debouncedSearch || townFilter);
 
   return (
-    <PermissionGate action="read" subject="Customers">
+    <PermissionGate action="read" subject="customers">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div
@@ -344,7 +343,7 @@ export default function CustomersPage() {
           </motion.div>
         </AnimatePresence>
 
-        <CustomerDetailsDialog
+        {/* <HeloraDialogLayout
           customerId={selectedCustomerId}
           open={detailsOpen}
           onOpenChange={(open) => {
@@ -354,7 +353,7 @@ export default function CustomersPage() {
               setSelectedCustomerId(null);
             }
           }}
-        />
+        /> */}
 
         <CreateCustomerDialog
           open={createCustomerOpen}

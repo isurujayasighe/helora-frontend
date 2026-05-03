@@ -31,7 +31,7 @@ export function CreateRoleDialog() {
   const [open, setOpen] = useState(false);
   const { mutateAsync } = useCreateRole();
 
-  const canCreate = useCan("create", "all");
+  const canCreate = useCan("create", "dashboard");
 
   const form = useForm({
     defaultValues: {

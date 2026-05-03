@@ -134,7 +134,7 @@ export default function Dashboard() {
   );
 
   return (
-    <PermissionGate action="read" subject="Dashboard">
+    <PermissionGate action="read" subject="dashboard">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

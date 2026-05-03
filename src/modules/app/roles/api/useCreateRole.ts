@@ -13,7 +13,7 @@ export function useCreateRole() {
   return useMutation({
     mutationFn: async (payload: CreateRolePayload) => {
       // POST /admin/Role
-      const response = await covalentHubClient.post("/TenantUserRoles", payload);
+      const response = await covalentHubClient.post("/roles", payload);
       return response.data;
     },
     onSuccess: () => {

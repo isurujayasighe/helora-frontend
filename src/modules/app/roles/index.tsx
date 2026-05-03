@@ -37,7 +37,7 @@ export default function AccessControlPage() {
   const [activeTab, setActiveTab] = React.useState("roles");
 
   return (
-    <PermissionGate action="read" subject="Dashboard">
+    <PermissionGate action="read" subject="settings-roles">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div
@@ -195,42 +195,6 @@ function AccessInfoCard({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-/* ============================================================
-   SUB-COMPONENT: TAB TRIGGER
-============================================================ */
-
-function AccessTabTrigger({
-  value,
-  icon: Icon,
-  title,
-  description,
-}: {
-  value: string;
-  icon: React.ElementType;
-  title: string;
-  description: string;
-}) {
-  return (
-    <TabsTrigger
-      value={value}
-      className="h-auto justify-start rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:bg-slate-50 data-[state=active]:border-slate-900 data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm"
-    >
-      <div className="flex w-full items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 data-[state=active]:bg-white/10">
-          <Icon className="h-4 w-4" />
-        </div>
-
-        <div className="min-w-0">
-          <p className="text-sm font-black">{title}</p>
-          <p className="mt-0.5 text-xs font-semibold opacity-70">
-            {description}
-          </p>
-        </div>
-      </div>
-    </TabsTrigger>
   );
 }
 

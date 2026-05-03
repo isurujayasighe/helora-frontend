@@ -145,7 +145,7 @@ export default function CategoryPage() {
   };
 
   return (
-    <PermissionGate action="read" subject="Dashboard">
+    <PermissionGate action="read" subject="settings-categories">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

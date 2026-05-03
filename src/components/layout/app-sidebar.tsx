@@ -16,6 +16,7 @@ import {
   Settings,
   ShieldCheck,
   Shirt,
+  Tags,
   User,
   Users,
 } from "lucide-react";
@@ -52,7 +53,6 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/auth/store/authStore";
-import { Category } from "tabler-icons-react";
 
 type SidebarChildItem = {
   title: string;
@@ -111,7 +111,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
       {
         title: "Category",
         url: "/app/category",
-        icon: Category,
+        icon: Tags,
       },
     ],
   },
@@ -233,7 +233,7 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-4">
-        <SidebarGroup className="p-0 mt-4">
+        <SidebarGroup className="mt-4 p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1.5">
               {SIDEBAR_ITEMS.map((item) => (
@@ -264,7 +264,7 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
 function BrandHeader() {
   return (
     <div className="flex h-12 items-center gap-3 group-data-[collapsible=icon]:justify-center">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
         <Scissors className="h-5 w-5" />
       </div>
 
@@ -295,28 +295,34 @@ function EnterpriseSidebarItem({
 
   if (!hasChildren) {
     return (
-      <SidebarMenuItem>
+      <SidebarMenuItem
+        className={cn(
+          "relative flex w-full min-w-0 flex-col",
+          "group-data-[collapsible=icon]:items-center"
+        )}
+      >
         <SidebarMenuButton
           asChild
           tooltip={!isMobile && state === "collapsed" ? item.title : undefined}
           isActive={active}
           className={cn(
-            "relative h-11 rounded-sm px-3 text-sm font-semibold transition-all",
+            "relative h-11 rounded-lg px-3 text-sm font-semibold transition-all",
             "before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:content-['']",
+            "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
               ? "bg-white/10 text-white before:bg-indigo-500"
-              : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200",
+              : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200"
           )}
         >
           <Link to={item.url!} className="flex min-w-0 items-center gap-3">
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-white" : "text-slate-500",
+                active ? "text-white" : "text-slate-500"
               )}
             />
 
-            <span className=" group-data-[collapsible=icon]:hidden">
+            <span className="truncate group-data-[collapsible=icon]:hidden">
               {item.title}
             </span>
           </Link>
@@ -327,7 +333,12 @@ function EnterpriseSidebarItem({
 
   return (
     <Collapsible defaultOpen={active} className="group/collapsible">
-      <SidebarMenuItem>
+      <SidebarMenuItem
+        className={cn(
+          "relative flex w-full min-w-0 flex-col",
+          "group-data-[collapsible=icon]:items-center"
+        )}
+      >
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
             tooltip={
@@ -335,29 +346,35 @@ function EnterpriseSidebarItem({
             }
             isActive={active}
             className={cn(
-              "relative h-11 rounded-sm px-3 text-sm font-semibold transition-all",
-              "before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-sm before:content-['']",
+              "relative h-11 rounded-lg px-3 text-sm font-semibold transition-all",
+              "before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:content-['']",
+              "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
                 ? "bg-white/10 text-white before:bg-indigo-500"
-                : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200",
+                : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200"
             )}
           >
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-white" : "text-slate-500",
+                active ? "text-white" : "text-slate-500"
               )}
             />
 
             <span className="truncate group-data-[collapsible=icon]:hidden">
               {item.title}
             </span>
+
             <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="group-data-[collapsible=icon]:hidden">
-          <div className="mt-1 space-y-0.5">
+        <CollapsibleContent className="w-full group-data-[collapsible=icon]:hidden">
+          <div
+            className={cn(
+              "relative ml-5 mt-1 space-y-1 border-l border-slate-800 py-1 pl-4"
+            )}
+          >
             {item.children?.map((child) => (
               <ChildSidebarLink
                 key={child.title}
@@ -386,11 +403,21 @@ function ChildSidebarLink({
     <Link
       to={child.url}
       className={cn(
-        "relative flex h-10 min-w-0 rounded-sm items-center gap-3  px-3 text-sm font-semibold transition-all",
-        "before:absolute before:right-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-l-full before:content-['']",
+        "relative flex h-10 min-w-0 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-all",
+
+        /**
+         * Small horizontal connector from left vertical line to child nav.
+         */
+        "before:absolute before:-left-4 before:top-1/2 before:h-px before:w-4 before:-translate-y-1/2 before:bg-slate-800 before:content-['']",
+
+        /**
+         * Active indicator on right side.
+         */
+        "after:absolute after:right-0 after:top-1/2 after:h-6 after:w-1 after:-translate-y-1/2 after:rounded-l-full after:content-['']",
+
         active
-          ? "bg-indigo-500/10 text-indigo-300 before:bg-indigo-500"
-          : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200",
+          ? "bg-indigo-500/10 text-indigo-300 after:bg-indigo-500"
+          : "text-slate-500 after:bg-transparent hover:bg-white/5 hover:text-slate-200"
       )}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -398,14 +425,14 @@ function ChildSidebarLink({
           <Icon
             className={cn(
               "h-4 w-4",
-              active ? "text-indigo-300" : "text-slate-500",
+              active ? "text-indigo-300" : "text-slate-500"
             )}
           />
         ) : (
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full",
-              active ? "bg-indigo-300" : "bg-slate-600",
+              active ? "bg-indigo-300" : "bg-slate-600"
             )}
           />
         )}
@@ -427,14 +454,19 @@ function UserFooter({
 }) {
   return (
     <SidebarMenu>
-      <SidebarMenuItem>
+      <SidebarMenuItem
+        className={cn(
+          "relative flex w-full min-w-0 flex-col",
+          "group-data-[collapsible=icon]:items-center"
+        )}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
               className={cn(
-                "h-12 rounded-xl px-2 text-slate-400 transition-colors hover:bg-slate-900 hover:text-white data-[state=open]:bg-slate-900 data-[state=open]:text-white",
-                "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
+                "h-12 rounded-lg px-2 text-slate-400 transition-colors hover:bg-slate-900 hover:text-white data-[state=open]:bg-slate-900 data-[state=open]:text-white",
+                "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               )}
             >
               <Avatar className="h-8 w-8 rounded-lg">
@@ -458,7 +490,7 @@ function UserFooter({
             side="right"
             align="end"
             sideOffset={10}
-            className="w-64 rounded-xl border-slate-200 p-1.5 shadow-lg"
+            className="w-64 rounded-lg border-slate-200 p-1.5 shadow-lg"
           >
             <DropdownMenuLabel className="px-3 py-2">
               <p className="truncate text-sm font-semibold text-slate-900">

@@ -220,7 +220,7 @@ export default function OrdersPage() {
   );
 
   return (
-    <PermissionGate action="read" subject="Orders">
+    <PermissionGate action="read" subject="orders">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

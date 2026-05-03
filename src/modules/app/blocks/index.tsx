@@ -147,7 +147,7 @@ export default function BlocksPage() {
   );
 
   return (
-    <PermissionGate action="read" subject="Blocks">
+    <PermissionGate action="read" subject="blocks">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

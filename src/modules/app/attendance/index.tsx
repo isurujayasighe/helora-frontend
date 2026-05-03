@@ -28,8 +28,7 @@ import {
   Eye,
   MoreVertical,
   RefreshCw,
-  Search,
-  Timer,
+  Search, 
   UserCheck,
   UsersRound,
 } from "lucide-react";
@@ -124,7 +123,7 @@ export default function AttendancePage() {
   };
 
   return (
-    <PermissionGate action="read" subject="Dashboard">
+    <PermissionGate action="read" subject="attendance">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div
@@ -455,7 +454,7 @@ function AttendanceTable({
   }
 
   return (
-    <div className="min-w-[1050px]">
+    <div className="min-w-262.5">
       <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr_1fr_70px] border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
         <div>Employee</div>
         <div>Date</div>

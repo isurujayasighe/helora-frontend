@@ -200,7 +200,7 @@ export default function GroupOrdersPage() {
   );
 
   return (
-    <PermissionGate action="read" subject="Orders">
+    <PermissionGate action="read" subject="group-orders">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

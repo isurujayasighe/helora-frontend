@@ -12,12 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -39,7 +34,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { DataTable } from "./components/data-table/user-table";
 import { usersColumns } from "./components/data-table/user-column";
 import { UserDetailsSheet } from "./components/user-detail-sheet/UserDetailsSheet";
-import { CreateUserDialog, } from "./components/create-user-sheet/create-user-sheet";
+import { CreateUserDialog } from "./components/create-user-sheet/create-user-sheet";
 import { DeleteUserDialog } from "./components/deleteUserDialog";
 
 import { useUsersQuery, type User } from "./api/useUserDetails";
@@ -47,7 +42,13 @@ import { useDeleteUser } from "./api/useDeleteUser";
 import { Route } from "@/routes/_authenticated/app/users/route";
 
 type UserStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
-type UserRoleFilter = "ALL" | "OWNER" | "ADMIN" | "MANAGER" | "STAFF" | "TAILOR";
+type UserRoleFilter =
+  | "ALL"
+  | "OWNER"
+  | "ADMIN"
+  | "MANAGER"
+  | "STAFF"
+  | "TAILOR";
 
 const STATUS_FILTERS: Array<{
   label: string;
@@ -76,8 +77,10 @@ export default function HeloraUsersPage() {
   const { userId, action } = Route.useSearch();
 
   const canManageAll = useCan("manage", "all");
-  const canCreateUser = useCan("create", "Users") || useCan("create", "all");
-  const canDeleteUser = useCan("delete", "Users") || useCan("delete", "all");
+  const canCreateUser =
+    useCan("create", "settings-users") || useCan("create", "all");
+  const canDeleteUser =
+    useCan("delete", "settings-users") || useCan("delete", "all");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
@@ -93,12 +96,7 @@ export default function HeloraUsersPage() {
 
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
 
-  const {
-    data,
-    isLoading,
-    isRefetching,
-    refetch,
-  } = useUsersQuery({
+  const { data, isLoading, isRefetching, refetch } = useUsersQuery({
     pageIndex: pagination.pageIndex,
     pageSize: pagination.pageSize,
     search,
@@ -154,7 +152,11 @@ export default function HeloraUsersPage() {
       from: Route.fullPath,
       search: (prev) => ({
         ...prev,
-        userId: String((user as any).tenantUserId ?? (user as any).userId ?? (user as any).id),
+        userId: String(
+          (user as any).tenantUserId ??
+            (user as any).userId ??
+            (user as any).id,
+        ),
         mode: "view",
         tab: "details",
         action: undefined,
@@ -228,7 +230,7 @@ export default function HeloraUsersPage() {
   };
 
   return (
-    <PermissionGate action="read" subject="Users">
+    <PermissionGate action="read" subject="settings-users">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div
@@ -267,11 +269,8 @@ export default function HeloraUsersPage() {
                   className="h-9 rounded-xl bg-white font-bold"
                 >
                   <RefreshCw
-                    className={`h-4 w-4 ${
-                      isRefetching ? "animate-spin" : ""
-                    }`}
+                    className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
                   />
-                 
                 </Button>
 
                 <Button
@@ -417,7 +416,9 @@ export default function HeloraUsersPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {(search || statusFilter !== "ALL" || roleFilter !== "ALL") && (
+                    {(search ||
+                      statusFilter !== "ALL" ||
+                      roleFilter !== "ALL") && (
                       <Button
                         variant="ghost"
                         onClick={resetFilters}
@@ -491,7 +492,10 @@ export default function HeloraUsersPage() {
           </motion.div>
         </AnimatePresence>
 
-        <CreateUserDialog open={action === "create"} onClose={closeCreateSheet} />
+        <CreateUserDialog
+          open={action === "create"}
+          onClose={closeCreateSheet}
+        />
 
         <UserDetailsSheet
           open={!!userId}

@@ -73,7 +73,7 @@ export default function SettingsPage() {
   }, [settings]);
 
   return (
-    <PermissionGate action="read" subject="Settings">
+    <PermissionGate action="read" subject="settings">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

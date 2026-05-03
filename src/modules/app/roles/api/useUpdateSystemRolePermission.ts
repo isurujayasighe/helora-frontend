@@ -1,53 +1,83 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { UpdateRolePermissionsPayload } from "../types/systemRolePermissionUpdate";
-import { toast } from "sonner"; // Assuming you use Sonner or similar for toasts
 import { covalentHubClient } from "@/services/clients/covalent.client";
+import {
+  permissionKeys,
+  type PermissionAction,
+} from "./useSystemRolePermissionById";
 
 /* ------------------------------------------------------------------ */
-/* API Function                                                       */
+/* Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface MutationParams {
-  roleId: string;
-  payload: UpdateRolePermissionsPayload;
+export interface UpdateRolePagePermissionAssignment {
+  /**
+   * Preferred field because backend DTO supports pageId.
+   * Use this from the matrix API page.id.
+   */
+  pageId: string;
+
+  /**
+   * Optional fallback. Not required when pageId is provided.
+   */
+  pageCode?: string;
+
+  actions: PermissionAction[];
 }
 
-async function updateSystemRolePermissions({ roleId, payload }: MutationParams) {
-  const { data } = await covalentHubClient.put(
-    `/SystemRolePagePermissions/roles/${roleId}/page-permissions`,
-    payload
-  );
+export interface UpdateRolePermissionMatrixPayload {
+  assignments: UpdateRolePagePermissionAssignment[];
+}
 
-  // Check for success flag if your API returns a standard envelope
-  if (data.success === false) {
-    throw new Error(data.error || "Failed to update permissions");
+interface UpdateRolePermissionMatrixApiResponse {
+  success: boolean;
+  data?: unknown;
+  error?: string | null;
+  message?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fetcher                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function updateRolePermissionMatrix({
+  roleId,
+  payload,
+}: {
+  roleId: string;
+  payload: UpdateRolePermissionMatrixPayload;
+}) {
+  const response =
+    await covalentHubClient.put<UpdateRolePermissionMatrixApiResponse>(
+      `/permissions/roles/${roleId}/matrix`,
+      payload
+    );
+
+  if (!response.data.success) {
+    throw new Error(
+      response.data.error || "Failed to update role permission matrix"
+    );
   }
 
-  return data;
+  return response.data.data;
 }
 
 /* ------------------------------------------------------------------ */
-/* React Query Hook                                                   */
+/* Hook                                                               */
 /* ------------------------------------------------------------------ */
 
 export function useUpdateSystemRolePermissions() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateSystemRolePermissions,
-    
-    onSuccess: (_, variables) => {
-      toast.success("Permissions updated successfully");
-
-      // Invalidate the specific role's permission query so the UI refreshes
+    mutationFn: updateRolePermissionMatrix,
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["system-role-permissions", variables.roleId],
+        queryKey: permissionKeys.matrixByRole(variables.roleId),
       });
-    },
-    
-    onError: (error: any) => {
-      console.error("Update failed:", error);
-      toast.error(error.message || "Failed to save changes. Please try again.");
+
+      queryClient.invalidateQueries({
+        queryKey: permissionKeys.all,
+      });
     },
   });
 }

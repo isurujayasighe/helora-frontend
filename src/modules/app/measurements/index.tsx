@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
-  ChevronDown,
   Download,
   Eye,
   Hash,
@@ -14,7 +13,6 @@ import {
   RefreshCw,
   Ruler,
   Search,
-  Shirt,
   Star,
   Trash2,
 } from "lucide-react";
@@ -34,7 +32,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -187,7 +184,7 @@ export default function MeasurementFieldsPage() {
   );
 
   return (
-    <PermissionGate action="read" subject="Dashboard">
+    <PermissionGate action="read" subject="measurements">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div
@@ -590,7 +587,7 @@ function MeasurementFieldsTable({
   }
 
   return (
-    <div className="min-w-[1050px]">
+    <div className="min-w-262.5">
       <div className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr_0.9fr_0.9fr_70px] border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
         <div>Field</div>
         <div>Category</div>

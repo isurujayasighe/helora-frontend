@@ -3,26 +3,32 @@ import {
   createMongoAbility,
   type MongoAbility,
 } from "@casl/ability";
+
 import type { Actions, Subjects } from "./rbac.types";
+import { isRbacAction } from "./rbac.types";
 
-export type AppAbility = MongoAbility<[Actions, Subjects]>;
+export type AppAbility = MongoAbility<[Actions, Subjects | string]>;
 
-const SUBJECT_MAP: Record<string, Subjects> = {
-  users: "Users",
-  customers: "Customers",
-  categories: "Categories",
-  blocks: "Blocks",
-  orders: "Orders",
-  audit: "Audit",
-  dashboard: "Dashboard",
-  settings: "Settings",
-  profile: "Profile",
-  support: "Support",
-};
+/**
+ * Backend now sends permissions like:
+ * dashboard:read
+ * orders:create
+ * group-orders:update
+ * settings-permissions:manage
+ *
+ * So the resource can be used directly as the CASL subject.
+ */
+function normalizeResource(resource: string) {
+  return resource.trim().toLowerCase();
+}
+
+function normalizeAction(action: string) {
+  return action.trim().toLowerCase();
+}
 
 export function defineAbilityFromPermissions(
   permissions: string[] | undefined,
-  roles: string[] = [],
+  roles: string[] = []
 ): AppAbility {
   const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
@@ -41,32 +47,27 @@ export function defineAbilityFromPermissions(
   }
 
   permissions.forEach((permission) => {
-    const [resource, action] = permission.split(":");
+    const [rawResource, rawAction] = permission.split(":");
 
-    if (!resource || !action) {
+    if (!rawResource || !rawAction) {
       console.warn(`[RBAC] Invalid permission format: ${permission}`);
       return;
     }
 
-    const subject = SUBJECT_MAP[resource];
+    const resource = normalizeResource(rawResource);
+    const action = normalizeAction(rawAction);
 
-    if (!subject) {
-      console.warn(`[RBAC] Unknown permission resource: ${resource}`);
+    if (!isRbacAction(action)) {
+      console.warn(`[RBAC] Unknown permission action: ${action}`);
       return;
     }
 
-    if (
-      action === "read" ||
-      action === "create" ||
-      action === "update" ||
-      action === "delete" ||
-      action === "manage"
-    ) {
-      can(action as Actions, subject);
-      return;
-    }
-
-    console.warn(`[RBAC] Unknown permission action: ${action}`);
+    /**
+     * Important:
+     * Do not map dashboard -> Dashboard anymore.
+     * Keep backend Page.code as frontend subject.
+     */
+    can(action, resource);
   });
 
   return build({
