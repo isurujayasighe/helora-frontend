@@ -8,6 +8,7 @@ export type CustomerLookupItem = {
   alternatePhone: string | null;
   town: string | null;
   hospitalName?: string | null;
+  address?:string| null;
 };
 
 type CustomerLookupResponse = {
@@ -21,34 +22,51 @@ export type CustomerLookupParams = {
 };
 
 const lookupCustomers = async (
-  params: CustomerLookupParams
-): Promise<CustomerLookupResponse> => {
+  params: CustomerLookupParams,
+): Promise<CustomerLookupItem[]> => {
+  const search = params.search?.trim();
+
   const response = await covalentHubClient.get<CustomerLookupResponse>(
     "/customers/lookup",
     {
       params: {
-        search: params.search || undefined,
+        search: search || undefined,
         limit: params.limit ?? 8,
       },
-    }
+    },
   );
 
-  return response.data;
+  return response.data.data ?? [];
 };
 
 export const customerLookupQueryKeys = {
   all: ["customer-lookup"] as const,
   list: (params: CustomerLookupParams) =>
-    [...customerLookupQueryKeys.all, params] as const,
+    [
+      ...customerLookupQueryKeys.all,
+      {
+        search: params.search?.trim() ?? "",
+        limit: params.limit ?? 8,
+      },
+    ] as const,
 };
 
 export const useCustomerLookup = (params: CustomerLookupParams) => {
-  const enabled = Boolean(params.search && params.search.trim().length >= 2);
+  const search = params.search?.trim() ?? "";
+  const enabled = search.length >= 2;
 
   return useQuery({
-    queryKey: customerLookupQueryKeys.list(params),
-    queryFn: () => lookupCustomers(params),
+    queryKey: customerLookupQueryKeys.list({
+      search,
+      limit: params.limit,
+    }),
+    queryFn: () =>
+      lookupCustomers({
+        search,
+        limit: params.limit,
+      }),
     enabled,
     placeholderData: (previousData) => previousData,
+    staleTime: 30_000,
   });
 };

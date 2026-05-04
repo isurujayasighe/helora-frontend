@@ -9,7 +9,7 @@ export const DEFAULT_CATEGORIES: CategoryOption[] = [
 ];
 
 export const CATEGORY_MEASUREMENTS: Record<string, MeasurementFieldConfig[]> = {
-  cmo8n1mof000qdk64iu6f27nf: [
+  cmomw7bma00aldk2kzf5zz7kl: [
     { key: "shoulder", label: "Shoulder", unit: "in" },
     { key: "chest", label: "Chest", unit: "in" },
     { key: "waist", label: "Waist", unit: "in" },

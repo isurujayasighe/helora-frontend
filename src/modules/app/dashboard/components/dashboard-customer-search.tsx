@@ -636,7 +636,7 @@ export function DashboardCustomerSearchCard() {
 
   const updateMeasurementMutation = useUpdateMeasurement();
 
-  const customerList = customers?.data ?? [];
+  const customerList = customers ?? [];
 
   const measurementItems = React.useMemo(
     () => getMeasurementItems(latestMeasurement),

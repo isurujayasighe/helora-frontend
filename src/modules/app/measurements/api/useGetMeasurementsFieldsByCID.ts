@@ -85,13 +85,15 @@ export function useMeasurementFieldsQuery(
 
       const payload = response.data?.data ?? response.data;
 
+      console.log(payload.items)
+
       if (Array.isArray(payload)) {
         return {
           data: payload,
         };
       }
 
-      return payload;
+      return payload.items;
     },
     staleTime: 1000 * 60 * 5,
     ...options,

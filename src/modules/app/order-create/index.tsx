@@ -1,25 +1,28 @@
 "use client";
 
+import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm, type SubmitHandler } from "react-hook-form";
 import {
+  ArrowLeft,
   Banknote,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
   Loader2,
-  Plus,
+  Printer,
   Ruler,
+  Save,
   Search,
-  Trash2,
   UserRound,
 } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -30,6 +33,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 import {
   useFindCustomerByPhoneMutation,
@@ -37,7 +41,6 @@ import {
 } from "@/api/useFindCustomerByPhone";
 import { useGetCustomerById } from "@/modules/app/customers/api/useGetCustomerbyId";
 import { useGetLatestMeasurement } from "@/api/useGetLatestMeasurement";
-import { useGetCategories } from "@/api/useGetCategories";
 import {
   useCreateOrder,
   type CreateOrderPayload,
@@ -48,41 +51,618 @@ import {
   type PaymentStatus,
 } from "@/api/useCreateOrder";
 
-import { MeasurementFields } from "@/components/layout/components/measurements-fields";
+import {
+  MeasurementFields,
+  type MeasurementFieldConfig,
+} from "@/components/layout/components/measurements-fields";
+import { generateOrderPdf } from "@/utils/generate-order-pdf";
 
-import { formSchema } from "./schema/create-order.schema";
+import { useGetCategories } from "@/api/useGetCategories";
 import {
-  CATEGORY_MEASUREMENTS,
-  ORDER_ITEM_STATUS_OPTIONS,
-  ORDER_SOURCE_OPTIONS,
-  ORDER_STATUS_OPTIONS,
-  PAYMENT_MODE_OPTIONS,
-  PAYMENT_STATUS_OPTIONS,
-} from "./constants/create-order.constants";
+  useMeasurementFieldsQuery,
+  type MeasurementField,
+  type MeasurementFieldsResponse,
+} from "@/modules/app/measurements/api/useGetMeasurementsFieldsByCID";
 import {
-  buildInitialItem,
-  buildInitialValues,
-  buildMeasurementFieldsFromApi,
-  buildMeasurementMap,
-  hasMeasurementValues,
-  toIsoDateString,
-} from "./helpers/create-order.helpers";
-import {
-  mapCustomerDetailsToCustomerByPhone,
-  mapPrefillMeasurementToCustomerByPhone,
-} from "./helpers/create-order-customer-mapper";
-import type {
-  CategoryOption,
-  CreateOrderFormInput,
-  CreateOrderFormValues,
-  CreateOrderPageProps,
-} from "./types/create-order.types";
-import {
-  PageHeader,
-  SectionCard,
-  SelectInput,
-  SummaryMetric,
-} from "./components/create-order-shared";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CustomerPhoneLookupField } from "@/components/layout/components/customer-phone-lookup-field";
+
+/* ------------------------------------------------------------------ */
+/* Validation                                                         */
+/* ------------------------------------------------------------------ */
+
+const measurementValuesSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.undefined(), z.null()]),
+);
+
+const orderItemSchema = z.object({
+  categoryId: z.string().min(1, "Category is required"),
+  blockId: z.string().optional(),
+  measurementId: z.string().optional(),
+  itemDescription: z.string().min(1, "Item description is required"),
+  quantity: z.coerce.number().min(1, "Qty must be at least 1"),
+  unitPrice: z.coerce.number().min(0, "Unit price must be 0 or more"),
+  lineTotal: z.coerce.number().min(0),
+  notes: z.string().optional(),
+  tailorNote: z.string().optional(),
+  status: z
+    .enum(["PENDING", "CUTTING", "SEWING", "READY", "DELIVERED", "CANCELLED"])
+    .default("PENDING"),
+  blockMode: z
+    .enum(["existing", "measurement-only"])
+    .default("measurement-only"),
+  measurements: measurementValuesSchema.default({}),
+  measurementNote: z.string().optional(),
+});
+
+const formSchema = z.object({
+  phoneNumber: z.string().min(7, "Phone number is required"),
+  customerMode: z.enum(["existing", "new"]).default("existing"),
+  customerId: z.string().optional(),
+  customerName: z.string().optional(),
+  customerTown: z.string().optional(),
+  customerAddress: z.string().optional(),
+  customerNotes: z.string().optional(),
+  hospitalName: z.string().optional(),
+  groupOrderId: z.string().optional(),
+
+  orderNumber: z.string().optional(),
+  orderDate: z.string().min(1, "Order date is required"),
+  promisedDate: z.string().min(1, "Promised date is required"),
+  completedAt: z.string().optional(),
+  deliveredAt: z.string().optional(),
+
+  status: z
+    .enum([
+      "PENDING",
+      "CONFIRMED",
+      "CUTTING",
+      "SEWING",
+      "READY",
+      "DELIVERED",
+      "CANCELLED",
+    ])
+    .default("PENDING"),
+
+  orderSource: z
+    .enum(["DREZAURA", "PHYSICAL_SHOP", "PHONE_CALL", "WHATSAPP", "ONLINE"])
+    .default("PHYSICAL_SHOP"),
+
+  paymentStatus: z
+    .enum(["UNPAID", "ADVANCE_PAID", "PARTIALLY_PAID", "PAID", "REFUNDED"])
+    .default("UNPAID"),
+
+  paymentMode: z
+    .enum(["CASH", "ONLINE_TRANSFER", "BANK_DEPOSIT", "CARD", "MIXED"])
+    .default("CASH"),
+
+  totalQty: z.coerce.number().min(0).default(0),
+  totalAmount: z.coerce.number().min(0).default(0),
+  advanceAmount: z.coerce.number().min(0).default(0),
+  balanceAmount: z.coerce.number().min(0).default(0),
+  courierCharges: z.coerce.number().min(0).default(0),
+
+  notes: z.string().optional(),
+  specialNotes: z.string().optional(),
+
+  items: z.array(orderItemSchema).length(1, "Only one order item is supported"),
+});
+
+type CreateOrderFormInput = z.input<typeof formSchema>;
+type CreateOrderFormValues = z.output<typeof formSchema>;
+
+type CategoryOption = {
+  id: string;
+  name: string;
+  isActive?: boolean;
+};
+
+type CreateOrderPrefill = {
+  customerId?: string;
+  measurementId?: string;
+  blockId?: string;
+  categoryId?: string;
+};
+
+type CreateOrderPageProps = {
+  prefill?: CreateOrderPrefill;
+  onSubmit?: (payload: CreateOrderPayload) => Promise<void> | void;
+};
+
+/* ------------------------------------------------------------------ */
+/* Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const ORDER_STATUS_OPTIONS = [
+  { value: "PENDING", label: "Pending" },
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "CUTTING", label: "Cutting" },
+  { value: "SEWING", label: "Sewing" },
+  { value: "READY", label: "Ready" },
+  { value: "DELIVERED", label: "Delivered" },
+  { value: "CANCELLED", label: "Cancelled" },
+] as const;
+
+const ORDER_ITEM_STATUS_OPTIONS = [
+  { value: "PENDING", label: "Pending" },
+  { value: "CUTTING", label: "Cutting" },
+  { value: "SEWING", label: "Sewing" },
+  { value: "READY", label: "Ready" },
+  { value: "DELIVERED", label: "Delivered" },
+  { value: "CANCELLED", label: "Cancelled" },
+] as const;
+
+const ORDER_SOURCE_OPTIONS = [
+  { value: "PHYSICAL_SHOP", label: "Physical Shop" },
+  { value: "PHONE_CALL", label: "Phone Call" },
+  { value: "WHATSAPP", label: "WhatsApp" },
+  { value: "DREZAURA", label: "Drezaura" },
+  { value: "ONLINE", label: "Online" },
+] as const;
+
+const PAYMENT_STATUS_OPTIONS = [
+  { value: "UNPAID", label: "Unpaid" },
+  { value: "ADVANCE_PAID", label: "Advance Paid" },
+  { value: "PARTIALLY_PAID", label: "Partially Paid" },
+  { value: "PAID", label: "Paid" },
+  { value: "REFUNDED", label: "Refunded" },
+] as const;
+
+const PAYMENT_MODE_OPTIONS = [
+  { value: "CASH", label: "Cash" },
+  { value: "ONLINE_TRANSFER", label: "Online Transfer" },
+  { value: "BANK_DEPOSIT", label: "Bank Deposit" },
+  { value: "CARD", label: "Card" },
+  { value: "MIXED", label: "Mixed" },
+] as const;
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function todayInputValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysInputValue(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function toIsoDateString(dateValue?: string) {
+  if (!dateValue) return undefined;
+  return new Date(`${dateValue}T00:00:00`).toISOString();
+}
+
+function toMeasurementStringValue(
+  value: string | null | undefined,
+  numericValue: string | number | null | undefined,
+) {
+  return value ?? (numericValue != null ? String(numericValue) : "");
+}
+
+function buildMeasurementMap(
+  values:
+    | Array<{
+        value: string | null;
+        numericValue: string | number | null;
+        field: { code: string };
+      }>
+    | undefined,
+) {
+  if (!values?.length) return {};
+
+  return values.reduce<Record<string, string>>((result, item) => {
+    result[item.field.code] = toMeasurementStringValue(
+      item.value,
+      item.numericValue,
+    );
+
+    return result;
+  }, {});
+}
+
+function buildMeasurementFieldsFromApi(
+  values:
+    | Array<{
+        field: {
+          code: string;
+          label: string;
+          unit: string | null;
+          sortOrder: number;
+        };
+      }>
+    | undefined,
+): MeasurementFieldConfig[] {
+  if (!values?.length) return [];
+
+  return [...values]
+    .sort((a, b) => a.field.sortOrder - b.field.sortOrder)
+    .map((item) => ({
+      key: item.field.code,
+      label: item.field.label,
+      unit: item.field.unit ?? undefined,
+    }));
+}
+
+function hasMeasurementValues(values?: Record<string, unknown>) {
+  if (!values) return false;
+
+  return Object.values(values).some(
+    (value) => value !== undefined && value !== null && value !== "",
+  );
+}
+
+function normalizeMeasurementValues(
+  values?: Record<string, string | number | null | undefined>,
+): Record<string, string | number | undefined> {
+  if (!values) return {};
+
+  return Object.entries(values).reduce<
+    Record<string, string | number | undefined>
+  >((result, [key, value]) => {
+    result[key] = value === null ? undefined : value;
+    return result;
+  }, {});
+}
+
+function getMeasurementFieldRows(
+  response?: MeasurementFieldsResponse | MeasurementField[],
+): MeasurementField[] {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response.data)) return response.data;
+  return [];
+}
+
+function mapMeasurementFieldsToConfig(
+  fields: MeasurementField[],
+): MeasurementFieldConfig[] {
+  return [...fields]
+    .filter((field) => field.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((field) => ({
+      key: field.code,
+      label: field.label,
+      unit: field.unit ?? undefined,
+    }));
+}
+
+function mapCustomerDetailsToCustomerByPhone(customer: any): CustomerByPhone {
+  return {
+    id: customer.id,
+    fullName: customer.fullName ?? "",
+    phoneNumber: customer.phoneNumber ?? "",
+    alternatePhone: customer.alternatePhone ?? null,
+    town: customer.town ?? null,
+    address: customer.address ?? null,
+    notes: customer.notes ?? null,
+    hospitalName: customer.hospitalName ?? null,
+    blocks:
+      customer.blocks?.map((block: any) => ({
+        ...block,
+        tenantId: block.tenantId ?? "",
+        customerId: block.customerId ?? customer.id,
+        categoryId: block.categoryId ?? block.category?.id ?? "",
+        category: block.category ?? null,
+        sizeLabel: block.sizeLabel ?? null,
+        readyMadeSize: block.readyMadeSize ?? null,
+        fitNotes: block.fitNotes ?? null,
+        description: block.description ?? null,
+        remarks: block.remarks ?? null,
+      })) ?? [],
+  } as CustomerByPhone;
+}
+
+function mapPrefillMeasurementToCustomerByPhone(
+  measurement: any,
+): CustomerByPhone {
+  const customer = measurement.customer;
+
+  return {
+    id: customer?.id ?? measurement.customerId,
+    fullName: customer?.fullName ?? "",
+    phoneNumber: customer?.phoneNumber ?? "",
+    alternatePhone: customer?.alternatePhone ?? null,
+    town: customer?.town ?? null,
+    address: customer?.address ?? null,
+    notes: customer?.notes ?? null,
+    hospitalName: customer?.hospitalName ?? null,
+    blocks: measurement.block
+      ? [
+          {
+            ...measurement.block,
+            tenantId: measurement.block.tenantId ?? "",
+            customerId: measurement.block.customerId ?? measurement.customerId,
+            categoryId: measurement.categoryId,
+            category:
+              measurement.category ?? measurement.block.category ?? null,
+            isDefault: true,
+            sizeLabel: measurement.block.sizeLabel ?? null,
+            readyMadeSize: measurement.block.readyMadeSize ?? null,
+            fitNotes: measurement.block.fitNotes ?? null,
+            description: measurement.block.description ?? null,
+            remarks: measurement.block.remarks ?? null,
+          },
+        ]
+      : [],
+  } as CustomerByPhone;
+}
+
+const buildInitialItem = (): CreateOrderFormInput["items"][number] => ({
+  categoryId: "",
+  blockId: "",
+  measurementId: "",
+  itemDescription: "",
+  quantity: 1,
+  unitPrice: 0,
+  lineTotal: 0,
+  notes: "",
+  tailorNote: "",
+  status: "PENDING",
+  blockMode: "measurement-only",
+  measurements: {},
+  measurementNote: "Measurements taken while placing order.",
+});
+
+const buildInitialValues = (): CreateOrderFormInput => ({
+  phoneNumber: "",
+  customerMode: "existing",
+  customerId: "",
+  customerName: "",
+  customerTown: "",
+  customerAddress: "",
+  customerNotes: "",
+  hospitalName: "",
+  groupOrderId: "",
+  orderNumber: "",
+  orderDate: todayInputValue(),
+  promisedDate: addDaysInputValue(7),
+  completedAt: "",
+  deliveredAt: "",
+  status: "PENDING",
+  orderSource: "PHYSICAL_SHOP",
+  paymentStatus: "UNPAID",
+  paymentMode: "CASH",
+  totalQty: 1,
+  totalAmount: 0,
+  advanceAmount: 0,
+  balanceAmount: 0,
+  courierCharges: 0,
+  notes: "",
+  specialNotes: "",
+  items: [buildInitialItem()],
+});
+
+/* ------------------------------------------------------------------ */
+/* Shared UI                                                          */
+/* ------------------------------------------------------------------ */
+
+function PageHeader() {
+  return (
+    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <Button
+          asChild
+          variant="outline"
+          size="icon"
+          className="mt-1 rounded-lg"
+        >
+          <Link to="/app/orders">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Create Order
+            </h1>
+
+            <Badge className="rounded-full bg-slate-900 text-white hover:bg-slate-900">
+              Single item order
+            </Badge>
+          </div>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Create one order item with quantity, price, and category-based
+            measurements.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  icon: Icon,
+  children,
+  action,
+}: {
+  title: string;
+  description?: string;
+  icon?: React.ElementType;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div className="flex min-w-0 items-start gap-3">
+          {Icon && (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+              <Icon className="h-4 w-4" />
+            </div>
+          )}
+
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-bold text-slate-900">
+              {title}
+            </CardTitle>
+
+            {description && (
+              <p className="mt-1 text-xs text-slate-500">{description}</p>
+            )}
+          </div>
+        </div>
+
+        {action}
+      </CardHeader>
+
+      <CardContent className="p-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+function SummaryMetric({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string | number;
+  strong?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+
+      <p
+        className={cn(
+          "mt-1 text-sm font-bold",
+          strong ? "text-slate-950" : "text-slate-700",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={cn(
+        "flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-100",
+        props.className,
+      )}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* PDF                                                                */
+/* ------------------------------------------------------------------ */
+
+function generateDraftOrderPdf(
+  values: CreateOrderFormInput,
+  foundCustomer?: CustomerByPhone | null,
+  categories: CategoryOption[] = [],
+) {
+  const item = values.items[0];
+
+  const matchedCustomerName =
+    foundCustomer?.fullName || values.customerName || "-";
+
+  const matchedBlock =
+    item.blockMode === "existing"
+      ? foundCustomer?.blocks?.find((block) => block.id === item.blockId)
+      : null;
+
+  const matchedCategory = categories.find(
+    (category) => category.id === item.categoryId,
+  );
+
+  const draftOrder = {
+    id: "draft-order",
+    tenantId: "",
+    customerId: values.customerId || "",
+    groupOrderId: values.groupOrderId || null,
+    orderNumber: values.orderNumber || "DRAFT",
+    orderDate: values.orderDate,
+    promisedDate: values.promisedDate,
+    status: values.status,
+    orderSource: values.orderSource,
+    paymentStatus: values.paymentStatus,
+    paymentMode: values.paymentMode,
+    hospitalName: values.hospitalName,
+    town: values.customerTown,
+    customerAddress: values.customerAddress,
+    notes: values.notes,
+    specialNotes: values.specialNotes,
+    totalQty: values.totalQty,
+    totalAmount: values.totalAmount,
+    advanceAmount: values.advanceAmount,
+    balanceAmount: values.balanceAmount,
+    courierCharges: values.courierCharges,
+    customer: {
+      id: values.customerId || "draft-customer",
+      tenantId: "",
+      fullName: matchedCustomerName,
+      alternatePhone: foundCustomer?.alternatePhone || null,
+      town: foundCustomer?.town || values.customerTown || "-",
+      address: foundCustomer?.address || values.customerAddress || "-",
+      notes: foundCustomer?.notes || values.customerNotes || "-",
+      hospitalName: values.hospitalName || null,
+    },
+    items: [
+      {
+        id: "draft-item-1",
+        orderId: "draft-order",
+        categoryId: item.categoryId,
+        blockId: item.blockMode === "existing" ? item.blockId || null : null,
+        measurementId: item.measurementId || null,
+        itemDescription: item.itemDescription,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+        notes: item.notes,
+        tailorNote: item.tailorNote,
+        status: item.status,
+        measurements: item.measurements ?? {},
+        measurementNote: item.measurementNote,
+        category: matchedCategory
+          ? { id: matchedCategory.id, name: matchedCategory.name }
+          : { id: item.categoryId, name: "-" },
+        block: matchedBlock
+          ? {
+              id: matchedBlock.id,
+              blockNumber: matchedBlock.blockNumber,
+              versionNo: matchedBlock.versionNo,
+              sizeLabel: matchedBlock.sizeLabel,
+              readyMadeSize: matchedBlock.readyMadeSize,
+              fitNotes: matchedBlock.fitNotes,
+              status: matchedBlock.status,
+              isDefault: matchedBlock.isDefault,
+              description: matchedBlock.description,
+              remarks: matchedBlock.remarks,
+            }
+          : null,
+      },
+    ],
+    _count: {
+      items: 1,
+    },
+  };
+
+  generateOrderPdf(draftOrder as any);
+}
+
+/* ------------------------------------------------------------------ */
+/* Page                                                               */
+/* ------------------------------------------------------------------ */
 
 export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   const navigate = useNavigate();
@@ -99,7 +679,7 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   const createOrderMutation = useCreateOrder();
 
   const {
-    data: apiCategories = [],
+    data: categories = [],
     isLoading: isCategoriesLoading,
     isError: isCategoriesError,
   } = useGetCategories();
@@ -119,14 +699,14 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     );
 
   const activeCategories = useMemo<CategoryOption[]>(() => {
-    return apiCategories
+    return categories
       .filter((category) => category.isActive)
       .map((category) => ({
         id: category.id,
         name: category.name,
         isActive: category.isActive,
       }));
-  }, [apiCategories]);
+  }, [categories]);
 
   const categoriesForForm = useMemo<CategoryOption[]>(() => {
     if (!prefillMeasurement?.category) return activeCategories;
@@ -157,56 +737,53 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     defaultValues: buildInitialValues(),
   });
 
-  const { control, watch, setValue, getValues, reset, setError, clearErrors } =
-    form;
+  const { control, setValue, getValues, reset, setError, clearErrors } = form;
 
-  const { fields, append, remove } = useFieldArray<CreateOrderFormInput>({
+  const item = useWatch({
     control,
-    name: "items",
+    name: "items.0",
   });
 
-  const watchedItems = watch("items");
-  const watchedAdvance = watch("advanceAmount");
-  const watchedCourierCharges = watch("courierCharges");
+  const categoryId = useWatch({
+    control,
+    name: "items.0.categoryId",
+  });
 
-  const calculatedTotal = useMemo(() => {
-    return (watchedItems || []).reduce((sum, item) => {
-      const quantity = Number(item.quantity || 0);
-      const unitPrice = Number(item.unitPrice || 0);
+  const quantity = Number(item?.quantity || 0);
+  const unitPrice = Number(item?.unitPrice || 0);
+  const courierCharges = Number(
+    useWatch({ control, name: "courierCharges" }) || 0,
+  );
+  const advanceAmount = Number(
+    useWatch({ control, name: "advanceAmount" }) || 0,
+  );
 
-      return sum + quantity * unitPrice;
-    }, 0);
-  }, [watchedItems]);
-
-  const calculatedQty = useMemo(() => {
-    return (watchedItems || []).reduce((sum, item) => {
-      return sum + Number(item.quantity || 0);
-    }, 0);
-  }, [watchedItems]);
-
+  const calculatedTotal = quantity * unitPrice;
+  const calculatedQty = quantity;
   const calculatedBalance = Math.max(
     0,
-    calculatedTotal +
-      Number(watchedCourierCharges || 0) -
-      Number(watchedAdvance || 0),
+    calculatedTotal + courierCharges - advanceAmount,
   );
 
   useEffect(() => {
+    const lineTotal = quantity * unitPrice;
+
+    setValue("items.0.lineTotal", lineTotal, {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+
     setValue("totalQty", calculatedQty, { shouldValidate: false });
     setValue("totalAmount", calculatedTotal, { shouldValidate: false });
     setValue("balanceAmount", calculatedBalance, { shouldValidate: false });
-
-    watchedItems?.forEach((item, index) => {
-      const lineTotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-
-      if (Number(item.lineTotal || 0) !== lineTotal) {
-        setValue(`items.${index}.lineTotal`, lineTotal, {
-          shouldValidate: false,
-          shouldDirty: true,
-        });
-      }
-    });
-  }, [calculatedQty, calculatedTotal, calculatedBalance, watchedItems, setValue]);
+  }, [
+    quantity,
+    unitPrice,
+    calculatedQty,
+    calculatedTotal,
+    calculatedBalance,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (!hasMeasurementPrefill) return;
@@ -250,7 +827,9 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       ],
     });
 
-    setFoundCustomer(mapPrefillMeasurementToCustomerByPhone(prefillMeasurement));
+    setFoundCustomer(
+      mapPrefillMeasurementToCustomerByPhone(prefillMeasurement),
+    );
     setCustomerSearched(true);
   }, [
     hasMeasurementPrefill,
@@ -281,7 +860,9 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       items: [buildInitialItem()],
     });
 
-    setFoundCustomer(mapCustomerDetailsToCustomerByPhone(prefilledCustomer.data));
+    setFoundCustomer(
+      mapCustomerDetailsToCustomerByPhone(prefilledCustomer.data),
+    );
     setCustomerSearched(true);
   }, [
     isPrefillFlow,
@@ -291,70 +872,52 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     reset,
   ]);
 
-  const handleSearchCustomer = async () => {
-    const phoneNumber = getValues("phoneNumber")?.trim();
+  // const handleSearchCustomer = async () => {
+  //   const phoneNumber = getValues("phoneNumber")?.trim();
 
-    if (!phoneNumber) {
-      setError("phoneNumber", { message: "Phone number is required" });
-      return;
-    }
+  //   if (!phoneNumber) {
+  //     setError("phoneNumber", { message: "Phone number is required" });
+  //     return;
+  //   }
 
-    clearErrors("phoneNumber");
-    setCustomerSearched(true);
+  //   clearErrors("phoneNumber");
+  //   setCustomerSearched(true);
 
-    try {
-      const customer = await findCustomerMutation.mutateAsync(phoneNumber);
+  //   try {
+  //     const customer = await findCustomerMutation.mutateAsync(phoneNumber);
 
-      if (customer?.data) {
-        setFoundCustomer(customer.data);
-        setValue("customerMode", "existing");
-        setValue("customerId", customer.data.id);
-        setValue("customerName", customer.data.fullName);
-        setValue("customerTown", customer.data.town || "");
-        setValue("customerAddress", customer.data.address || "");
-        setValue("customerNotes", customer.data.notes || "");
-        setValue("hospitalName", customer.data.hospitalName || "");
-      } else {
-        setFoundCustomer(null);
-        setValue("customerMode", "new");
-        setValue("customerId", "");
-      }
-    } catch {
-      setFoundCustomer(null);
-      setValue("customerMode", "new");
-      setValue("customerId", "");
-    }
-  };
+  //     if (customer?.data) {
+  //       setFoundCustomer(customer.data);
+  //       setValue("customerMode", "existing");
+  //       setValue("customerId", customer.data.id);
+  //       setValue("customerName", customer.data.fullName);
+  //       setValue("customerTown", customer.data.town || "");
+  //       setValue("customerAddress", customer.data.address || "");
+  //       setValue("customerNotes", customer.data.notes || "");
+  //       setValue("hospitalName", customer.data.hospitalName || "");
+  //     } else {
+  //       setFoundCustomer(null);
+  //       setValue("customerMode", "new");
+  //       setValue("customerId", "");
+  //     }
+  //   } catch {
+  //     setFoundCustomer(null);
+  //     setValue("customerMode", "new");
+  //     setValue("customerId", "");
+  //   }
+  // };
 
-  const getFilteredBlocks = (categoryId?: string) => {
+  const getFilteredBlocks = (selectedCategoryId?: string) => {
     if (!foundCustomer?.blocks?.length) return [];
-    if (!categoryId) return foundCustomer.blocks;
+    if (!selectedCategoryId) return foundCustomer.blocks;
 
     return foundCustomer.blocks.filter(
-      (block) => block.categoryId === categoryId,
+      (block) => block.categoryId === selectedCategoryId,
     );
   };
 
-  const getMeasurementFields = (categoryId?: string) => {
-    if (!categoryId) return [];
-
-    if (
-      hasMeasurementPrefill &&
-      prefillMeasurement?.categoryId === categoryId &&
-      prefillMeasurementFields.length > 0
-    ) {
-      return prefillMeasurementFields;
-    }
-
-    return CATEGORY_MEASUREMENTS[categoryId] || [];
-  };
-
-  const handleMeasurementChange = (
-    itemIndex: number,
-    key: string,
-    value: string,
-  ) => {
-    setValue(`items.${itemIndex}.measurements.${key}`, value, {
+  const handleMeasurementChange = (key: string, value: string) => {
+    setValue(`items.0.measurements.${key}`, value, {
       shouldDirty: true,
       shouldValidate: false,
     });
@@ -367,6 +930,11 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       });
       return;
     }
+
+    const orderItem = values.items[0];
+    const shouldUseExistingBlock = orderItem.blockMode === "existing";
+    const shouldSendMeasurements =
+      !orderItem.measurementId && hasMeasurementValues(orderItem.measurements);
 
     const payload: CreateOrderPayload = {
       customerId: values.customerId,
@@ -390,32 +958,28 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       courierCharges: Number(values.courierCharges || 0),
       notes: values.notes || undefined,
       specialNotes: values.specialNotes || undefined,
-      items: values.items.map((item) => {
-        const shouldUseExistingBlock = item.blockMode === "existing";
-        const shouldSendMeasurements =
-          !item.measurementId && hasMeasurementValues(item.measurements);
-
-        return {
-          categoryId: item.categoryId,
+      items: [
+        {
+          categoryId: orderItem.categoryId,
           blockId: shouldUseExistingBlock
-            ? item.blockId || undefined
+            ? orderItem.blockId || undefined
             : undefined,
-          measurementId: item.measurementId || undefined,
-          itemDescription: item.itemDescription,
-          quantity: Number(item.quantity || 0),
-          unitPrice: Number(item.unitPrice || 0),
-          lineTotal: Number(item.lineTotal || 0),
-          notes: item.notes || undefined,
-          tailorNote: item.tailorNote || undefined,
-          status: item.status as OrderItemStatus,
+          measurementId: orderItem.measurementId || undefined,
+          itemDescription: orderItem.itemDescription,
+          quantity: Number(orderItem.quantity || 0),
+          unitPrice: Number(orderItem.unitPrice || 0),
+          lineTotal: Number(orderItem.lineTotal || 0),
+          notes: orderItem.notes || undefined,
+          tailorNote: orderItem.tailorNote || undefined,
+          status: orderItem.status as OrderItemStatus,
           measurements: shouldSendMeasurements
-            ? item.measurements
+            ? orderItem.measurements
             : undefined,
           measurementNote: shouldSendMeasurements
-            ? item.measurementNote || undefined
+            ? orderItem.measurementNote || undefined
             : undefined,
-        };
-      }),
+        },
+      ],
     };
 
     await createOrderMutation.mutateAsync(payload);
@@ -427,7 +991,6 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     navigate({ to: "/app/orders" });
   };
 
-  const isSearchingCustomer = findCustomerMutation.isPending;
   const isSubmitting = createOrderMutation.isPending;
 
   const isPrefillLoading = hasMeasurementPrefill
@@ -436,18 +999,38 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       ? isPrefilledCustomerLoading
       : false;
 
-  const isSubmitDisabled =
+  const isSaveDisabled =
     isSubmitting || isPrefillLoading || isCategoriesLoading;
+
+  const blocks = getFilteredBlocks(categoryId);
+  const isExistingMeasurement = Boolean(item?.measurementId);
+  const isExistingBlock = item?.blockMode === "existing";
 
   return (
     <div className="min-h-screen bg-slate-50/60">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(submitOrder)}>
           <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-            <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 lg:px-6">
+            <div className="mx-auto flex max-w-7xl gap-4 px-4 py-4 lg:px-6 justify-between">
               <PageHeader />
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() =>
+                    generateDraftOrderPdf(
+                      getValues(),
+                      foundCustomer,
+                      categoriesForForm,
+                    )
+                  }
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Draft
+                </Button>
+
                 <Button
                   asChild
                   type="button"
@@ -459,13 +1042,15 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
 
                 <Button
                   type="submit"
-                  disabled={isSubmitDisabled}
+                  disabled={isSaveDisabled}
                   className="rounded-lg bg-slate-900 hover:bg-slate-800"
                 >
-                  {isSubmitting && (
+                  {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
                   )}
-                  {isSubmitting ? "Creating..." : "Create Order"}
+                  {isSubmitting ? "Saving..." : "Save Order"}
                 </Button>
               </div>
             </div>
@@ -474,14 +1059,14 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
           <main className="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[1fr_340px] lg:px-6">
             <div className="space-y-5">
               {isCategoriesError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
                   Categories could not be loaded. Please refresh the page.
                 </div>
               )}
 
               <SectionCard
                 title="Customer"
-                description="Find the customer first. New customer creation should happen before order creation."
+                description="Type the customer phone number and select the correct customer from suggestions."
                 icon={UserRound}
               >
                 {isPrefillLoading ? (
@@ -492,71 +1077,18 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                 ) : (
                   <div className="space-y-4">
                     {!isPrefillFlow && (
-                      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                        <FormField
-                          control={control}
-                          name="phoneNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Phone number / customer lookup
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="rounded-lg"
-                                  placeholder="Search by phone number"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="flex items-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleSearchCustomer}
-                            disabled={isSearchingCustomer}
-                            className="w-full rounded-lg sm:w-auto"
-                          >
-                            {isSearchingCustomer ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Search className="mr-2 h-4 w-4" />
-                            )}
-                            Find Customer
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {customerSearched && foundCustomer && (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-emerald-950">
-                              {foundCustomer.fullName}
-                            </p>
-                            <p className="mt-0.5 text-xs text-emerald-700">
-                              {foundCustomer.phoneNumber}
-                              {foundCustomer.town
-                                ? ` • ${foundCustomer.town}`
-                                : ""}
-                            </p>
-                          </div>
-
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-                        </div>
-                      </div>
-                    )}
-
-                    {customerSearched && !foundCustomer && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
-                        Customer not found. Create the customer first, then come
-                        back to create the order.
-                      </div>
+                      <CustomerPhoneLookupField
+                        control={form.control}
+                        setValue={form.setValue}
+                        names={{
+                          customerId: "customerId",
+                          customerName: "customerName",
+                          phoneNumber: "phoneNumber",
+                          hospitalName: "hospitalName",
+                          town: "customerTown",
+                          address: "customerAddress",
+                        }}
+                      />
                     )}
 
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -568,7 +1100,7 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                             <FormLabel>Name</FormLabel>
                             <FormControl>
                               <Input
-                                className="rounded-lg"
+                                className="rounded-lg bg-slate-50"
                                 readOnly
                                 {...field}
                               />
@@ -603,7 +1135,11 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                           <FormItem>
                             <FormLabel>Town</FormLabel>
                             <FormControl>
-                              <Input className="rounded-lg" {...field} />
+                              <Input
+                                className="rounded-lg bg-slate-50"
+                                readOnly
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -617,7 +1153,11 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                           <FormItem>
                             <FormLabel>Address</FormLabel>
                             <FormControl>
-                              <Input className="rounded-lg" {...field} />
+                              <Input
+                                className="rounded-lg bg-slate-50"
+                                readOnly
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -626,6 +1166,306 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                     </div>
                   </div>
                 )}
+              </SectionCard>
+
+              <SectionCard
+                title="Order Item & Measurements"
+                description="One order supports one garment item. Use quantity for multiple pieces."
+                icon={ClipboardList}
+              >
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-3">
+                    <p className="text-sm font-bold text-slate-900">
+                      Garment item
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Select category first. Measurements will load from that
+                      category.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <FormField
+                      control={control}
+                      name="items.0.categoryId"
+                      
+                      render={({}) => (
+                        <FormItem>
+                          <FormField
+                            control={control}
+                            name="items.0.categoryId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Category</FormLabel>
+
+                                <Select
+                                  value={field.value ?? ""}
+                                  disabled={
+                                    isExistingMeasurement || isCategoriesLoading
+                                  }
+                                  onValueChange={(selectedCategoryId) => {
+                                    field.onChange(selectedCategoryId);
+
+                                    console.log(selectedCategoryId);
+
+                                    setValue(
+                                      "items.0.categoryId",
+                                      selectedCategoryId,
+                                      {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                        shouldTouch: true,
+                                      },
+                                    );
+
+                                    setValue(
+                                      "items.0.measurements",
+                                      {},
+                                      {
+                                        shouldDirty: true,
+                                        shouldValidate: false,
+                                      },
+                                    );
+
+                                    setValue("items.0.measurementId", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+
+                                    setValue("items.0.blockId", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                  }}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="rounded-lg">
+                                      <SelectValue
+                                        placeholder={
+                                          isCategoriesLoading
+                                            ? "Loading categories..."
+                                            : "Select category"
+                                        }
+                                      />
+                                    </SelectTrigger>
+                                  </FormControl>
+
+                                  <SelectContent>
+                                    {categoriesForForm.map((category) => (
+                                      <SelectItem
+                                        key={category.id}
+                                        value={category.id}
+                                      >
+                                        {category.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.itemDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-lg"
+                              placeholder="Nurse uniform"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.quantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Qty</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-lg"
+                              type="number"
+                              min={1}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.unitPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Unit Price</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-lg"
+                              type="number"
+                              min={0}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.blockMode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Block Flow</FormLabel>
+                          <FormControl>
+                            <SelectInput
+                              {...field}
+                              disabled={isExistingMeasurement}
+                            >
+                              <option value="measurement-only">
+                                Measurement only
+                              </option>
+                              <option value="existing">Existing block</option>
+                            </SelectInput>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {isExistingBlock && (
+                      <FormField
+                        control={control}
+                        name="items.0.blockId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Block No</FormLabel>
+                            <FormControl>
+                              <SelectInput
+                                {...field}
+                                disabled={isExistingMeasurement}
+                              >
+                                <option value="">Select block</option>
+
+                                {blocks.map((block) => (
+                                  <option key={block.id} value={block.id}>
+                                    {block.blockNumber}
+                                    {block.sizeLabel
+                                      ? ` • ${block.sizeLabel}`
+                                      : ""}
+                                  </option>
+                                ))}
+                              </SelectInput>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <FormField
+                      control={control}
+                      name="items.0.status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Item Status</FormLabel>
+                          <FormControl>
+                            <SelectInput {...field}>
+                              {ORDER_ITEM_STATUS_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </SelectInput>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.lineTotal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Line Total</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-lg bg-slate-100"
+                              type="number"
+                              readOnly
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.notes"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel>Item Note</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-lg"
+                              placeholder="Customer requested loose fit"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="items.0.tailorNote"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel>Tailor Note</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="rounded-lg"
+                              placeholder="Use previous cutting style"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <OrderItemMeasurementsSection
+                    categoryId={categoryId}
+                    values={normalizeMeasurementValues(item?.measurements)}
+                    isExistingMeasurement={isExistingMeasurement}
+                    hasMeasurementPrefill={hasMeasurementPrefill}
+                    prefillCategoryId={prefillMeasurement?.categoryId}
+                    prefillMeasurementFields={prefillMeasurementFields}
+                    onMeasurementChange={handleMeasurementChange}
+                    control={control}
+                  />
+                </div>
               </SectionCard>
 
               <SectionCard
@@ -659,7 +1499,11 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                       <FormItem>
                         <FormLabel>Order Date</FormLabel>
                         <FormControl>
-                          <Input className="rounded-lg" type="date" {...field} />
+                          <Input
+                            className="rounded-lg"
+                            type="date"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -673,7 +1517,11 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                       <FormItem>
                         <FormLabel>Promised Date</FormLabel>
                         <FormControl>
-                          <Input className="rounded-lg" type="date" {...field} />
+                          <Input
+                            className="rounded-lg"
+                            type="date"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -815,359 +1663,12 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                   />
                 </div>
               </SectionCard>
-
-              <SectionCard
-                title="Order Items & Measurements"
-                description="Use measurement-only when the block will be created later from the block page."
-                icon={ClipboardList}
-                action={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-lg"
-                    onClick={() => append(buildInitialItem())}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Item
-                  </Button>
-                }
-              >
-                <div className="space-y-4">
-                  {fields.map((field, index) => {
-                    const watchedItem = watchedItems?.[index];
-                    const categoryId = watchedItem?.categoryId;
-                    const blocks = getFilteredBlocks(categoryId);
-                    const measurementFields = getMeasurementFields(categoryId);
-                    const isExistingMeasurement = Boolean(
-                      watchedItem?.measurementId,
-                    );
-                    const isExistingBlock =
-                      watchedItem?.blockMode === "existing";
-
-                    return (
-                      <div
-                        key={field.id}
-                        className="rounded-lg border border-slate-200 bg-slate-50 p-3"
-                      >
-                        <div className="mb-3 flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">
-                              Item {index + 1}
-                            </p>
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {isExistingBlock
-                                ? "Using existing customer block."
-                                : "Measurements will be saved now; block can be linked later."}
-                            </p>
-                          </div>
-
-                          {fields.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-lg"
-                              onClick={() => remove(index)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                          <FormField
-                            control={control}
-                            name={`items.${index}.categoryId`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Category</FormLabel>
-                                <FormControl>
-                                  <SelectInput
-                                    {...field}
-                                    disabled={
-                                      isExistingMeasurement ||
-                                      isCategoriesLoading
-                                    }
-                                  >
-                                    <option value="">
-                                      {isCategoriesLoading
-                                        ? "Loading categories..."
-                                        : "Select category"}
-                                    </option>
-
-                                    {categoriesForForm.map((category) => (
-                                      <option
-                                        key={category.id}
-                                        value={category.id}
-                                      >
-                                        {category.name}
-                                      </option>
-                                    ))}
-                                  </SelectInput>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.itemDescription`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="rounded-lg"
-                                    placeholder="Nurse uniform"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.quantity`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Qty</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="rounded-lg"
-                                    type="number"
-                                    min={1}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.unitPrice`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Unit Price</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="rounded-lg"
-                                    type="number"
-                                    min={0}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.blockMode`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Block Flow</FormLabel>
-                                <FormControl>
-                                  <SelectInput
-                                    {...field}
-                                    disabled={isExistingMeasurement}
-                                  >
-                                    <option value="measurement-only">
-                                      Measurement only
-                                    </option>
-                                    <option value="existing">
-                                      Existing block
-                                    </option>
-                                  </SelectInput>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          {isExistingBlock && (
-                            <FormField
-                              control={control}
-                              name={`items.${index}.blockId`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Block No</FormLabel>
-                                  <FormControl>
-                                    <SelectInput
-                                      {...field}
-                                      disabled={isExistingMeasurement}
-                                    >
-                                      <option value="">Select block</option>
-                                      {blocks.map((block) => (
-                                        <option key={block.id} value={block.id}>
-                                          {block.blockNumber}
-                                          {block.sizeLabel
-                                            ? ` • ${block.sizeLabel}`
-                                            : ""}
-                                        </option>
-                                      ))}
-                                    </SelectInput>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.status`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Item Status</FormLabel>
-                                <FormControl>
-                                  <SelectInput {...field}>
-                                    {ORDER_ITEM_STATUS_OPTIONS.map((option) => (
-                                      <option
-                                        key={option.value}
-                                        value={option.value}
-                                      >
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </SelectInput>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.lineTotal`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Line Total</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="rounded-lg bg-slate-100"
-                                    type="number"
-                                    readOnly
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.notes`}
-                            render={({ field }) => (
-                              <FormItem className="sm:col-span-2">
-                                <FormLabel>Item Note</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="rounded-lg"
-                                    placeholder="Customer requested loose fit"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.tailorNote`}
-                            render={({ field }) => (
-                              <FormItem className="sm:col-span-2">
-                                <FormLabel>Tailor Note</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="rounded-lg"
-                                    placeholder="Use previous cutting style"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
-                          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-2">
-                              <Ruler className="h-4 w-4 text-slate-500" />
-                              <div>
-                                <p className="text-sm font-bold text-slate-800">
-                                  Measurements
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                  {isExistingMeasurement
-                                    ? "Existing measurement is attached."
-                                    : "These measurements are saved with the order and can be linked to a block later."}
-                                </p>
-                              </div>
-                            </div>
-
-                            {isExistingMeasurement ? (
-                              <Badge className="rounded-full bg-blue-50 text-blue-700 hover:bg-blue-50">
-                                Attached
-                              </Badge>
-                            ) : (
-                              <Badge className="rounded-full bg-amber-50 text-amber-700 hover:bg-amber-50">
-                                No block yet
-                              </Badge>
-                            )}
-                          </div>
-
-                          <MeasurementFields
-                            fields={measurementFields}
-                            values={watchedItem?.measurements ?? {}}
-                            disabled={isExistingMeasurement}
-                            onChange={(key, value) =>
-                              handleMeasurementChange(index, key, value)
-                            }
-                          />
-
-                          <FormField
-                            control={control}
-                            name={`items.${index}.measurementNote`}
-                            render={({ field }) => (
-                              <FormItem className="mt-3">
-                                <FormLabel>Measurement Note</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    className="min-h-20 rounded-lg"
-                                    placeholder="Measurements taken while placing order."
-                                    disabled={isExistingMeasurement}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SectionCard>
             </div>
 
             <aside className="space-y-5 lg:sticky lg:top-36 lg:self-start">
               <SectionCard title="Payment Summary" icon={Banknote}>
                 <div className="grid gap-3">
-                  <SummaryMetric
-                    label="Items"
-                    value={watchedItems?.length ?? 0}
-                  />
+                  <SummaryMetric label="Items" value={1} />
                   <SummaryMetric label="Total Qty" value={calculatedQty} />
                   <SummaryMetric
                     label="Total Amount"
@@ -1223,14 +1724,12 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
               <Card className="rounded-lg border-amber-200 bg-amber-50 shadow-sm">
                 <CardContent className="p-4">
                   <p className="text-sm font-bold text-amber-950">
-                    Block will be linked later
+                    One order item only
                   </p>
                   <p className="mt-2 text-xs leading-5 text-amber-800">
-                    For new measurements, this page sends{" "}
-                    <strong>measurements</strong> and{" "}
-                    <strong>measurementNote</strong> with the order item. The
-                    block page can later search those unlinked measurements by
-                    customer name or phone and connect them to a block.
+                    Use quantity when the customer orders multiple pieces of the
+                    same garment. Measurements are attached to this one order
+                    item.
                   </p>
                 </CardContent>
               </Card>
@@ -1238,7 +1737,7 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
               <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
                 <CardContent className="p-4">
                   <p className="text-sm font-bold text-slate-900">
-                    Before creating
+                    Before saving
                   </p>
                   <ul className="mt-2 space-y-1 text-xs leading-5 text-slate-500">
                     <li>Confirm customer phone number.</li>
@@ -1253,6 +1752,163 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
           </main>
         </form>
       </Form>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Measurement Section                                                */
+/* ------------------------------------------------------------------ */
+
+type OrderItemMeasurementsSectionProps = {
+  categoryId?: string;
+  values: Record<string, string | number | undefined>;
+  isExistingMeasurement: boolean;
+  hasMeasurementPrefill: boolean;
+  prefillCategoryId?: string;
+  prefillMeasurementFields: MeasurementFieldConfig[];
+  onMeasurementChange: (key: string, value: string) => void;
+  control: any;
+};
+
+function OrderItemMeasurementsSection({
+  categoryId,
+  values,
+  isExistingMeasurement,
+  hasMeasurementPrefill,
+  prefillCategoryId,
+  prefillMeasurementFields,
+  onMeasurementChange,
+  control,
+}: OrderItemMeasurementsSectionProps) {
+  const safeCategoryId = categoryId?.trim() || "";
+
+  const shouldUsePrefillFields =
+    hasMeasurementPrefill &&
+    prefillCategoryId === safeCategoryId &&
+    prefillMeasurementFields.length > 0;
+
+  const {
+    data: measurementFieldsResponse,
+    isLoading: isMeasurementFieldsLoading,
+    isFetching: isMeasurementFieldsFetching,
+    isError: isMeasurementFieldsError,
+  } = useMeasurementFieldsQuery(
+    {
+      pageIndex: 0,
+      pageSize: 100,
+      categoryId: safeCategoryId,
+      isActive: true,
+    },
+    {
+      enabled: Boolean(safeCategoryId) && !shouldUsePrefillFields,
+    },
+  );
+
+  console.log(measurementFieldsResponse)
+
+  const measurementFields = useMemo(() => {
+    if (shouldUsePrefillFields) {
+      return prefillMeasurementFields;
+    }
+
+    return mapMeasurementFieldsToConfig(  
+      getMeasurementFieldRows(measurementFieldsResponse),
+    );
+  }, [
+    measurementFieldsResponse,
+    prefillMeasurementFields,
+    shouldUsePrefillFields,
+  ]);
+
+  const isLoadingFields =
+    Boolean(safeCategoryId) &&
+    !shouldUsePrefillFields &&
+    (isMeasurementFieldsLoading || isMeasurementFieldsFetching);
+
+  return (
+    <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Ruler className="h-4 w-4 text-slate-500" />
+
+          <div>
+            <p className="text-sm font-bold text-slate-800">Measurements</p>
+
+            <p className="text-xs text-slate-500">
+              {isExistingMeasurement
+                ? "Existing measurement is attached."
+                : "Measurements are loaded from the selected category."}
+            </p>
+          </div>
+        </div>
+
+        {isExistingMeasurement ? (
+          <Badge className="rounded-full bg-blue-50 text-blue-700 hover:bg-blue-50">
+            Attached
+          </Badge>
+        ) : (
+          <Badge className="rounded-full bg-amber-50 text-amber-700 hover:bg-amber-50">
+            No block yet
+          </Badge>
+        )}
+      </div>
+
+      {!safeCategoryId && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+          Select a category to load measurement fields.
+        </div>
+      )}
+
+      {isLoadingFields && (
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading measurement fields...
+        </div>
+      )}
+
+      {safeCategoryId && isMeasurementFieldsError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          Measurement fields could not be loaded. Please try again.
+        </div>
+      )}
+
+      {safeCategoryId &&
+        !isLoadingFields &&
+        !isMeasurementFieldsError &&
+        measurementFields.length === 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+            No active measurement fields found for this category.
+          </div>
+        )}
+
+      {measurementFields.length > 0 && (
+        <MeasurementFields
+          fields={measurementFields}
+          values={values}
+          disabled={isExistingMeasurement}
+          onChange={onMeasurementChange}
+        />
+      )}
+
+      <FormField
+        control={control}
+        name="items.0.measurementNote"
+        render={({ field }) => (
+          <FormItem className="mt-3">
+            <FormLabel>Measurement Note</FormLabel>
+            <FormControl>
+              <Textarea
+                className="min-h-20 rounded-lg"
+                placeholder="Measurements taken while placing order."
+                disabled={isExistingMeasurement}
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }

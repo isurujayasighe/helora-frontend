@@ -1,68 +1,40 @@
 "use client";
 
-import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft,
-  Banknote,
-  CalendarDays,
   CheckCircle2,
-  ClipboardList,
-  Loader2,
-  Printer,
+  Download,
+  Eye,
+  Hash,
+  MoreVertical,
+  Pencil,
+  Plus,
+  RefreshCw,
   Ruler,
-  Save,
   Search,
-  UserRound,
+  Star,
+  Trash2,
 } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
 
-import { Badge } from "@/components/ui/badge";
+import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-
+import { Badge } from "@/components/ui/badge";
 import {
-  useFindCustomerByPhoneMutation,
-  type CustomerByPhone,
-} from "@/api/useFindCustomerByPhone";
-import { useGetCustomerById } from "@/modules/app/customers/api/useGetCustomerbyId";
-import { useGetLatestMeasurement } from "@/api/useGetLatestMeasurement";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
-  useCreateOrder,
-  type CreateOrderPayload,
-  type OrderItemStatus,
-  type OrderPaymentMode,
-  type OrderSource,
-  type OrderStatus,
-  type PaymentStatus,
-} from "@/api/useCreateOrder";
-
-import {
-  MeasurementFields,
-  type MeasurementFieldConfig,
-} from "@/components/layout/components/measurements-fields";
-import { generateOrderPdf } from "@/utils/generate-order-pdf";
-
-import { useGetCategories } from "@/api/useGetCategories";
-import {
-  useMeasurementFieldsQuery,
-  type MeasurementField,
-  type MeasurementFieldsResponse,
-} from "@/modules/app/measurements/api/useGetMeasurementsFieldsByCID";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -70,1890 +42,645 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
-/* ------------------------------------------------------------------ */
-/* Validation                                                         */
-/* ------------------------------------------------------------------ */
+import type {
+  MeasurementField,
+  MeasurementInputType,
+} from "./types/measurement-fields-types";
+import {
+  useDeleteMeasurementField,
+  useMeasurementFieldsQuery,
+} from "./api/measurement-api";
+import { MeasurementFieldStatusBadge } from "./components/measurement-field-status-badge";
+import { MeasurementFieldInputTypeBadge } from "./components/measurement-field-input-type-badge";
+import { MeasurementFieldFormDialog } from "./components/measurement-field-form-dialog";
+import { MeasurementFieldDetailsDialog } from "./components/measurement-field-details-dialog";
 
-const measurementValuesSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.undefined(), z.null()]),
-);
-
-const orderItemSchema = z.object({
-  categoryId: z.string().min(1, "Category is required"),
-  blockId: z.string().optional(),
-  measurementId: z.string().optional(),
-  itemDescription: z.string().min(1, "Item description is required"),
-  quantity: z.coerce.number().min(1, "Qty must be at least 1"),
-  unitPrice: z.coerce.number().min(0, "Unit price must be 0 or more"),
-  lineTotal: z.coerce.number().min(0),
-  notes: z.string().optional(),
-  tailorNote: z.string().optional(),
-  status: z
-    .enum(["PENDING", "CUTTING", "SEWING", "READY", "DELIVERED", "CANCELLED"])
-    .default("PENDING"),
-  blockMode: z
-    .enum(["existing", "measurement-only"])
-    .default("measurement-only"),
-  measurements: measurementValuesSchema.default({}),
-  measurementNote: z.string().optional(),
-});
-
-const formSchema = z.object({
-  phoneNumber: z.string().min(7, "Phone number is required"),
-  customerMode: z.enum(["existing", "new"]).default("existing"),
-  customerId: z.string().optional(),
-  customerName: z.string().optional(),
-  customerTown: z.string().optional(),
-  customerAddress: z.string().optional(),
-  customerNotes: z.string().optional(),
-  hospitalName: z.string().optional(),
-  groupOrderId: z.string().optional(),
-
-  orderNumber: z.string().optional(),
-  orderDate: z.string().min(1, "Order date is required"),
-  promisedDate: z.string().min(1, "Promised date is required"),
-  completedAt: z.string().optional(),
-  deliveredAt: z.string().optional(),
-
-  status: z
-    .enum([
-      "PENDING",
-      "CONFIRMED",
-      "CUTTING",
-      "SEWING",
-      "READY",
-      "DELIVERED",
-      "CANCELLED",
-    ])
-    .default("PENDING"),
-
-  orderSource: z
-    .enum(["DREZAURA", "PHYSICAL_SHOP", "PHONE_CALL", "WHATSAPP", "ONLINE"])
-    .default("PHYSICAL_SHOP"),
-
-  paymentStatus: z
-    .enum(["UNPAID", "ADVANCE_PAID", "PARTIALLY_PAID", "PAID", "REFUNDED"])
-    .default("UNPAID"),
-
-  paymentMode: z
-    .enum(["CASH", "ONLINE_TRANSFER", "BANK_DEPOSIT", "CARD", "MIXED"])
-    .default("CASH"),
-
-  totalQty: z.coerce.number().min(0).default(0),
-  totalAmount: z.coerce.number().min(0).default(0),
-  advanceAmount: z.coerce.number().min(0).default(0),
-  balanceAmount: z.coerce.number().min(0).default(0),
-  courierCharges: z.coerce.number().min(0).default(0),
-
-  notes: z.string().optional(),
-  specialNotes: z.string().optional(),
-
-  items: z.array(orderItemSchema).length(1, "Only one order item is supported"),
-});
-
-type CreateOrderFormInput = z.input<typeof formSchema>;
-type CreateOrderFormValues = z.output<typeof formSchema>;
-
-type CategoryOption = {
-  id: string;
-  name: string;
-  isActive?: boolean;
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0 },
 };
 
-type CreateOrderPrefill = {
-  customerId?: string;
-  measurementId?: string;
-  blockId?: string;
-  categoryId?: string;
-};
+const PAGE_SIZE = 10;
 
-type CreateOrderPageProps = {
-  prefill?: CreateOrderPrefill;
-  onSubmit?: (payload: CreateOrderPayload) => Promise<void> | void;
-};
+type InputTypeFilter = "ALL" | MeasurementInputType;
+type ActiveFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
-/* ------------------------------------------------------------------ */
-/* Constants                                                          */
-/* ------------------------------------------------------------------ */
+const inputTypeFilters: Array<{ value: InputTypeFilter; label: string }> = [
+  { value: "ALL", label: "All input types" },
+  { value: "DECIMAL", label: "Decimal" },
+  { value: "NUMBER", label: "Number" },
+  { value: "TEXT", label: "Text" },
+  { value: "SELECT", label: "Select" },
+  { value: "MULTI_SELECT", label: "Multi Select" },
+  { value: "BOOLEAN", label: "Yes / No" },
+];
 
-const ORDER_STATUS_OPTIONS = [
-  { value: "PENDING", label: "Pending" },
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "CUTTING", label: "Cutting" },
-  { value: "SEWING", label: "Sewing" },
-  { value: "READY", label: "Ready" },
-  { value: "DELIVERED", label: "Delivered" },
-  { value: "CANCELLED", label: "Cancelled" },
-] as const;
+const activeFilters: Array<{ value: ActiveFilter; label: string }> = [
+  { value: "ALL", label: "All status" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "INACTIVE", label: "Inactive" },
+];
 
-const ORDER_ITEM_STATUS_OPTIONS = [
-  { value: "PENDING", label: "Pending" },
-  { value: "CUTTING", label: "Cutting" },
-  { value: "SEWING", label: "Sewing" },
-  { value: "READY", label: "Ready" },
-  { value: "DELIVERED", label: "Delivered" },
-  { value: "CANCELLED", label: "Cancelled" },
-] as const;
+export default function MeasurementFieldsPage() {
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [inputTypeFilter, setInputTypeFilter] =
+    useState<InputTypeFilter>("ALL");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("ALL");
 
-const ORDER_SOURCE_OPTIONS = [
-  { value: "PHYSICAL_SHOP", label: "Physical Shop" },
-  { value: "PHONE_CALL", label: "Phone Call" },
-  { value: "WHATSAPP", label: "WhatsApp" },
-  { value: "DREZAURA", label: "Drezaura" },
-  { value: "ONLINE", label: "Online" },
-] as const;
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize] = useState(PAGE_SIZE);
 
-const PAYMENT_STATUS_OPTIONS = [
-  { value: "UNPAID", label: "Unpaid" },
-  { value: "ADVANCE_PAID", label: "Advance Paid" },
-  { value: "PARTIALLY_PAID", label: "Partially Paid" },
-  { value: "PAID", label: "Paid" },
-  { value: "REFUNDED", label: "Refunded" },
-] as const;
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState<MeasurementField | null>(
+    null
+  );
 
-const PAYMENT_MODE_OPTIONS = [
-  { value: "CASH", label: "Cash" },
-  { value: "ONLINE_TRANSFER", label: "Online Transfer" },
-  { value: "BANK_DEPOSIT", label: "Bank Deposit" },
-  { value: "CARD", label: "Card" },
-  { value: "MIXED", label: "Mixed" },
-] as const;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 400);
 
-/* ------------------------------------------------------------------ */
-/* Helpers                                                            */
-/* ------------------------------------------------------------------ */
+    return () => clearTimeout(timer);
+  }, [search]);
 
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
+  useEffect(() => {
+    setPageIndex(0);
+  }, [debouncedSearch, categoryId, inputTypeFilter, activeFilter]);
 
-function addDaysInputValue(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
+  const { data, isLoading, isFetching, refetch } = useMeasurementFieldsQuery({
+    pageIndex,
+    pageSize,
+    search: debouncedSearch || undefined,
+    categoryId: categoryId || undefined,
+    inputType: inputTypeFilter === "ALL" ? undefined : inputTypeFilter,
+    isActive:
+      activeFilter === "ALL" ? undefined : activeFilter === "ACTIVE",
+  });
 
-function toIsoDateString(dateValue?: string) {
-  if (!dateValue) return undefined;
-  return new Date(`${dateValue}T00:00:00`).toISOString();
-}
+  const deleteField = useDeleteMeasurementField();
 
-function toMeasurementStringValue(
-  value: string | null | undefined,
-  numericValue: string | number | null | undefined,
-) {
-  return value ?? (numericValue != null ? String(numericValue) : "");
-}
+  const fields = data?.items ?? [];
+  const pagination = data?.pagination;
+  const total = pagination?.totalItems ?? 0;
+  const pageCount = Math.max(1, pagination?.totalPages ?? 1);
 
-function buildMeasurementMap(
-  values:
-    | Array<{
-        value: string | null;
-        numericValue: string | number | null;
-        field: { code: string };
-      }>
-    | undefined,
-) {
-  if (!values?.length) return {};
+  const stats = useMemo(() => {
+    const active = fields.filter((item) => item.isActive).length;
+    const required = fields.filter((item) => item.isRequired).length;
+    const decimal = fields.filter((item) => item.inputType === "DECIMAL").length;
 
-  return values.reduce<Record<string, string>>((result, item) => {
-    result[item.field.code] = toMeasurementStringValue(
-      item.value,
-      item.numericValue,
+    return {
+      total,
+      active,
+      required,
+      decimal,
+    };
+  }, [fields, total]);
+
+  const openCreate = () => {
+    setSelectedField(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (field: MeasurementField) => {
+    setSelectedField(field);
+    setFormOpen(true);
+  };
+
+  const openDetails = (field: MeasurementField) => {
+    setSelectedField(field);
+    setDetailsOpen(true);
+  };
+
+  const handleDelete = async (field: MeasurementField) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${field.label}?`
     );
 
-    return result;
-  }, {});
-}
+    if (!confirmed) return;
 
-function buildMeasurementFieldsFromApi(
-  values:
-    | Array<{
-        field: {
-          code: string;
-          label: string;
-          unit: string | null;
-          sortOrder: number;
-        };
-      }>
-    | undefined,
-): MeasurementFieldConfig[] {
-  if (!values?.length) return [];
+    await deleteField.mutateAsync(field.id);
+  };
 
-  return [...values]
-    .sort((a, b) => a.field.sortOrder - b.field.sortOrder)
-    .map((item) => ({
-      key: item.field.code,
-      label: item.field.label,
-      unit: item.field.unit ?? undefined,
-    }));
-}
+  const resetFilters = () => {
+    setSearch("");
+    setDebouncedSearch("");
+    setCategoryId("");
+    setInputTypeFilter("ALL");
+    setActiveFilter("ALL");
+    setPageIndex(0);
+  };
 
-function hasMeasurementValues(values?: Record<string, unknown>) {
-  if (!values) return false;
-
-  return Object.values(values).some(
-    (value) => value !== undefined && value !== null && value !== "",
+  const hasFilters = Boolean(
+    debouncedSearch ||
+      categoryId ||
+      inputTypeFilter !== "ALL" ||
+      activeFilter !== "ALL"
   );
-}
 
-function normalizeMeasurementValues(
-  values?: Record<string, string | number | null | undefined>,
-): Record<string, string | number | undefined> {
-  if (!values) return {};
-
-  return Object.entries(values).reduce<
-    Record<string, string | number | undefined>
-  >((result, [key, value]) => {
-    result[key] = value === null ? undefined : value;
-    return result;
-  }, {});
-}
-
-function getMeasurementFieldRows(
-  response?: MeasurementFieldsResponse | MeasurementField[],
-): MeasurementField[] {
-  if (!response) return [];
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response.data)) return response.data;
-  return [];
-}
-
-function mapMeasurementFieldsToConfig(
-  fields: MeasurementField[],
-): MeasurementFieldConfig[] {
-  return [...fields]
-    .filter((field) => field.isActive)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((field) => ({
-      key: field.code,
-      label: field.label,
-      unit: field.unit ?? undefined,
-    }));
-}
-
-function mapCustomerDetailsToCustomerByPhone(customer: any): CustomerByPhone {
-  return {
-    id: customer.id,
-    fullName: customer.fullName ?? "",
-    phoneNumber: customer.phoneNumber ?? "",
-    alternatePhone: customer.alternatePhone ?? null,
-    town: customer.town ?? null,
-    address: customer.address ?? null,
-    notes: customer.notes ?? null,
-    hospitalName: customer.hospitalName ?? null,
-    blocks:
-      customer.blocks?.map((block: any) => ({
-        ...block,
-        tenantId: block.tenantId ?? "",
-        customerId: block.customerId ?? customer.id,
-        categoryId: block.categoryId ?? block.category?.id ?? "",
-        category: block.category ?? null,
-        sizeLabel: block.sizeLabel ?? null,
-        readyMadeSize: block.readyMadeSize ?? null,
-        fitNotes: block.fitNotes ?? null,
-        description: block.description ?? null,
-        remarks: block.remarks ?? null,
-      })) ?? [],
-  } as CustomerByPhone;
-}
-
-function mapPrefillMeasurementToCustomerByPhone(
-  measurement: any,
-): CustomerByPhone {
-  const customer = measurement.customer;
-
-  return {
-    id: customer?.id ?? measurement.customerId,
-    fullName: customer?.fullName ?? "",
-    phoneNumber: customer?.phoneNumber ?? "",
-    alternatePhone: customer?.alternatePhone ?? null,
-    town: customer?.town ?? null,
-    address: customer?.address ?? null,
-    notes: customer?.notes ?? null,
-    hospitalName: customer?.hospitalName ?? null,
-    blocks: measurement.block
-      ? [
-          {
-            ...measurement.block,
-            tenantId: measurement.block.tenantId ?? "",
-            customerId: measurement.block.customerId ?? measurement.customerId,
-            categoryId: measurement.categoryId,
-            category:
-              measurement.category ?? measurement.block.category ?? null,
-            isDefault: true,
-            sizeLabel: measurement.block.sizeLabel ?? null,
-            readyMadeSize: measurement.block.readyMadeSize ?? null,
-            fitNotes: measurement.block.fitNotes ?? null,
-            description: measurement.block.description ?? null,
-            remarks: measurement.block.remarks ?? null,
-          },
-        ]
-      : [],
-  } as CustomerByPhone;
-}
-
-const buildInitialItem = (): CreateOrderFormInput["items"][number] => ({
-  categoryId: "",
-  blockId: "",
-  measurementId: "",
-  itemDescription: "",
-  quantity: 1,
-  unitPrice: 0,
-  lineTotal: 0,
-  notes: "",
-  tailorNote: "",
-  status: "PENDING",
-  blockMode: "measurement-only",
-  measurements: {},
-  measurementNote: "Measurements taken while placing order.",
-});
-
-const buildInitialValues = (): CreateOrderFormInput => ({
-  phoneNumber: "",
-  customerMode: "existing",
-  customerId: "",
-  customerName: "",
-  customerTown: "",
-  customerAddress: "",
-  customerNotes: "",
-  hospitalName: "",
-  groupOrderId: "",
-  orderNumber: "",
-  orderDate: todayInputValue(),
-  promisedDate: addDaysInputValue(7),
-  completedAt: "",
-  deliveredAt: "",
-  status: "PENDING",
-  orderSource: "PHYSICAL_SHOP",
-  paymentStatus: "UNPAID",
-  paymentMode: "CASH",
-  totalQty: 1,
-  totalAmount: 0,
-  advanceAmount: 0,
-  balanceAmount: 0,
-  courierCharges: 0,
-  notes: "",
-  specialNotes: "",
-  items: [buildInitialItem()],
-});
-
-/* ------------------------------------------------------------------ */
-/* Shared UI                                                          */
-/* ------------------------------------------------------------------ */
-
-function PageHeader() {
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex min-w-0 items-start gap-3">
-        <Button
-          asChild
-          variant="outline"
-          size="icon"
-          className="mt-1 rounded-lg"
-        >
-          <Link to="/app/orders">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+    <PermissionGate action="read" subject="measurements">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="helora-measurement-fields"
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex h-full flex-col gap-4 p-3 md:p-5"
+          >
+            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+                  <Ruler className="h-5 w-5" />
+                </div>
 
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Create Order
-            </h1>
+                <div className="min-w-0">
+                  <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
+                    Measurement Fields
+                  </h1>
 
-            <Badge className="rounded-full bg-slate-900 text-white hover:bg-slate-900">
-              Single item order
-            </Badge>
-          </div>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Manage category-wise fields like Chest, Waist, Length, Size,
+                    and Shoulder.
+                  </p>
+                </div>
+              </div>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Create one order item with quantity, price, and category-based
-            measurements.
-          </p>
-        </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isLoading || isFetching}
+                  className="h-9 rounded-lg bg-white font-bold"
+                >
+                  <RefreshCw
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      isFetching && "animate-spin"
+                    )}
+                  />
+                  Refresh
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg bg-white font-bold"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={openCreate}
+                  className="h-9 rounded-lg font-bold shadow-sm"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Field
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MeasurementStatCard
+                title="Total Fields"
+                value={stats.total}
+                description="All measurement definitions"
+                icon={Ruler}
+              />
+
+              <MeasurementStatCard
+                title="Active Fields"
+                value={stats.active}
+                description="Visible during measurement entry"
+                icon={CheckCircle2}
+              />
+
+              <MeasurementStatCard
+                title="Required Fields"
+                value={stats.required}
+                description="Must be filled by staff"
+                icon={Star}
+              />
+
+              <MeasurementStatCard
+                title="Decimal Fields"
+                value={stats.decimal}
+                description="Fields using inch or cm values"
+                icon={Hash}
+              />
+            </div>
+
+            <Card className="rounded-lg border-slate-200 shadow-sm">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+                  <div className="grid w-full gap-3 md:grid-cols-2 xl:max-w-5xl xl:grid-cols-[minmax(0,1.6fr)_180px_180px_180px]">
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Search
+                      </label>
+
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+
+                        <Input
+                          value={search}
+                          onChange={(event) => setSearch(event.target.value)}
+                          placeholder="Search field label, code, help text..."
+                          className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Category
+                      </label>
+
+                      <Input
+                        value={categoryId}
+                        onChange={(event) => setCategoryId(event.target.value)}
+                        placeholder="Category ID"
+                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Input Type
+                      </label>
+
+                      <Select
+                        value={inputTypeFilter}
+                        onValueChange={(value) =>
+                          setInputTypeFilter(value as InputTypeFilter)
+                        }
+                      >
+                        <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {inputTypeFilters.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Status
+                      </label>
+
+                      <Select
+                        value={activeFilter}
+                        onValueChange={(value) =>
+                          setActiveFilter(value as ActiveFilter)
+                        }
+                      >
+                        <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {activeFilters.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                    >
+                      Page size: {PAGE_SIZE}
+                    </Badge>
+
+                    {debouncedSearch && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Search: {debouncedSearch}
+                      </Badge>
+                    )}
+
+                    {inputTypeFilter !== "ALL" && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Type: {formatInputType(inputTypeFilter)}
+                      </Badge>
+                    )}
+
+                    {activeFilter !== "ALL" && (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
+                      >
+                        Status: {activeFilter === "ACTIVE" ? "Active" : "Inactive"}
+                      </Badge>
+                    )}
+
+                    {hasFilters && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={resetFilters}
+                        className="h-10 rounded-lg font-bold text-slate-500 hover:text-slate-900"
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base font-black text-slate-950">
+                      Measurement Field List
+                    </CardTitle>
+
+                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+                      Configure what measurements are shown for each garment
+                      category.
+                    </CardDescription>
+                  </div>
+
+                  <Badge
+                    variant="outline"
+                    className="hidden rounded-lg px-3 py-1 font-bold text-slate-600 sm:inline-flex"
+                  >
+                    {total} fields
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent
+                className={cn(
+                  "min-h-0 flex-1 overflow-auto p-0",
+                  isFetching && "opacity-70"
+                )}
+              >
+                <MeasurementFieldsTable
+                  fields={fields}
+                  isLoading={isLoading}
+                  onView={openDetails}
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
+                  isDeleting={deleteField.isPending}
+                />
+              </CardContent>
+
+              <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3">
+                <p className="text-sm font-semibold text-slate-500">
+                  Page {pageIndex + 1} of {pageCount}
+                </p>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={!pagination?.hasPreviousPage}
+                    onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
+                    className="h-9 rounded-lg font-bold"
+                  >
+                    Previous
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    disabled={!pagination?.hasNextPage}
+                    onClick={() => setPageIndex((prev) => prev + 1)}
+                    className="h-9 rounded-lg font-bold"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
+
+        <MeasurementFieldFormDialog
+          open={formOpen}
+          field={selectedField}
+          onClose={() => {
+            setFormOpen(false);
+            setSelectedField(null);
+          }}
+        />
+
+        <MeasurementFieldDetailsDialog
+          open={detailsOpen}
+          field={selectedField}
+          onClose={() => {
+            setDetailsOpen(false);
+            setSelectedField(null);
+          }}
+        />
       </div>
-    </div>
+    </PermissionGate>
   );
 }
 
-function SectionCard({
+function MeasurementStatCard({
   title,
+  value,
   description,
   icon: Icon,
-  children,
-  action,
 }: {
   title: string;
-  description?: string;
-  icon?: React.ElementType;
-  children: React.ReactNode;
-  action?: React.ReactNode;
+  value: number;
+  description: string;
+  icon: React.ElementType;
 }) {
   return (
     <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <div className="flex min-w-0 items-start gap-3">
-          {Icon && (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
-              <Icon className="h-4 w-4" />
-            </div>
-          )}
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-slate-500">{title}</p>
+            <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+              {value}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-400">
+              {description}
+            </p>
+          </div>
 
-          <div className="min-w-0">
-            <CardTitle className="text-sm font-bold text-slate-900">
-              {title}
-            </CardTitle>
-
-            {description && (
-              <p className="mt-1 text-xs text-slate-500">{description}</p>
-            )}
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+            <Icon className="h-5 w-5" />
           </div>
         </div>
-
-        {action}
-      </CardHeader>
-
-      <CardContent className="p-4">{children}</CardContent>
+      </CardContent>
     </Card>
   );
 }
 
-function SummaryMetric({
-  label,
-  value,
-  strong,
+function MeasurementFieldsTable({
+  fields,
+  isLoading,
+  isDeleting,
+  onView,
+  onEdit,
+  onDelete,
 }: {
-  label: string;
-  value: string | number;
-  strong?: boolean;
+  fields: MeasurementField[];
+  isLoading: boolean;
+  isDeleting?: boolean;
+  onView: (field: MeasurementField) => void;
+  onEdit: (field: MeasurementField) => void;
+  onDelete: (field: MeasurementField) => void;
 }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-
-      <p
-        className={cn(
-          "mt-1 text-sm font-bold",
-          strong ? "text-slate-950" : "text-slate-700",
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={cn(
-        "flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-100",
-        props.className,
-      )}
-    />
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* PDF                                                                */
-/* ------------------------------------------------------------------ */
-
-function generateDraftOrderPdf(
-  values: CreateOrderFormInput,
-  foundCustomer?: CustomerByPhone | null,
-  categories: CategoryOption[] = [],
-) {
-  const item = values.items[0];
-
-  const matchedCustomerName =
-    foundCustomer?.fullName || values.customerName || "-";
-
-  const matchedBlock =
-    item.blockMode === "existing"
-      ? foundCustomer?.blocks?.find((block) => block.id === item.blockId)
-      : null;
-
-  const matchedCategory = categories.find(
-    (category) => category.id === item.categoryId,
-  );
-
-  const draftOrder = {
-    id: "draft-order",
-    tenantId: "",
-    customerId: values.customerId || "",
-    groupOrderId: values.groupOrderId || null,
-    orderNumber: values.orderNumber || "DRAFT",
-    orderDate: values.orderDate,
-    promisedDate: values.promisedDate,
-    status: values.status,
-    orderSource: values.orderSource,
-    paymentStatus: values.paymentStatus,
-    paymentMode: values.paymentMode,
-    hospitalName: values.hospitalName,
-    town: values.customerTown,
-    customerAddress: values.customerAddress,
-    notes: values.notes,
-    specialNotes: values.specialNotes,
-    totalQty: values.totalQty,
-    totalAmount: values.totalAmount,
-    advanceAmount: values.advanceAmount,
-    balanceAmount: values.balanceAmount,
-    courierCharges: values.courierCharges,
-    customer: {
-      id: values.customerId || "draft-customer",
-      tenantId: "",
-      fullName: matchedCustomerName,
-      alternatePhone: foundCustomer?.alternatePhone || null,
-      town: foundCustomer?.town || values.customerTown || "-",
-      address: foundCustomer?.address || values.customerAddress || "-",
-      notes: foundCustomer?.notes || values.customerNotes || "-",
-      hospitalName: values.hospitalName || null,
-    },
-    items: [
-      {
-        id: "draft-item-1",
-        orderId: "draft-order",
-        categoryId: item.categoryId,
-        blockId: item.blockMode === "existing" ? item.blockId || null : null,
-        measurementId: item.measurementId || null,
-        itemDescription: item.itemDescription,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        lineTotal: item.lineTotal,
-        notes: item.notes,
-        tailorNote: item.tailorNote,
-        status: item.status,
-        measurements: item.measurements ?? {},
-        measurementNote: item.measurementNote,
-        category: matchedCategory
-          ? { id: matchedCategory.id, name: matchedCategory.name }
-          : { id: item.categoryId, name: "-" },
-        block: matchedBlock
-          ? {
-              id: matchedBlock.id,
-              blockNumber: matchedBlock.blockNumber,
-              versionNo: matchedBlock.versionNo,
-              sizeLabel: matchedBlock.sizeLabel,
-              readyMadeSize: matchedBlock.readyMadeSize,
-              fitNotes: matchedBlock.fitNotes,
-              status: matchedBlock.status,
-              isDefault: matchedBlock.isDefault,
-              description: matchedBlock.description,
-              remarks: matchedBlock.remarks,
-            }
-          : null,
-      },
-    ],
-    _count: {
-      items: 1,
-    },
-  };
-
-  generateOrderPdf(draftOrder as any);
-}
-
-/* ------------------------------------------------------------------ */
-/* Page                                                               */
-/* ------------------------------------------------------------------ */
-
-export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
-  const navigate = useNavigate();
-
-  const [foundCustomer, setFoundCustomer] = useState<CustomerByPhone | null>(
-    null,
-  );
-  const [customerSearched, setCustomerSearched] = useState(false);
-
-  const isPrefillFlow = Boolean(prefill?.customerId);
-  const hasMeasurementPrefill = Boolean(prefill?.measurementId);
-
-  const findCustomerMutation = useFindCustomerByPhoneMutation();
-  const createOrderMutation = useCreateOrder();
-
-  const {
-    data: categories = [],
-    isLoading: isCategoriesLoading,
-    isError: isCategoriesError,
-  } = useGetCategories();
-
-  const { data: prefillMeasurement, isLoading: isPrefillMeasurementLoading } =
-    useGetLatestMeasurement({
-      customerId: prefill?.customerId,
-      blockId: prefill?.blockId,
-      categoryId: prefill?.categoryId,
-      enabled: hasMeasurementPrefill,
-    });
-
-  const { data: prefilledCustomer, isLoading: isPrefilledCustomerLoading } =
-    useGetCustomerById(
-      prefill?.customerId,
-      isPrefillFlow && !hasMeasurementPrefill,
+  if (isLoading) {
+    return (
+      <div className="grid gap-3 p-4">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-16 animate-pulse rounded-lg bg-slate-100"
+          />
+        ))}
+      </div>
     );
-
-  const activeCategories = useMemo<CategoryOption[]>(() => {
-    return categories
-      .filter((category) => category.isActive)
-      .map((category) => ({
-        id: category.id,
-        name: category.name,
-        isActive: category.isActive,
-      }));
-  }, [categories]);
-
-  const categoriesForForm = useMemo<CategoryOption[]>(() => {
-    if (!prefillMeasurement?.category) return activeCategories;
-
-    const exists = activeCategories.some(
-      (category) => category.id === prefillMeasurement.category?.id,
-    );
-
-    if (exists) return activeCategories;
-
-    return [
-      {
-        id: prefillMeasurement.category.id,
-        name: prefillMeasurement.category.name,
-        isActive: true,
-      },
-      ...activeCategories,
-    ];
-  }, [activeCategories, prefillMeasurement?.category]);
-
-  const prefillMeasurementFields = useMemo(
-    () => buildMeasurementFieldsFromApi(prefillMeasurement?.values),
-    [prefillMeasurement?.values],
-  );
-
-  const form = useForm<CreateOrderFormInput, any, CreateOrderFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: buildInitialValues(),
-  });
-
-  const { control, setValue, getValues, reset, setError, clearErrors } = form;
-
-  const item = useWatch({
-    control,
-    name: "items.0",
-  });
-
-  const categoryId = useWatch({
-    control,
-    name: "items.0.categoryId",
-  });
-
-  const quantity = Number(item?.quantity || 0);
-  const unitPrice = Number(item?.unitPrice || 0);
-  const courierCharges = Number(
-    useWatch({ control, name: "courierCharges" }) || 0,
-  );
-  const advanceAmount = Number(
-    useWatch({ control, name: "advanceAmount" }) || 0,
-  );
-
-  const calculatedTotal = quantity * unitPrice;
-  const calculatedQty = quantity;
-  const calculatedBalance = Math.max(
-    0,
-    calculatedTotal + courierCharges - advanceAmount,
-  );
-
-  useEffect(() => {
-    const lineTotal = quantity * unitPrice;
-
-    setValue("items.0.lineTotal", lineTotal, {
-      shouldValidate: false,
-      shouldDirty: true,
-    });
-
-    setValue("totalQty", calculatedQty, { shouldValidate: false });
-    setValue("totalAmount", calculatedTotal, { shouldValidate: false });
-    setValue("balanceAmount", calculatedBalance, { shouldValidate: false });
-  }, [
-    quantity,
-    unitPrice,
-    calculatedQty,
-    calculatedTotal,
-    calculatedBalance,
-    setValue,
-  ]);
-
-  useEffect(() => {
-    if (!hasMeasurementPrefill) return;
-    if (isPrefillMeasurementLoading) return;
-    if (!prefillMeasurement) return;
-
-    const measurementMap = buildMeasurementMap(prefillMeasurement.values);
-
-    reset({
-      ...buildInitialValues(),
-      phoneNumber: prefillMeasurement.customer?.phoneNumber ?? "",
-      customerMode: "existing",
-      customerId: prefillMeasurement.customerId,
-      customerName: prefillMeasurement.customer?.fullName ?? "",
-      customerTown: prefillMeasurement.customer?.town ?? "",
-      customerAddress: prefillMeasurement.customer?.address ?? "",
-      customerNotes: prefillMeasurement.customer?.notes ?? "",
-      hospitalName: prefillMeasurement.customer?.hospitalName ?? "",
-      orderSource: "PHYSICAL_SHOP",
-      paymentStatus: "UNPAID",
-      paymentMode: "CASH",
-      courierCharges: 0,
-      specialNotes: "",
-      items: [
-        {
-          ...buildInitialItem(),
-          categoryId: prefillMeasurement.categoryId,
-          measurementId: prefillMeasurement.id,
-          blockMode: prefillMeasurement.blockId
-            ? "existing"
-            : "measurement-only",
-          blockId: prefillMeasurement.blockId ?? "",
-          measurements: measurementMap,
-          measurementNote:
-            prefillMeasurement.notes ??
-            "Measurements taken while placing order.",
-          itemDescription: prefillMeasurement.category?.name
-            ? `${prefillMeasurement.category.name} Order`
-            : "",
-        },
-      ],
-    });
-
-    setFoundCustomer(
-      mapPrefillMeasurementToCustomerByPhone(prefillMeasurement),
-    );
-    setCustomerSearched(true);
-  }, [
-    hasMeasurementPrefill,
-    isPrefillMeasurementLoading,
-    prefillMeasurement,
-    reset,
-  ]);
-
-  useEffect(() => {
-    if (!isPrefillFlow) return;
-    if (hasMeasurementPrefill) return;
-    if (isPrefilledCustomerLoading) return;
-    if (!prefilledCustomer) return;
-
-    reset({
-      ...buildInitialValues(),
-      phoneNumber: prefilledCustomer.data.phoneNumber ?? "",
-      customerMode: "existing",
-      customerId: prefilledCustomer.data.id,
-      customerName: prefilledCustomer.data.fullName ?? "",
-      customerTown: prefilledCustomer.data.town ?? "",
-      customerAddress: prefilledCustomer.data.address ?? "",
-      customerNotes: prefilledCustomer.data.notes ?? "",
-      hospitalName: prefilledCustomer.data.hospitalName ?? "",
-      orderSource: "PHYSICAL_SHOP",
-      paymentStatus: "UNPAID",
-      paymentMode: "CASH",
-      items: [buildInitialItem()],
-    });
-
-    setFoundCustomer(
-      mapCustomerDetailsToCustomerByPhone(prefilledCustomer.data),
-    );
-    setCustomerSearched(true);
-  }, [
-    isPrefillFlow,
-    hasMeasurementPrefill,
-    isPrefilledCustomerLoading,
-    prefilledCustomer,
-    reset,
-  ]);
-
-  const handleSearchCustomer = async () => {
-    const phoneNumber = getValues("phoneNumber")?.trim();
-
-    if (!phoneNumber) {
-      setError("phoneNumber", { message: "Phone number is required" });
-      return;
-    }
-
-    clearErrors("phoneNumber");
-    setCustomerSearched(true);
-
-    try {
-      const customer = await findCustomerMutation.mutateAsync(phoneNumber);
-
-      if (customer?.data) {
-        setFoundCustomer(customer.data);
-        setValue("customerMode", "existing");
-        setValue("customerId", customer.data.id);
-        setValue("customerName", customer.data.fullName);
-        setValue("customerTown", customer.data.town || "");
-        setValue("customerAddress", customer.data.address || "");
-        setValue("customerNotes", customer.data.notes || "");
-        setValue("hospitalName", customer.data.hospitalName || "");
-      } else {
-        setFoundCustomer(null);
-        setValue("customerMode", "new");
-        setValue("customerId", "");
-      }
-    } catch {
-      setFoundCustomer(null);
-      setValue("customerMode", "new");
-      setValue("customerId", "");
-    }
-  };
-
-  const getFilteredBlocks = (selectedCategoryId?: string) => {
-    if (!foundCustomer?.blocks?.length) return [];
-    if (!selectedCategoryId) return foundCustomer.blocks;
-
-    return foundCustomer.blocks.filter(
-      (block) => block.categoryId === selectedCategoryId,
-    );
-  };
-
-  const handleMeasurementChange = (key: string, value: string) => {
-    setValue(`items.0.measurements.${key}`, value, {
-      shouldDirty: true,
-      shouldValidate: false,
-    });
-  };
-
-  const submitOrder: SubmitHandler<CreateOrderFormValues> = async (values) => {
-    if (values.customerMode !== "existing" || !values.customerId) {
-      form.setError("customerName", {
-        message: "Existing customer is required before creating an order.",
-      });
-      return;
-    }
-
-    const orderItem = values.items[0];
-    const shouldUseExistingBlock = orderItem.blockMode === "existing";
-    const shouldSendMeasurements =
-      !orderItem.measurementId && hasMeasurementValues(orderItem.measurements);
-
-    const payload: CreateOrderPayload = {
-      customerId: values.customerId,
-      groupOrderId: values.groupOrderId || undefined,
-      orderNumber: values.orderNumber || undefined,
-      orderDate: toIsoDateString(values.orderDate),
-      promisedDate: toIsoDateString(values.promisedDate),
-      completedAt: toIsoDateString(values.completedAt),
-      deliveredAt: toIsoDateString(values.deliveredAt),
-      status: values.status as OrderStatus,
-      orderSource: values.orderSource as OrderSource,
-      paymentStatus: values.paymentStatus as PaymentStatus,
-      paymentMode: values.paymentMode as OrderPaymentMode,
-      hospitalName: values.hospitalName || undefined,
-      town: values.customerTown || undefined,
-      customerAddress: values.customerAddress || undefined,
-      totalQty: Number(values.totalQty || 0),
-      totalAmount: Number(values.totalAmount || 0),
-      advanceAmount: Number(values.advanceAmount || 0),
-      balanceAmount: Number(values.balanceAmount || 0),
-      courierCharges: Number(values.courierCharges || 0),
-      notes: values.notes || undefined,
-      specialNotes: values.specialNotes || undefined,
-      items: [
-        {
-          categoryId: orderItem.categoryId,
-          blockId: shouldUseExistingBlock
-            ? orderItem.blockId || undefined
-            : undefined,
-          measurementId: orderItem.measurementId || undefined,
-          itemDescription: orderItem.itemDescription,
-          quantity: Number(orderItem.quantity || 0),
-          unitPrice: Number(orderItem.unitPrice || 0),
-          lineTotal: Number(orderItem.lineTotal || 0),
-          notes: orderItem.notes || undefined,
-          tailorNote: orderItem.tailorNote || undefined,
-          status: orderItem.status as OrderItemStatus,
-          measurements: shouldSendMeasurements
-            ? orderItem.measurements
-            : undefined,
-          measurementNote: shouldSendMeasurements
-            ? orderItem.measurementNote || undefined
-            : undefined,
-        },
-      ],
-    };
-
-    await createOrderMutation.mutateAsync(payload);
-
-    if (onSubmit) {
-      await onSubmit(payload);
-    }
-
-    navigate({ to: "/app/orders" });
-  };
-
-  const isSearchingCustomer = findCustomerMutation.isPending;
-  const isSubmitting = createOrderMutation.isPending;
-
-  const isPrefillLoading = hasMeasurementPrefill
-    ? isPrefillMeasurementLoading
-    : isPrefillFlow
-      ? isPrefilledCustomerLoading
-      : false;
-
-  const isSaveDisabled =
-    isSubmitting || isPrefillLoading || isCategoriesLoading;
-
-  const blocks = getFilteredBlocks(categoryId);
-  const isExistingMeasurement = Boolean(item?.measurementId);
-  const isExistingBlock = item?.blockMode === "existing";
-
-  return (
-    <div className="min-h-screen bg-slate-50/60">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(submitOrder)}>
-          <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-            <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 lg:px-6">
-              <PageHeader />
-
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-lg"
-                  onClick={() =>
-                    generateDraftOrderPdf(
-                      getValues(),
-                      foundCustomer,
-                      categoriesForForm,
-                    )
-                  }
-                >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print Draft
-                </Button>
-
-                <Button
-                  asChild
-                  type="button"
-                  variant="outline"
-                  className="rounded-lg"
-                >
-                  <Link to="/app/orders">Cancel</Link>
-                </Button>
-
-                <Button
-                  type="submit"
-                  disabled={isSaveDisabled}
-                  className="rounded-lg bg-slate-900 hover:bg-slate-800"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  {isSubmitting ? "Saving..." : "Save Order"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <main className="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[1fr_340px] lg:px-6">
-            <div className="space-y-5">
-              {isCategoriesError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
-                  Categories could not be loaded. Please refresh the page.
-                </div>
-              )}
-
-              <SectionCard
-                title="Customer"
-                description="Find the customer first. New customer creation should happen before order creation."
-                icon={UserRound}
-              >
-                {isPrefillLoading ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading selected customer...
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {!isPrefillFlow && (
-                      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                        <FormField
-                          control={control}
-                          name="phoneNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Phone number / customer lookup
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="rounded-lg"
-                                  placeholder="Search by phone number"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="flex items-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleSearchCustomer}
-                            disabled={isSearchingCustomer}
-                            className="w-full rounded-lg sm:w-auto"
-                          >
-                            {isSearchingCustomer ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Search className="mr-2 h-4 w-4" />
-                            )}
-                            Find Customer
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {customerSearched && foundCustomer && (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-emerald-950">
-                              {foundCustomer.fullName}
-                            </p>
-                            <p className="mt-0.5 text-xs text-emerald-700">
-                              {foundCustomer.phoneNumber}
-                              {foundCustomer.town
-                                ? ` • ${foundCustomer.town}`
-                                : ""}
-                            </p>
-                          </div>
-
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-                        </div>
-                      </div>
-                    )}
-
-                    {customerSearched && !foundCustomer && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
-                        Customer not found. Create the customer first, then come
-                        back to create the order.
-                      </div>
-                    )}
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <FormField
-                        control={control}
-                        name="customerName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                className="rounded-lg"
-                                readOnly
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={control}
-                        name="hospitalName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Hospital</FormLabel>
-                            <FormControl>
-                              <Input
-                                className="rounded-lg"
-                                placeholder="Hospital name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={control}
-                        name="customerTown"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Town</FormLabel>
-                            <FormControl>
-                              <Input className="rounded-lg" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={control}
-                        name="customerAddress"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Address</FormLabel>
-                            <FormControl>
-                              <Input className="rounded-lg" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </SectionCard>
-
-              <SectionCard
-                title="Order Details"
-                description="Keep the status as pending until cutting starts."
-                icon={CalendarDays}
-              >
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <FormField
-                    control={control}
-                    name="orderNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Order No</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            placeholder="Auto or ORD-00001"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="orderDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Order Date</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            type="date"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="promisedDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Promised Date</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            type="date"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="orderSource"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Source</FormLabel>
-                        <FormControl>
-                          <SelectInput {...field}>
-                            {ORDER_SOURCE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </SelectInput>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Order Status</FormLabel>
-                        <FormControl>
-                          <SelectInput {...field}>
-                            {ORDER_STATUS_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </SelectInput>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="paymentStatus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Payment Status</FormLabel>
-                        <FormControl>
-                          <SelectInput {...field}>
-                            {PAYMENT_STATUS_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </SelectInput>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="paymentMode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Payment Mode</FormLabel>
-                        <FormControl>
-                          <SelectInput {...field}>
-                            {PAYMENT_MODE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </SelectInput>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="groupOrderId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Group Order ID</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            placeholder="Optional"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>Order Note</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            placeholder="Order note"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="specialNotes"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>Special Notes</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            placeholder="Special delivery note"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </SectionCard>
-
-              <SectionCard
-                title="Order Item & Measurements"
-                description="One order supports one garment item. Use quantity for multiple pieces."
-                icon={ClipboardList}
-              >
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div className="mb-3">
-                    <p className="text-sm font-bold text-slate-900">
-                      Garment item
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Select category first. Measurements will load from that
-                      category.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <FormField
-                      control={control}
-                      name="items.0.categoryId"
-                      render={({}) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <FormField
-                            control={control}
-                            name="items.0.categoryId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Category</FormLabel>
-
-                                <Select
-                                  value={field.value ?? ""}
-                                  disabled={
-                                    isExistingMeasurement || isCategoriesLoading
-                                  }
-                                  onValueChange={(selectedCategoryId) => {
-                                    field.onChange(selectedCategoryId);
-
-                                    console.log(selectedCategoryId);
-
-                                    setValue(
-                                      "items.0.categoryId",
-                                      selectedCategoryId,
-                                      {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                        shouldTouch: true,
-                                      },
-                                    );
-
-                                    setValue(
-                                      "items.0.measurements",
-                                      {},
-                                      {
-                                        shouldDirty: true,
-                                        shouldValidate: false,
-                                      },
-                                    );
-
-                                    setValue("items.0.measurementId", "", {
-                                      shouldDirty: true,
-                                      shouldValidate: false,
-                                    });
-
-                                    setValue("items.0.blockId", "", {
-                                      shouldDirty: true,
-                                      shouldValidate: false,
-                                    });
-                                  }}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="rounded-lg">
-                                      <SelectValue
-                                        placeholder={
-                                          isCategoriesLoading
-                                            ? "Loading categories..."
-                                            : "Select category"
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-
-                                  <SelectContent>
-                                    {categoriesForForm.map((category) => (
-                                      <SelectItem
-                                        key={category.id}
-                                        value={category.id}
-                                      >
-                                        {category.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.itemDescription"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="rounded-lg"
-                              placeholder="Nurse uniform"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Qty</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="rounded-lg"
-                              type="number"
-                              min={1}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.unitPrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unit Price</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="rounded-lg"
-                              type="number"
-                              min={0}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.blockMode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Block Flow</FormLabel>
-                          <FormControl>
-                            <SelectInput
-                              {...field}
-                              disabled={isExistingMeasurement}
-                            >
-                              <option value="measurement-only">
-                                Measurement only
-                              </option>
-                              <option value="existing">Existing block</option>
-                            </SelectInput>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {isExistingBlock && (
-                      <FormField
-                        control={control}
-                        name="items.0.blockId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Block No</FormLabel>
-                            <FormControl>
-                              <SelectInput
-                                {...field}
-                                disabled={isExistingMeasurement}
-                              >
-                                <option value="">Select block</option>
-
-                                {blocks.map((block) => (
-                                  <option key={block.id} value={block.id}>
-                                    {block.blockNumber}
-                                    {block.sizeLabel
-                                      ? ` • ${block.sizeLabel}`
-                                      : ""}
-                                  </option>
-                                ))}
-                              </SelectInput>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={control}
-                      name="items.0.status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Item Status</FormLabel>
-                          <FormControl>
-                            <SelectInput {...field}>
-                              {ORDER_ITEM_STATUS_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </SelectInput>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.lineTotal"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Line Total</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="rounded-lg bg-slate-100"
-                              type="number"
-                              readOnly
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.notes"
-                      render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel>Item Note</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="rounded-lg"
-                              placeholder="Customer requested loose fit"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="items.0.tailorNote"
-                      render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel>Tailor Note</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="rounded-lg"
-                              placeholder="Use previous cutting style"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <OrderItemMeasurementsSection
-                    categoryId={categoryId}
-                    values={normalizeMeasurementValues(item?.measurements)}
-                    isExistingMeasurement={isExistingMeasurement}
-                    hasMeasurementPrefill={hasMeasurementPrefill}
-                    prefillCategoryId={prefillMeasurement?.categoryId}
-                    prefillMeasurementFields={prefillMeasurementFields}
-                    onMeasurementChange={handleMeasurementChange}
-                    control={control}
-                  />
-                </div>
-              </SectionCard>
-            </div>
-
-            <aside className="space-y-5 lg:sticky lg:top-36 lg:self-start">
-              <SectionCard title="Payment Summary" icon={Banknote}>
-                <div className="grid gap-3">
-                  <SummaryMetric label="Items" value={1} />
-                  <SummaryMetric label="Total Qty" value={calculatedQty} />
-                  <SummaryMetric
-                    label="Total Amount"
-                    value={calculatedTotal.toFixed(2)}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="courierCharges"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Courier Charges</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            type="number"
-                            min={0}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="advanceAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Advance Amount</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="rounded-lg"
-                            type="number"
-                            min={0}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <SummaryMetric
-                    label="Balance"
-                    value={calculatedBalance.toFixed(2)}
-                    strong
-                  />
-                </div>
-              </SectionCard>
-
-              <Card className="rounded-lg border-amber-200 bg-amber-50 shadow-sm">
-                <CardContent className="p-4">
-                  <p className="text-sm font-bold text-amber-950">
-                    One order item only
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-amber-800">
-                    Use quantity when the customer orders multiple pieces of the
-                    same garment. Measurements are attached to this one order
-                    item.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-4">
-                  <p className="text-sm font-bold text-slate-900">
-                    Before saving
-                  </p>
-                  <ul className="mt-2 space-y-1 text-xs leading-5 text-slate-500">
-                    <li>Confirm customer phone number.</li>
-                    <li>Confirm promised date.</li>
-                    <li>Confirm category and price.</li>
-                    <li>Enter measurements when no block exists.</li>
-                    <li>Enter advance payment if collected.</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </aside>
-          </main>
-        </form>
-      </Form>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Measurement Section                                                */
-/* ------------------------------------------------------------------ */
-
-type OrderItemMeasurementsSectionProps = {
-  categoryId?: string;
-  values: Record<string, string | number | undefined>;
-  isExistingMeasurement: boolean;
-  hasMeasurementPrefill: boolean;
-  prefillCategoryId?: string;
-  prefillMeasurementFields: MeasurementFieldConfig[];
-  onMeasurementChange: (key: string, value: string) => void;
-  control: any;
-};
-
-function OrderItemMeasurementsSection({
-  categoryId,
-  values,
-  isExistingMeasurement,
-  hasMeasurementPrefill,
-  prefillCategoryId,
-  prefillMeasurementFields,
-  onMeasurementChange,
-  control,
-}: OrderItemMeasurementsSectionProps) {
-  const safeCategoryId = categoryId?.trim() || "";
-
-  const shouldUsePrefillFields =
-    hasMeasurementPrefill &&
-    prefillCategoryId === safeCategoryId &&
-    prefillMeasurementFields.length > 0;
-
-  const {
-    data: measurementFieldsResponse,
-    isLoading: isMeasurementFieldsLoading,
-    isFetching: isMeasurementFieldsFetching,
-    isError: isMeasurementFieldsError,
-  } = useMeasurementFieldsQuery(
-    {
-      pageIndex: 0,
-      pageSize: 100,
-      categoryId: safeCategoryId,
-      isActive: true,
-    },
-    {
-      enabled: Boolean(safeCategoryId) && !shouldUsePrefillFields,
-    },
-  );
-
-  const measurementFields = useMemo(() => {
-    if (shouldUsePrefillFields) {
-      return prefillMeasurementFields;
-    }
-
-    return mapMeasurementFieldsToConfig(
-      getMeasurementFieldRows(measurementFieldsResponse),
-    );
-  }, [
-    measurementFieldsResponse,
-    prefillMeasurementFields,
-    shouldUsePrefillFields,
-  ]);
-
-  const isLoadingFields =
-    Boolean(safeCategoryId) &&
-    !shouldUsePrefillFields &&
-    (isMeasurementFieldsLoading || isMeasurementFieldsFetching);
-
-  return (
-    <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <Ruler className="h-4 w-4 text-slate-500" />
-
-          <div>
-            <p className="text-sm font-bold text-slate-800">Measurements</p>
-
-            <p className="text-xs text-slate-500">
-              {isExistingMeasurement
-                ? "Existing measurement is attached."
-                : "Measurements are loaded from the selected category."}
-            </p>
-          </div>
+  }
+
+  if (!fields.length) {
+    return (
+      <div className="flex h-80 flex-col items-center justify-center p-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+          <Ruler className="h-7 w-7" />
         </div>
 
-        {isExistingMeasurement ? (
-          <Badge className="rounded-full bg-blue-50 text-blue-700 hover:bg-blue-50">
-            Attached
-          </Badge>
-        ) : (
-          <Badge className="rounded-full bg-amber-50 text-amber-700 hover:bg-amber-50">
-            No block yet
-          </Badge>
-        )}
+        <h3 className="mt-4 text-lg font-black text-slate-950">
+          No measurement fields found
+        </h3>
+
+        <p className="mt-1 max-w-md text-sm font-medium text-slate-500">
+          Add fields like Chest, Waist, Length, Shoulder, or Size to start
+          building category-wise measurement templates.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-w-262.5">
+      <div className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr_0.9fr_0.9fr_70px] border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
+        <div>Field</div>
+        <div>Category</div>
+        <div>Input</div>
+        <div>Unit</div>
+        <div>Order</div>
+        <div>Status</div>
+        <div />
       </div>
 
-      {!safeCategoryId && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
-          Select a category to load measurement fields.
-        </div>
-      )}
+      {fields.map((field) => (
+        <div
+          key={field.id}
+          className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr_0.9fr_0.9fr_70px] items-center border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
+        >
+          <button
+            type="button"
+            onClick={() => onView(field)}
+            className="min-w-0 text-left"
+          >
+            <p className="truncate font-black text-slate-950">{field.label}</p>
+            <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+              {field.code}
+            </p>
+          </button>
 
-      {isLoadingFields && (
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Loading measurement fields...
-        </div>
-      )}
-
-      {safeCategoryId && isMeasurementFieldsError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-          Measurement fields could not be loaded. Please try again.
-        </div>
-      )}
-
-      {safeCategoryId &&
-        !isLoadingFields &&
-        !isMeasurementFieldsError &&
-        measurementFields.length === 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-            No active measurement fields found for this category.
+          <div>
+            <p className="font-bold text-slate-800">
+              {field.category?.name || "Category"}
+            </p>
+            <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+              {field.categoryId}
+            </p>
           </div>
-        )}
 
-      {measurementFields.length > 0 && (
-        <MeasurementFields
-          fields={measurementFields}
-          values={values}
-          disabled={isExistingMeasurement}
-          onChange={onMeasurementChange}
-        />
-      )}
+          <MeasurementFieldInputTypeBadge inputType={field.inputType} />
 
-      <FormField
-        control={control}
-        name="items.0.measurementNote"
-        render={({ field }) => (
-          <FormItem className="mt-3">
-            <FormLabel>Measurement Note</FormLabel>
-            <FormControl>
-              <Textarea
-                className="min-h-20 rounded-lg"
-                placeholder="Measurements taken while placing order."
-                disabled={isExistingMeasurement}
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+          <p className="font-bold text-slate-800">
+            {field.unit || "No unit"}
+          </p>
+
+          <p className="font-bold text-slate-800">{field.sortOrder}</p>
+
+          <MeasurementFieldStatusBadge
+            isActive={field.isActive}
+            isRequired={field.isRequired}
+          />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onView(field)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => onEdit(field)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Field
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                disabled={isDeleting}
+                onClick={() => onDelete(field)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ))}
     </div>
   );
 }
 
-export default CreateOrderPage;
+function formatInputType(value: string) {
+  const map: Record<string, string> = {
+    TEXT: "Text",
+    NUMBER: "Number",
+    DECIMAL: "Decimal",
+    SELECT: "Select",
+    MULTI_SELECT: "Multi Select",
+    BOOLEAN: "Yes / No",
+  };
+
+  return map[value] ?? value;
+}
