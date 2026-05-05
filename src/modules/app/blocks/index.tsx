@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { useGetBlocks } from "./api/useGetBlocks";
 import { BlocksTable } from "./components/blocks-table";
 import { BlockDetailsDialog } from "./components/block-details-dialog";
+import { CreateBlockDialog } from "./components/create-block-dialog";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -63,9 +64,10 @@ export default function BlocksPage() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
 
-  const [_addBlockOpen, setAddBlockOpen] = useState(false);
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
+
   const [_selectedEditBlockId, setSelectedEditBlockId] = useState<string | null>(
-    null
+    null,
   );
   const [_editBlockOpen, setEditBlockOpen] = useState(false);
 
@@ -108,16 +110,16 @@ export default function BlocksPage() {
 
   const stats = useMemo(() => {
     const activeBlocks = blocksList.filter(
-      (block: any) => block.status === "ACTIVE"
+      (block: any) => block.status === "ACTIVE",
     ).length;
 
     const defaultBlocks = blocksList.filter((block: any) =>
-      block.customerBlocks?.some((item: any) => item.isDefault)
+      block.customerBlocks?.some((item: any) => item.isDefault),
     ).length;
 
     const totalOrderUses = blocksList.reduce(
       (sum: number, block: any) => sum + (block._count?.orderItems ?? 0),
-      0
+      0,
     );
 
     return {
@@ -142,8 +144,13 @@ export default function BlocksPage() {
     setCurrentPage(1);
   };
 
+  const handleBlockCreated = async () => {
+    setCurrentPage(1);
+    await refetch();
+  };
+
   const hasFilters = Boolean(
-    debouncedSearch || categoryId || customerId || status !== "all"
+    debouncedSearch || categoryId || customerId || status !== "all",
   );
 
   return (
@@ -187,7 +194,7 @@ export default function BlocksPage() {
                   <RefreshCw
                     className={cn(
                       "mr-2 h-4 w-4",
-                      isFetching && "animate-spin"
+                      isFetching && "animate-spin",
                     )}
                   />
                   Refresh
@@ -202,14 +209,16 @@ export default function BlocksPage() {
                   Export
                 </Button>
 
-                <Button
-                  type="button"
-                  onClick={() => setAddBlockOpen(true)}
-                  className="h-9 rounded-lg font-bold shadow-sm"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Block
-                </Button>
+                <PermissionGate action="create" subject="blocks">
+                  <Button
+                    type="button"
+                    onClick={() => setAddBlockOpen(true)}
+                    className="h-9 rounded-lg bg-slate-900 font-bold shadow-sm hover:bg-slate-800"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Block
+                  </Button>
+                </PermissionGate>
               </div>
             </div>
 
@@ -218,146 +227,85 @@ export default function BlocksPage() {
               <BlockStatCard
                 title="Total Blocks"
                 value={stats.totalBlocks}
-                description="All reusable block records"
+                description="All matching blocks"
                 icon={Blocks}
               />
 
               <BlockStatCard
                 title="Active Blocks"
                 value={stats.activeBlocks}
-                description="Available for new orders"
+                description="Ready to use"
                 icon={ShieldCheck}
               />
 
               <BlockStatCard
                 title="Default Blocks"
                 value={stats.defaultBlocks}
-                description="Main blocks for customers"
+                description="Assigned as default"
                 icon={Star}
               />
 
               <BlockStatCard
                 title="Order Uses"
                 value={stats.totalOrderUses}
-                description="Times blocks were used in orders"
+                description="Used in orders"
                 icon={PackageCheck}
               />
             </div>
 
             {/* Filters */}
             <Card className="rounded-lg border-slate-200 shadow-sm">
-              <CardContent className="p-3 md:p-4">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-                  <div className="grid w-full gap-3 md:grid-cols-2 xl:max-w-5xl xl:grid-cols-[minmax(0,1.6fr)_180px_180px_180px]">
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Search
-                      </label>
+              <CardHeader className="border-b border-slate-100 px-4 py-3">
+                <CardTitle className="text-base font-black text-slate-950">
+                  Search & Filters
+                </CardTitle>
+                <CardDescription className="text-sm font-medium text-slate-500">
+                  Search by block number, size, description, or customer related
+                  details.
+                </CardDescription>
+              </CardHeader>
 
-                      <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <CardContent className="p-4">
+                <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
-                        <Input
-                          value={searchTerm}
-                          onChange={(event) =>
-                            setSearchTerm(event.target.value)
-                          }
-                          placeholder="Search block no, customer, phone, size..."
-                          className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Category
-                      </label>
-
-                      <Input
-                        value={categoryId}
-                        onChange={(event) => setCategoryId(event.target.value)}
-                        placeholder="Category ID"
-                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Customer
-                      </label>
-
-                      <Input
-                        value={customerId}
-                        onChange={(event) => setCustomerId(event.target.value)}
-                        placeholder="Customer ID"
-                        className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Status
-                      </label>
-
-                      <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus:ring-0">
-                          <SelectValue placeholder="All status" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                          {blockStatusOptions.map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search blocks..."
+                      className="h-10 rounded-lg border-slate-200 bg-white pl-9"
+                    />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                    >
-                      Page size: {PAGE_SIZE}
-                    </Badge>
+                  <Input
+                    value={categoryId}
+                    onChange={(event) => setCategoryId(event.target.value)}
+                    placeholder="Category ID"
+                    className="h-10 rounded-lg border-slate-200 bg-white"
+                  />
 
-                    {debouncedSearch && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Search: {debouncedSearch}
-                      </Badge>
-                    )}
+                  <Input
+                    value={customerId}
+                    onChange={(event) => setCustomerId(event.target.value)}
+                    placeholder="Customer ID"
+                    className="h-10 rounded-lg border-slate-200 bg-white"
+                  />
 
-                    {categoryId && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Category: {categoryId}
-                      </Badge>
-                    )}
+                  <div className="flex gap-2">
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger className="h-10 min-w-36 rounded-lg border-slate-200 bg-white">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
 
-                    {customerId && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Customer: {customerId}
-                      </Badge>
-                    )}
-
-                    {status !== "all" && (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600"
-                      >
-                        Status: {formatBlockStatus(status)}
-                      </Badge>
-                    )}
+                      <SelectContent>
+                        {blockStatusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
                     {hasFilters && (
                       <Button
@@ -400,7 +348,7 @@ export default function BlocksPage() {
               <CardContent
                 className={cn(
                   "min-h-0 flex-1 overflow-auto p-0",
-                  isFetching && "opacity-70"
+                  isFetching && "opacity-70",
                 )}
               >
                 {isLoading ? (
@@ -419,6 +367,12 @@ export default function BlocksPage() {
             </Card>
           </motion.div>
         </AnimatePresence>
+
+        <CreateBlockDialog
+          open={addBlockOpen}
+          onOpenChange={setAddBlockOpen}
+          onCreated={handleBlockCreated}
+        />
 
         <BlockDetailsDialog
           blockId={selectedBlockId}
@@ -451,23 +405,17 @@ function BlockStatCard({
 }: BlockStatCardProps) {
   return (
     <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-slate-500">{title}</p>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+          <Icon className="h-5 w-5" />
+        </div>
 
-            <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-              {value}
-            </p>
-
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              {description}
-            </p>
-          </div>
-
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-            <Icon className="h-5 w-5" />
-          </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-500">{title}</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
+          <p className="mt-1 text-xs font-medium text-slate-400">
+            {description}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -476,23 +424,13 @@ function BlockStatCard({
 
 function BlocksLoadingState() {
   return (
-    <div className="grid gap-3 p-4">
-      {Array.from({ length: 6 }).map((_, index) => (
+    <div className="space-y-2 p-4">
+      {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={index}
-          className="h-16 animate-pulse rounded-lg bg-slate-100"
+          className="h-14 animate-pulse rounded-lg bg-slate-100"
         />
       ))}
     </div>
   );
-}
-
-function formatBlockStatus(status: string) {
-  const map: Record<string, string> = {
-    ACTIVE: "Active",
-    INACTIVE: "Inactive",
-    ARCHIVED: "Archived",
-  };
-
-  return map[status] ?? status;
 }

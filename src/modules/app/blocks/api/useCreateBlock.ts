@@ -1,11 +1,16 @@
+// src/modules/app/blocks/api/useCreateBlock.ts
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { covalentHubClient } from "@/services/clients/covalent.client";
-import { blocksQueryKeys } from "./useGetBlocks";
-import type { Block } from "@/types/blocks";
+import { getApiErrorMessage } from "@/errors/api-error-response";
+
+export type BlockStatus = "ACTIVE" | "INACTIVE" | "ARCHIVED";
 
 export type CreateBlockCustomerPayload = {
   customerId: string;
-  isDefault?: boolean;
+  measurementId?: string;
+  isDefault: boolean;
 };
 
 export type CreateBlockPayload = {
@@ -17,27 +22,34 @@ export type CreateBlockPayload = {
   versionNo?: number;
   previousBlockId?: string;
   description?: string;
-  status?: string;
+  status: BlockStatus;
   remarks?: string;
   legacyId?: number;
   customers: CreateBlockCustomerPayload[];
 };
 
-type CreateBlockApiResponse = {
+type CreateBlockResponse = {
   success: boolean;
-  message?: string;
-  data: Block;
+  message: string;
+  data: unknown;
 };
 
 const createBlock = async (
-  payload: CreateBlockPayload
-): Promise<CreateBlockApiResponse> => {
-  const response = await covalentHubClient.post<CreateBlockApiResponse>(
+  payload: CreateBlockPayload,
+): Promise<CreateBlockResponse> => {
+  const response = await covalentHubClient.post<CreateBlockResponse>(
     "/blocks",
-    payload
+    payload,
   );
 
   return response.data;
+};
+
+export const blockKeys = {
+  all: ["blocks"] as const,
+  lists: () => [...blockKeys.all, "list"] as const,
+  details: () => [...blockKeys.all, "detail"] as const,
+  detail: (id: string) => [...blockKeys.details(), id] as const,
 };
 
 export const useCreateBlock = () => {
@@ -45,10 +57,17 @@ export const useCreateBlock = () => {
 
   return useMutation({
     mutationFn: createBlock,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: blocksQueryKeys.all,
+    onSuccess: async (response) => {
+      toast.success(response.message || "Block created successfully");
+
+      await queryClient.invalidateQueries({
+        queryKey: blockKeys.all,
       });
+    },
+    onError: (error) => {
+      toast.error(
+        getApiErrorMessage(error, "Unable to create block. Please try again."),
+      );
     },
   });
 };

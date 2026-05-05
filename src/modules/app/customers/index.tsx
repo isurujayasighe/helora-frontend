@@ -1,6 +1,9 @@
+// src/modules/app/customers/index.tsx
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Blocks,
@@ -21,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useGetCustomers } from "./api/useGetCustomers";
 import { CustomersTable } from "./components/customer-details-table";
 import { CreateCustomerDialog } from "./components/create-customer-dialog";
+import { CustomerDetailsDialog } from "./components/customer-details-dialog";
 import {
   Card,
   CardContent,
@@ -38,17 +42,23 @@ const fadeUp = {
 const PAGE_SIZE = 10;
 
 export default function CustomersPage() {
+  const navigate = useNavigate({
+    from: "/app/customers/",
+  });
+
+  const customerSearch = useSearch({
+    from: "/_authenticated/app/customers/",
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [townFilter, setTownFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const [_selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null
-  );
-
-  const [_detailsOpen, setDetailsOpen] = useState(false);
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
+
+  const isCustomerDetailsOpen = Boolean(
+    customerSearch.customerDetails && customerSearch.customerId,
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -88,18 +98,18 @@ export default function CustomersPage() {
   const stats = useMemo(() => {
     const totalBlocks = customersList.reduce(
       (sum, customer) => sum + (customer._count?.blocks ?? 0),
-      0
+      0,
     );
 
     const totalOrders = customersList.reduce(
       (sum, customer) => sum + (customer._count?.orders ?? 0),
-      0
+      0,
     );
 
     const activeCustomers = customersList.filter(
       (customer) =>
         (customer._count?.orders ?? 0) > 0 ||
-        (customer._count?.blocks ?? 0) > 0
+        (customer._count?.blocks ?? 0) > 0,
     ).length;
 
     return {
@@ -111,8 +121,24 @@ export default function CustomersPage() {
   }, [customersList, pagination.totalItems]);
 
   const handleViewCustomer = (customerId: string) => {
-    setSelectedCustomerId(customerId);
-    setDetailsOpen(true);
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        customerDetails: true,
+        customerId,
+      }),
+    });
+  };
+
+  const handleCloseCustomerDetails = () => {
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        customerDetails: undefined,
+        customerId: undefined,
+      }),
+      replace: true,
+    });
   };
 
   const handleClearFilters = () => {
@@ -136,7 +162,6 @@ export default function CustomersPage() {
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="flex h-full flex-col gap-4 p-3 md:p-5"
           >
-            {/* Header */}
             <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
@@ -156,6 +181,7 @@ export default function CustomersPage() {
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => refetch()}
                   disabled={isLoading || isFetching}
@@ -164,13 +190,14 @@ export default function CustomersPage() {
                   <RefreshCw
                     className={cn(
                       "mr-2 h-4 w-4",
-                      isFetching && "animate-spin"
+                      isFetching && "animate-spin",
                     )}
                   />
                   Refresh
                 </Button>
 
                 <Button
+                  type="button"
                   variant="outline"
                   className="h-9 rounded-lg bg-white font-bold"
                 >
@@ -178,17 +205,19 @@ export default function CustomersPage() {
                   Export
                 </Button>
 
-                <Button
-                  onClick={() => setCreateCustomerOpen(true)}
-                  className="h-9 rounded-lg font-bold shadow-sm"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Customer
-                </Button>
+                <PermissionGate action="create" subject="customers">
+                  <Button
+                    type="button"
+                    onClick={() => setCreateCustomerOpen(true)}
+                    className="h-9 rounded-lg bg-slate-900 font-bold shadow-sm hover:bg-slate-800"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Customer
+                  </Button>
+                </PermissionGate>
               </div>
             </div>
 
-            {/* Stats */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <CustomerStatCard
                 title="Total Customers"
@@ -219,7 +248,6 @@ export default function CustomersPage() {
               />
             </div>
 
-            {/* Filters */}
             <Card className="rounded-lg border-slate-200 shadow-sm">
               <CardContent className="p-3 md:p-4">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -298,7 +326,6 @@ export default function CustomersPage() {
               </CardContent>
             </Card>
 
-            {/* Table */}
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
@@ -323,7 +350,7 @@ export default function CustomersPage() {
               <CardContent
                 className={cn(
                   "min-h-0 flex-1 overflow-auto p-0",
-                  isFetching && "opacity-70"
+                  isFetching && "opacity-70",
                 )}
               >
                 {isLoading ? (
@@ -343,17 +370,15 @@ export default function CustomersPage() {
           </motion.div>
         </AnimatePresence>
 
-        {/* <HeloraDialogLayout
-          customerId={selectedCustomerId}
-          open={detailsOpen}
+        <CustomerDetailsDialog
+          open={isCustomerDetailsOpen}
+          customerId={customerSearch.customerId}
           onOpenChange={(open) => {
-            setDetailsOpen(open);
-
             if (!open) {
-              setSelectedCustomerId(null);
+              handleCloseCustomerDetails();
             }
           }}
-        /> */}
+        />
 
         <CreateCustomerDialog
           open={createCustomerOpen}

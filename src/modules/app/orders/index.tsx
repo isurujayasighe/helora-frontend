@@ -145,15 +145,15 @@ export default function OrdersPage() {
 
   const stats = useMemo(() => {
     const pending = ordersList.filter(
-      (order) => order.status === "PENDING"
+      (order) => order.status === "PENDING",
     ).length;
 
     const inProgress = ordersList.filter((order) =>
-      ["CONFIRMED", "CUTTING", "SEWING", "READY"].includes(order.status)
+      ["CONFIRMED", "CUTTING", "SEWING", "READY"].includes(order.status),
     ).length;
 
     const completed = ordersList.filter(
-      (order) => order.status === "COMPLETED"
+      (order) => order.status === "COMPLETED",
     ).length;
 
     const overdue = ordersList.filter((order: any) => {
@@ -198,16 +198,8 @@ export default function OrdersPage() {
     setCurrentPage(1);
   };
 
-  const handlePreviousPage = () => {
-    setCurrentPage((page) => Math.max(1, page - 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((page) => Math.min(pagination.totalPages, page + 1));
-  };
-
   const hasFilters = Boolean(
-    debouncedSearch || statusFilter !== "all" || orderDate || promisedDate
+    debouncedSearch || statusFilter !== "all" || orderDate || promisedDate,
   );
 
   return (
@@ -259,19 +251,12 @@ export default function OrdersPage() {
                   className="rounded-lg"
                 >
                   <RefreshCw
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      isFetching && "animate-spin"
-                    )}
+                    className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")}
                   />
                   Refresh
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-lg"
-                >
+                <Button type="button" variant="outline" className="rounded-lg">
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
@@ -357,10 +342,7 @@ export default function OrdersPage() {
                     />
                   </div>
 
-                  <Select
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                  >
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="rounded-lg border-slate-200 bg-white">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -393,49 +375,12 @@ export default function OrdersPage() {
 
                 <OrdersTable
                   orders={ordersList}
-                  isLoading={isLoading}
+                  currentPage={pagination.page}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalItems}
+                  onPageChange={setCurrentPage}
                   onViewDetails={handleViewDetails}
                 />
-
-                <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-slate-500">
-                    Page{" "}
-                    <span className="font-semibold text-slate-900">
-                      {pagination.page}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold text-slate-900">
-                      {pagination.totalPages}
-                    </span>{" "}
-                    ·{" "}
-                    <span className="font-semibold text-slate-900">
-                      {pagination.totalItems}
-                    </span>{" "}
-                    orders
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handlePreviousPage}
-                      disabled={!pagination.hasPreviousPage || isFetching}
-                      className="rounded-lg"
-                    >
-                      Previous
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleNextPage}
-                      disabled={!pagination.hasNextPage || isFetching}
-                      className="rounded-lg"
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -470,7 +415,7 @@ function StatCard({
         <div
           className={cn(
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-            danger ? "bg-red-50 text-red-600" : "bg-slate-900 text-white"
+            danger ? "bg-red-50 text-red-600" : "bg-slate-900 text-white",
           )}
         >
           <Icon className="h-5 w-5" />
