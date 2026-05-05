@@ -48,14 +48,13 @@ import type {
   MeasurementField,
   MeasurementInputType,
 } from "./types/measurement-fields-types";
-import {
-  useDeleteMeasurementField,
-  useMeasurementFieldsQuery,
-} from "./api/measurement-api";
+
 import { MeasurementFieldStatusBadge } from "./components/measurement-field-status-badge";
 import { MeasurementFieldInputTypeBadge } from "./components/measurement-field-input-type-badge";
 import { MeasurementFieldFormDialog } from "./components/measurement-field-form-dialog";
 import { MeasurementFieldDetailsDialog } from "./components/measurement-field-details-dialog";
+import { useDeleteMeasurementField } from "./api/measurement-api";
+import { useMeasurementFieldsQuery } from "./api/useGetMeasurementsFieldsByCID";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -124,7 +123,7 @@ export default function MeasurementFieldsPage() {
 
   const deleteField = useDeleteMeasurementField();
 
-  const fields = data?.items ?? [];
+  const fields = data ?? [];
   const pagination = data?.pagination;
   const total = pagination?.totalItems ?? 0;
   const pageCount = Math.max(1, pagination?.totalPages ?? 1);
