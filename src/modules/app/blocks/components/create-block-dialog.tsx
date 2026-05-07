@@ -127,18 +127,25 @@ function SectionCard({
   title,
   description,
   icon: Icon,
+  className,
   children,
 }: {
   title: string;
   description?: string;
   icon: React.ElementType;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+    <Card
+      className={cn(
+        "rounded-lg border-slate-200 bg-white shadow-sm",
+        className,
+      )}
+    >
       <CardHeader className="border-b border-slate-100 px-4 py-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
             <Icon className="h-4 w-4" />
           </div>
 
@@ -160,6 +167,15 @@ function SectionCard({
     </Card>
   );
 }
+
+const fieldClassName =
+  "h-10 rounded-lg border-slate-200 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/10";
+
+const readOnlyFieldClassName =
+  "h-10 rounded-lg border-slate-200 bg-slate-50 pr-10 shadow-none";
+
+const textAreaClassName =
+  "min-h-24 resize-none rounded-lg border-slate-200 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/10";
 
 function toOptionalString(value?: string | null) {
   const cleaned = value?.trim();
@@ -196,7 +212,7 @@ export function CreateBlockDialog({
     isError: isCategoriesError,
   } = useGetCategories();
 
-  const form = useForm<CreateBlockFormInput, any, CreateBlockFormValues>({
+  const form = useForm<CreateBlockFormInput, unknown, CreateBlockFormValues>({
     resolver: zodResolver(createBlockSchema),
     defaultValues,
   });
@@ -306,33 +322,51 @@ export function CreateBlockDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg border-slate-200 bg-slate-50 p-0 sm:max-w-4xl">
+      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-lg border-slate-200 bg-slate-50 p-0 sm:max-w-5xl">
         <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
-              <PackagePlus className="h-5 w-5" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                <PackagePlus className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0">
+                <DialogTitle className="text-lg font-bold text-slate-900">
+                  Create New Block
+                </DialogTitle>
+
+                <DialogDescription className="mt-1 text-sm text-slate-500">
+                  Select the customer first, choose the category, then the
+                  latest matching measurement will be linked automatically.
+                </DialogDescription>
+              </div>
             </div>
 
-            <div className="min-w-0">
-              <DialogTitle className="text-lg font-bold text-slate-900">
-                Create New Block
-              </DialogTitle>
-
-              <DialogDescription className="mt-1 text-sm text-slate-500">
-                Select the customer first, choose the category, then the latest
-                matching measurement will be linked automatically.
-              </DialogDescription>
-            </div>
+            <Badge
+              variant="outline"
+              className={cn(
+                "w-fit rounded-full px-3 py-1 text-xs font-semibold",
+                customerId
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-amber-200 bg-amber-50 text-amber-700",
+              )}
+            >
+              {customerId ? "Customer selected" : "Customer required"}
+            </Badge>
           </div>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <div className="space-y-4 p-5">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="grid min-h-0 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(280px,340px)_1fr]">
               <SectionCard
                 title="Customer"
                 description="Find the customer before creating the block. The latest measurement will be found after selecting the category."
                 icon={UserRound}
+                className="lg:sticky lg:top-0 lg:self-start"
               >
                 <div className="space-y-4">
                   <CustomerPhoneLookupField
@@ -377,8 +411,8 @@ export function CreateBlockDialog({
 
                   {selectedCustomer || customerId ? (
                     <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
                           <p className="text-sm font-bold text-emerald-950">
                             {form.getValues("customerName") ||
                               "Customer selected"}
@@ -395,13 +429,13 @@ export function CreateBlockDialog({
                           </p>
                         </div>
 
-                        <Badge className="w-fit rounded-full bg-emerald-600 text-white hover:bg-emerald-600">
+                        <Badge className="shrink-0 rounded-full bg-emerald-600 text-white hover:bg-emerald-600">
                           Selected
                         </Badge>
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-medium text-amber-800">
                       Select a customer before filling block details.
                     </div>
                   )}
@@ -432,7 +466,7 @@ export function CreateBlockDialog({
 
                 <div
                   className={cn(
-                    "grid gap-4 sm:grid-cols-2",
+                    "grid gap-4 md:grid-cols-12",
                     !customerId && "pointer-events-none opacity-60",
                   )}
                 >
@@ -440,7 +474,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="categoryId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-6">
                         <FormLabel>Category</FormLabel>
 
                         <Select
@@ -456,7 +490,7 @@ export function CreateBlockDialog({
                           }}
                         >
                           <FormControl>
-                            <SelectTrigger className="rounded-lg bg-white">
+                            <SelectTrigger className={fieldClassName}>
                               <SelectValue
                                 placeholder={
                                   isCategoriesLoading
@@ -489,13 +523,13 @@ export function CreateBlockDialog({
                     control={control}
                     name="measurementId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-6">
                         <FormLabel>Latest Measurement</FormLabel>
 
                         <FormControl>
                           <div className="relative">
                             <Input
-                              className="rounded-lg bg-slate-50 pr-10"
+                              className={readOnlyFieldClassName}
                               placeholder={
                                 customerId && categoryId
                                   ? "Auto-filling latest measurement..."
@@ -561,11 +595,11 @@ export function CreateBlockDialog({
                     control={control}
                     name="blockNumber"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Block Number</FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             placeholder="UNI-1001"
                             {...field}
                             onChange={(event) =>
@@ -582,11 +616,11 @@ export function CreateBlockDialog({
                     control={control}
                     name="readyMadeSize"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Ready-made Size</FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             placeholder="M"
                             {...field}
                             onChange={(event) =>
@@ -603,11 +637,11 @@ export function CreateBlockDialog({
                     control={control}
                     name="sizeLabel"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Size Label</FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             placeholder="Standard Medium"
                             {...field}
                           />
@@ -621,13 +655,13 @@ export function CreateBlockDialog({
                     control={control}
                     name="versionNo"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Version No</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min={1}
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             {...field}
                           />
                         </FormControl>
@@ -640,11 +674,11 @@ export function CreateBlockDialog({
                     control={control}
                     name="previousBlockId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Previous Block ID</FormLabel>
                         <FormControl>
                           <Input
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             placeholder="Optional previous block id"
                             {...field}
                           />
@@ -658,7 +692,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="status"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Status</FormLabel>
 
                         <Select
@@ -666,7 +700,7 @@ export function CreateBlockDialog({
                           onValueChange={field.onChange}
                         >
                           <FormControl>
-                            <SelectTrigger className="rounded-lg bg-white">
+                            <SelectTrigger className={fieldClassName}>
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                           </FormControl>
@@ -691,13 +725,13 @@ export function CreateBlockDialog({
                     control={control}
                     name="legacyId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Legacy ID</FormLabel>
 
                         <FormControl>
                           <Input
                             type="number"
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             placeholder="52"
                             value={field.value ?? ""}
                             onChange={(event) => {
@@ -716,12 +750,12 @@ export function CreateBlockDialog({
                     control={control}
                     name="fitNotes"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="md:col-span-12">
                         <FormLabel>Fit Notes</FormLabel>
 
                         <FormControl>
                           <Input
-                            className="rounded-lg bg-white"
+                            className={fieldClassName}
                             placeholder="Uniform block for regular fit"
                             {...field}
                           />
@@ -736,12 +770,12 @@ export function CreateBlockDialog({
                     control={control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="md:col-span-6">
                         <FormLabel>Description</FormLabel>
 
                         <FormControl>
                           <Textarea
-                            className="min-h-20 rounded-lg bg-white"
+                            className={textAreaClassName}
                             placeholder="Sample uniform block"
                             {...field}
                           />
@@ -756,12 +790,12 @@ export function CreateBlockDialog({
                     control={control}
                     name="remarks"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="md:col-span-6">
                         <FormLabel>Remarks</FormLabel>
 
                         <FormControl>
                           <Textarea
-                            className="min-h-20 rounded-lg bg-white"
+                            className={textAreaClassName}
                             placeholder="Default uniform block"
                             {...field}
                           />
@@ -776,7 +810,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="isDefault"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="md:col-span-12">
                         <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
                           <div>
                             <FormLabel className="text-sm font-bold text-slate-900">
@@ -804,7 +838,7 @@ export function CreateBlockDialog({
               </SectionCard>
 
               {measurementId && latestMeasurement && (
-                <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 lg:col-start-2">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
                     <BadgeCheck className="h-4 w-4" />
                   </div>

@@ -9,13 +9,11 @@ import {
   ArrowLeft,
   Banknote,
   CalendarDays,
-  CheckCircle2,
   ClipboardList,
   Loader2,
   Printer,
   Ruler,
   Save,
-  Search,
   UserRound,
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -35,12 +33,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-import {
-  useFindCustomerByPhoneMutation,
-  type CustomerByPhone,
-} from "@/api/useFindCustomerByPhone";
+import { type CustomerByPhone } from "@/api/useFindCustomerByPhone";
 import { useGetCustomerById } from "@/modules/app/customers/api/useGetCustomerbyId";
 import { useGetLatestMeasurement } from "@/api/useGetLatestMeasurement";
+import {
+  useGetBlockLinkCandidates,
+  type BlockLinkCandidate,
+} from "@/api/useGetBlockLinkCandidates";
 import {
   useCreateOrder,
   type CreateOrderPayload,
@@ -396,6 +395,38 @@ function mapPrefillMeasurementToCustomerByPhone(
   } as CustomerByPhone;
 }
 
+function mapBlockLinkCandidatesToCustomerBlocks(
+  blocks: BlockLinkCandidate[],
+): CustomerByPhone["blocks"] {
+  return blocks.map((block) => {
+    const defaultLink =
+      block.customerLinks.find((link) => link.isDefault) ??
+      block.customerLinks[0];
+
+    return {
+      id: block.id,
+      tenantId: "",
+      customerId: defaultLink?.customerId ?? "",
+      categoryId: block.categoryId,
+      blockNumber: block.blockNumber,
+      readyMadeSize: block.readyMadeSize,
+      sizeLabel: block.sizeLabel,
+      fitNotes: block.fitNotes,
+      versionNo: block.versionNo,
+      description: block.description,
+      status: block.status,
+      isDefault: defaultLink?.isDefault ?? false,
+      lastUsedAt: block.lastUsedAt,
+      remarks: block.remarks,
+      category: {
+        id: block.categoryId,
+        tenantId: "",
+        name: block.categoryName,
+      },
+    };
+  });
+}
+
 const buildInitialItem = (): CreateOrderFormInput["items"][number] => ({
   categoryId: "",
   blockId: "",
@@ -670,12 +701,10 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   const [foundCustomer, setFoundCustomer] = useState<CustomerByPhone | null>(
     null,
   );
-  const [customerSearched, setCustomerSearched] = useState(false);
 
   const isPrefillFlow = Boolean(prefill?.customerId);
   const hasMeasurementPrefill = Boolean(prefill?.measurementId);
 
-  const findCustomerMutation = useFindCustomerByPhoneMutation();
   const createOrderMutation = useCreateOrder();
 
   const {
@@ -737,7 +766,7 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     defaultValues: buildInitialValues(),
   });
 
-  const { control, setValue, getValues, reset, setError, clearErrors } = form;
+  const { control, setValue, getValues, reset } = form;
 
   const item = useWatch({
     control,
@@ -748,6 +777,28 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     control,
     name: "items.0.categoryId",
   });
+
+  const customerId = useWatch({
+    control,
+    name: "customerId",
+  });
+
+  const isExistingMeasurement = Boolean(item?.measurementId);
+
+  const {
+    data: linkedBlockCandidates = [],
+    isFetching: isLinkedBlocksFetching,
+  } = useGetBlockLinkCandidates({
+    customerId,
+    categoryId,
+    onlyUnlinked: true,
+    enabled: !isExistingMeasurement,
+  });
+
+  const linkedBlocks = useMemo(
+    () => mapBlockLinkCandidatesToCustomerBlocks(linkedBlockCandidates),
+    [linkedBlockCandidates],
+  );
 
   const quantity = Number(item?.quantity || 0);
   const unitPrice = Number(item?.unitPrice || 0);
@@ -830,7 +881,6 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     setFoundCustomer(
       mapPrefillMeasurementToCustomerByPhone(prefillMeasurement),
     );
-    setCustomerSearched(true);
   }, [
     hasMeasurementPrefill,
     isPrefillMeasurementLoading,
@@ -846,24 +896,21 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
 
     reset({
       ...buildInitialValues(),
-      phoneNumber: prefilledCustomer.data.phoneNumber ?? "",
+      phoneNumber: prefilledCustomer.phoneNumber ?? "",
       customerMode: "existing",
-      customerId: prefilledCustomer.data.id,
-      customerName: prefilledCustomer.data.fullName ?? "",
-      customerTown: prefilledCustomer.data.town ?? "",
-      customerAddress: prefilledCustomer.data.address ?? "",
-      customerNotes: prefilledCustomer.data.notes ?? "",
-      hospitalName: prefilledCustomer.data.hospitalName ?? "",
+      customerId: prefilledCustomer.id,
+      customerName: prefilledCustomer.fullName ?? "",
+      customerTown: prefilledCustomer.town ?? "",
+      customerAddress: prefilledCustomer.address ?? "",
+      customerNotes: prefilledCustomer.notes ?? "",
+      hospitalName: prefilledCustomer.hospitalName ?? "",
       orderSource: "PHYSICAL_SHOP",
       paymentStatus: "UNPAID",
       paymentMode: "CASH",
       items: [buildInitialItem()],
     });
 
-    setFoundCustomer(
-      mapCustomerDetailsToCustomerByPhone(prefilledCustomer.data),
-    );
-    setCustomerSearched(true);
+    setFoundCustomer(mapCustomerDetailsToCustomerByPhone(prefilledCustomer));
   }, [
     isPrefillFlow,
     hasMeasurementPrefill,
@@ -908,10 +955,14 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   // };
 
   const getFilteredBlocks = (selectedCategoryId?: string) => {
-    if (!foundCustomer?.blocks?.length) return [];
-    if (!selectedCategoryId) return foundCustomer.blocks;
+    const sourceBlocks = linkedBlocks.length
+      ? linkedBlocks
+      : (foundCustomer?.blocks ?? []);
 
-    return foundCustomer.blocks.filter(
+    if (!sourceBlocks.length) return [];
+    if (!selectedCategoryId) return sourceBlocks;
+
+    return sourceBlocks.filter(
       (block) => block.categoryId === selectedCategoryId,
     );
   };
@@ -1003,8 +1054,18 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     isSubmitting || isPrefillLoading || isCategoriesLoading;
 
   const blocks = getFilteredBlocks(categoryId);
-  const isExistingMeasurement = Boolean(item?.measurementId);
   const isExistingBlock = item?.blockMode === "existing";
+
+  useEffect(() => {
+    if (!item?.blockId) return;
+    if (isLinkedBlocksFetching) return;
+    if (blocks.some((block) => block.id === item.blockId)) return;
+
+    setValue("items.0.blockId", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+  }, [blocks, isLinkedBlocksFetching, item?.blockId, setValue]);
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -1087,6 +1148,30 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                           hospitalName: "hospitalName",
                           town: "customerTown",
                           address: "customerAddress",
+                        }}
+                        onCustomerSelect={(customer) => {
+                          setFoundCustomer({
+                            id: customer.id,
+                            tenantId: "",
+                            fullName: customer.fullName,
+                            phoneNumber: customer.phoneNumber ?? "",
+                            alternatePhone: customer.alternatePhone,
+                            town: customer.town,
+                            address: customer.address,
+                            hospitalName: customer.hospitalName ?? null,
+                            blocks: [],
+                          });
+                        }}
+                        onClear={() => {
+                          setFoundCustomer(null);
+                          setValue("items.0.blockId", "", {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          });
+                          setValue("items.0.blockMode", "measurement-only", {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          });
                         }}
                       />
                     )}
@@ -1188,7 +1273,6 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                     <FormField
                       control={control}
                       name="items.0.categoryId"
-                      
                       render={({}) => (
                         <FormItem>
                           <FormField
@@ -1341,7 +1425,13 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                               <option value="measurement-only">
                                 Measurement only
                               </option>
-                              <option value="existing">Existing block</option>
+                              <option value="existing">
+                                {isLinkedBlocksFetching
+                                  ? "Existing block - loading"
+                                  : blocks.length
+                                    ? `Existing block (${blocks.length})`
+                                    : "Existing block"}
+                              </option>
                             </SelectInput>
                           </FormControl>
                           <FormMessage />
@@ -1359,9 +1449,21 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                             <FormControl>
                               <SelectInput
                                 {...field}
-                                disabled={isExistingMeasurement}
+                                disabled={
+                                  isExistingMeasurement ||
+                                  isLinkedBlocksFetching ||
+                                  !categoryId
+                                }
                               >
-                                <option value="">Select block</option>
+                                <option value="">
+                                  {isLinkedBlocksFetching
+                                    ? "Loading blocks..."
+                                    : !categoryId
+                                      ? "Select category first"
+                                      : blocks.length
+                                        ? "Select block"
+                                        : "No linked blocks"}
+                                </option>
 
                                 {blocks.map((block) => (
                                   <option key={block.id} value={block.id}>
@@ -1805,14 +1907,14 @@ function OrderItemMeasurementsSection({
     },
   );
 
-  console.log(measurementFieldsResponse)
+  console.log(measurementFieldsResponse);
 
   const measurementFields = useMemo(() => {
     if (shouldUsePrefillFields) {
       return prefillMeasurementFields;
     }
 
-    return mapMeasurementFieldsToConfig(  
+    return mapMeasurementFieldsToConfig(
       getMeasurementFieldRows(measurementFieldsResponse),
     );
   }, [

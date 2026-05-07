@@ -37,6 +37,12 @@ import {
   useCustomerLookup,
   type CustomerLookupItem,
 } from "@/api/useGetCustomerLookup";
+import {
+  useGetCustomerById,
+  type CustomerBlockAssignment,
+  type CustomerDetails,
+  type CustomerOrderSummary,
+} from "@/modules/app/customers/api/useGetCustomerbyId";
 
 import {
   useGetLatestMeasurement,
@@ -45,6 +51,7 @@ import {
 } from "@/api/useGetLatestMeasurement";
 
 import { useUpdateMeasurement } from "@/api/useUpdateMeasurements";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type MeasurementItem = {
   id: string;
@@ -68,6 +75,16 @@ function formatDateTime(value?: string | null) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   }).format(new Date(value));
 }
 
@@ -599,6 +616,212 @@ function LatestMeasurementSection({
   );
 }
 
+function DetailSection({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="overflow-hidden rounded-lg border-slate-200 shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+          <h4 className="text-sm font-black text-slate-900">{title}</h4>
+
+          {typeof count === "number" && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">
+              {count}
+            </span>
+          )}
+        </div>
+
+        <div className="p-4">{children}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyDetailState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-500">
+      {message}
+    </div>
+  );
+}
+
+function CustomerOrdersSection({ orders }: { orders: CustomerOrderSummary[] }) {
+  return (
+    <DetailSection title="Order Details" count={orders.length}>
+  {!orders.length ? (
+    <EmptyDetailState message="No orders found for this customer." />
+  ) : (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto">
+        <Table className="min-w-180">
+  <TableHeader>
+    <TableRow className="bg-slate-50 hover:bg-slate-50">
+      <TableHead className="h-10 text-start text-[10px] text-slate-800">
+        Order No
+      </TableHead>
+
+      <TableHead className="h-10 text-start text-[10px] text-slate-800">
+        Date
+      </TableHead>
+
+      <TableHead className="h-10 text-start text-[10px] text-slate-800">
+        Promise Date
+      </TableHead>
+
+      <TableHead className="h-10 text-start text-[10px] text-slate-800">
+        Status
+      </TableHead>
+
+      <TableHead className="h-10 text-start text-[10px] text-slate-800">
+        Block No
+      </TableHead>
+    </TableRow>
+  </TableHeader>
+
+  <TableBody>
+    {orders.map((order) => {
+      const blockNumbers = Array.from(
+        new Set(
+          order.items
+            .map((item) => item.block?.blockNumber)
+            .filter(Boolean),
+        ),
+      );
+
+      return (
+        <TableRow
+          key={order.id}
+          className="transition-colors hover:bg-slate-50"
+        >
+          <TableCell className="py-3 text-start align-middle">
+            <p className="whitespace-nowrap text-xs ">
+              {order.orderNumber}
+            </p>
+          </TableCell>
+
+          <TableCell className="py-3 text-start">
+            <p className="whitespace-nowrap text-sm font-semibold text-slate-600">
+              {formatDate(order.orderDate)}
+            </p>
+          </TableCell>
+
+          <TableCell className="py-3 text-start">
+            <p className="whitespace-nowrap text-sm font-semibold text-slate-600">
+              {formatDate(order.promisedDate)}
+            </p>
+          </TableCell>
+
+          <TableCell className="py-3 text-center ">
+            <div className="flex justify-start">
+              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
+                {order.status}
+              </span>
+            </div>
+          </TableCell>
+
+          <TableCell className="py-3 text-center align-middle">
+            <p className="mx-auto max-w-55 truncate text-sm font-semibold text-slate-700">
+              {blockNumbers.length ? blockNumbers.join(", ") : "-"}
+            </p>
+          </TableCell>
+        </TableRow>
+      );
+    })}
+  </TableBody>
+</Table>
+      </div>
+    </div>
+  )}
+</DetailSection>
+  );
+}
+
+function CustomerBlocksSection({
+  blocks,
+}: {
+  blocks: CustomerBlockAssignment[];
+}) {
+  return (
+    <DetailSection title="Block Details" count={blocks.length}>
+  {!blocks.length ? (
+    <EmptyDetailState message="No blocks assigned to this customer." />
+  ) : (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-slate-50 hover:bg-slate-50">
+            <TableHead className="h-10 text-[10px]  text-slate-800">
+              Block No
+            </TableHead>
+
+              <TableHead className="h-10 text-[10px]  text-slate-800">
+              Category
+            </TableHead>
+
+              <TableHead className="h-10 text-[10px]  text-slate-800">
+              Status
+            </TableHead>
+
+              <TableHead className="h-10 text-[10px]  text-slate-800">
+              Default
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {blocks.map((assignment) => (
+            <TableRow
+              key={assignment.id}
+              className="transition-colors hover:bg-slate-50"
+            >
+              <TableCell className="py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-slate-900">
+                    {assignment.block.blockNumber}
+                  </p>
+                </div>
+              </TableCell>
+
+              <TableCell className="py-3">
+                <p className="truncate text-sm font-semibold text-slate-700">
+                  {assignment.block.category?.name ?? "-"}
+                </p>
+              </TableCell>
+
+              <TableCell className="py-3">
+                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
+                  {assignment.block.status}
+                </span>
+              </TableCell>
+
+              <TableCell className="py-3 text-right">
+                {assignment.isDefault ? (
+                  <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+                    Default
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-400">
+                    -
+                  </span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )}
+</DetailSection>
+  );
+}
+
 export function DashboardCustomerSearchCard() {
   const navigate = useNavigate();
 
@@ -634,9 +857,39 @@ export function DashboardCustomerSearchCard() {
     enabled: Boolean(selectedCustomer?.id),
   });
 
+  const {
+    data: customerDetails,
+    isLoading: isCustomerDetailsLoading,
+    isFetching: isCustomerDetailsFetching,
+  } = useGetCustomerById(selectedCustomer?.id, isDetailOpen);
+
   const updateMeasurementMutation = useUpdateMeasurement();
 
   const customerList = customers ?? [];
+  const detailedCustomer: CustomerDetails | null =
+    customerDetails ??
+    (selectedCustomer
+      ? {
+          id: selectedCustomer.id,
+          tenantId: "",
+          fullName: selectedCustomer.fullName,
+          phoneNumber: selectedCustomer.phoneNumber,
+          alternatePhone: selectedCustomer.alternatePhone,
+          hospitalName: selectedCustomer.hospitalName ?? null,
+          town: selectedCustomer.town,
+          address: selectedCustomer.address ?? null,
+          notes: null,
+          createdAt: "",
+          updatedAt: "",
+          customerBlocks: [],
+          orders: [],
+          _count: {
+            customerBlocks: 0,
+            orders: 0,
+            measurements: 0,
+          },
+        }
+      : null);
 
   const measurementItems = React.useMemo(
     () => getMeasurementItems(latestMeasurement),
@@ -883,6 +1136,13 @@ export function DashboardCustomerSearchCard() {
               {/* Scrollable Content Only */}
               <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
                 <div className="space-y-5">
+                  {isCustomerDetailsLoading && (
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading customer details...
+                    </div>
+                  )}
+
                   <Card className="overflow-hidden rounded-lg border-slate-200 shadow-sm">
                     <CardContent className="p-0">
                       <div className="border-b border-slate-100 bg-white p-4">
@@ -893,21 +1153,22 @@ export function DashboardCustomerSearchCard() {
                             </p>
 
                             <h3 className="mt-1 truncate text-xl font-black text-slate-900">
-                              {selectedCustomer.fullName}
+                              {detailedCustomer?.fullName ??
+                                selectedCustomer.fullName}
                             </h3>
 
                             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-slate-500">
-                              {selectedCustomer.phoneNumber && (
+                              {detailedCustomer?.phoneNumber && (
                                 <span className="inline-flex items-center gap-1.5">
                                   <Phone className="h-4 w-4 text-slate-400" />
-                                  {selectedCustomer.phoneNumber}
+                                  {detailedCustomer.phoneNumber}
                                 </span>
                               )}
 
-                              {selectedCustomer.town && (
+                              {detailedCustomer?.town && (
                                 <span className="inline-flex items-center gap-1.5">
                                   <MapPin className="h-4 w-4 text-slate-400" />
-                                  {selectedCustomer.town}
+                                  {detailedCustomer.town}
                                 </span>
                               )}
                             </div>
@@ -916,8 +1177,7 @@ export function DashboardCustomerSearchCard() {
                           <div className="flex shrink-0 gap-2">
                             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-center">
                               <p className="text-base font-black text-slate-900">
-                                {latestMeasurement?.customer?._count
-                                  ?.customerBlocks ?? 0}
+                                {detailedCustomer?._count.customerBlocks ?? 0}
                               </p>
                               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                 Blocks
@@ -926,8 +1186,7 @@ export function DashboardCustomerSearchCard() {
 
                             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-center">
                               <p className="text-base font-black text-slate-900">
-                                {latestMeasurement?.customer?._count?.orders ??
-                                  0}
+                                {detailedCustomer?._count.orders ?? 0}
                               </p>
                               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                 Orders
@@ -937,18 +1196,33 @@ export function DashboardCustomerSearchCard() {
                         </div>
                       </div>
 
-                      {selectedCustomer.hospitalName && (
+                      {detailedCustomer?.hospitalName && (
                         <div className="bg-slate-50 px-4 py-3">
                           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
                             Hospital / Workplace
                           </p>
                           <p className="mt-1 text-sm font-semibold text-slate-700">
-                            {selectedCustomer.hospitalName}
+                            {detailedCustomer.hospitalName}
                           </p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
+
+                  {isCustomerDetailsFetching && !isCustomerDetailsLoading && (
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Updating details
+                    </div>
+                  )}
+
+                  <CustomerOrdersSection
+                    orders={detailedCustomer?.orders ?? []}
+                  />
+
+                  <CustomerBlocksSection
+                    blocks={detailedCustomer?.customerBlocks ?? []}
+                  />
 
                   <LatestMeasurementSection
                     latestMeasurement={latestMeasurement}

@@ -86,6 +86,10 @@ export type CustomerOrderItemSummary = {
   status: string;
 
   category: CustomerCategorySummary | null;
+  block: {
+    id: string;
+    blockNumber: string;
+  } | null;
 };
 
 export type CustomerOrderSummary = {

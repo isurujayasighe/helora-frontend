@@ -10,6 +10,15 @@ export type CreateCustomerPayload = {
   town?: string;
   address?: string;
   notes?: string;
+  legacyBlock?: {
+    categoryId: string;
+    blockNumber: string;
+    readyMadeSize?: string;
+    sizeLabel?: string;
+    fitNotes?: string;
+    description?: string;
+    remarks?: string;
+  };
 };
 
 type CreateCustomerApiResponse = {
@@ -19,11 +28,11 @@ type CreateCustomerApiResponse = {
 };
 
 const createCustomer = async (
-  payload: CreateCustomerPayload
+  payload: CreateCustomerPayload,
 ): Promise<CreateCustomerApiResponse> => {
   const response = await covalentHubClient.post<CreateCustomerApiResponse>(
     "/customers",
-    payload
+    payload,
   );
 
   return response.data;
@@ -37,6 +46,9 @@ export const useCreateCustomer = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: customersQueryKeys.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["blocks"],
       });
     },
   });

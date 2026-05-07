@@ -8,7 +8,6 @@ import {
   Blocks,
   CalendarDays,
   ClipboardList,
-  Loader2,
   MapPin,
   Phone,
   Ruler,
