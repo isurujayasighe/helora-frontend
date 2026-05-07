@@ -85,8 +85,6 @@ export function useMeasurementFieldsQuery(
 
       const payload = response.data?.data ?? response.data;
 
-      console.log(payload.items)
-
       if (Array.isArray(payload)) {
         return {
           data: payload,

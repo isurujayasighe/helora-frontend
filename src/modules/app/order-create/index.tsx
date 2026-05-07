@@ -2,9 +2,15 @@
 
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  type FieldErrors,
+  type SubmitHandler,
+} from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Banknote,
@@ -35,7 +41,7 @@ import { cn } from "@/lib/utils";
 
 import { type CustomerByPhone } from "@/api/useFindCustomerByPhone";
 import { useGetCustomerById } from "@/modules/app/customers/api/useGetCustomerbyId";
-import { useGetLatestMeasurement } from "@/api/useGetLatestMeasurement";
+import { useGetMeasurementById } from "@/api/useGetLatestMeasurement";
 import {
   useGetBlockLinkCandidates,
   type BlockLinkCandidate,
@@ -299,6 +305,58 @@ function hasMeasurementValues(values?: Record<string, unknown>) {
   );
 }
 
+function getFirstFieldErrorMessage(errors: unknown): string | undefined {
+  if (!errors || typeof errors !== "object") return undefined;
+
+  const message = (errors as { message?: unknown }).message;
+  if (typeof message === "string" && message.trim()) return message;
+
+  for (const [key, value] of Object.entries(
+    errors as Record<string, unknown>,
+  )) {
+    if (key === "ref") continue;
+
+    const nestedMessage = getFirstFieldErrorMessage(value);
+    if (nestedMessage) return nestedMessage;
+  }
+
+  return undefined;
+}
+
+function getSubmitErrorMessage(error: unknown) {
+  const responseData = (
+    error as {
+      response?: {
+        data?: {
+          message?: unknown;
+          error?: unknown;
+          errors?: unknown;
+        };
+      };
+    }
+  )?.response?.data;
+
+  if (Array.isArray(responseData?.errors)) {
+    const messages = responseData.errors.filter(
+      (item): item is string => typeof item === "string" && Boolean(item),
+    );
+
+    if (messages.length) return messages.join(", ");
+  }
+
+  if (typeof responseData?.message === "string" && responseData.message) {
+    return responseData.message;
+  }
+
+  if (typeof responseData?.error === "string" && responseData.error) {
+    return responseData.error;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+
+  return "Order could not be saved. Please check the order details and try again.";
+}
+
 function normalizeMeasurementValues(
   values?: Record<string, string | number | null | undefined>,
 ): Record<string, string | number | undefined> {
@@ -335,6 +393,16 @@ function mapMeasurementFieldsToConfig(
 }
 
 function mapCustomerDetailsToCustomerByPhone(customer: any): CustomerByPhone {
+  const blocks =
+    customer.blocks ??
+    customer.customerBlocks?.map((assignment: any) => ({
+      ...assignment.block,
+      isDefault: assignment.isDefault,
+      assignedAt: assignment.assignedAt,
+      measurement: assignment.measurement ?? null,
+    })) ??
+    [];
+
   return {
     id: customer.id,
     fullName: customer.fullName ?? "",
@@ -345,7 +413,7 @@ function mapCustomerDetailsToCustomerByPhone(customer: any): CustomerByPhone {
     notes: customer.notes ?? null,
     hospitalName: customer.hospitalName ?? null,
     blocks:
-      customer.blocks?.map((block: any) => ({
+      blocks.map((block: any) => ({
         ...block,
         tenantId: block.tenantId ?? "",
         customerId: block.customerId ?? customer.id,
@@ -701,6 +769,7 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   const [foundCustomer, setFoundCustomer] = useState<CustomerByPhone | null>(
     null,
   );
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const isPrefillFlow = Boolean(prefill?.customerId);
   const hasMeasurementPrefill = Boolean(prefill?.measurementId);
@@ -714,10 +783,8 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   } = useGetCategories();
 
   const { data: prefillMeasurement, isLoading: isPrefillMeasurementLoading } =
-    useGetLatestMeasurement({
-      customerId: prefill?.customerId,
-      blockId: prefill?.blockId,
-      categoryId: prefill?.categoryId,
+    useGetMeasurementById({
+      measurementId: prefill?.measurementId,
       enabled: hasMeasurementPrefill,
     });
 
@@ -737,24 +804,26 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       }));
   }, [categories]);
 
+  const prefillCategory = prefillMeasurement?.category;
+
   const categoriesForForm = useMemo<CategoryOption[]>(() => {
-    if (!prefillMeasurement?.category) return activeCategories;
+    if (!prefillCategory) return activeCategories;
 
     const exists = activeCategories.some(
-      (category) => category.id === prefillMeasurement.category?.id,
+      (category) => category.id === prefillCategory.id,
     );
 
     if (exists) return activeCategories;
 
     return [
       {
-        id: prefillMeasurement.category.id,
-        name: prefillMeasurement.category.name,
+        id: prefillCategory.id,
+        name: prefillCategory.name,
         isActive: true,
       },
       ...activeCategories,
     ];
-  }, [activeCategories, prefillMeasurement?.category]);
+  }, [activeCategories, prefillCategory]);
 
   const prefillMeasurementFields = useMemo(
     () => buildMeasurementFieldsFromApi(prefillMeasurement?.values),
@@ -894,6 +963,11 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     if (isPrefilledCustomerLoading) return;
     if (!prefilledCustomer) return;
 
+    const itemCategoryId = prefill?.categoryId ?? "";
+    const matchedCategory = prefilledCustomer.customerBlocks.find(
+      (assignment) => assignment.block.category?.id === itemCategoryId,
+    )?.block.category;
+
     reset({
       ...buildInitialValues(),
       phoneNumber: prefilledCustomer.phoneNumber ?? "",
@@ -907,7 +981,17 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       orderSource: "PHYSICAL_SHOP",
       paymentStatus: "UNPAID",
       paymentMode: "CASH",
-      items: [buildInitialItem()],
+      items: [
+        {
+          ...buildInitialItem(),
+          categoryId: itemCategoryId,
+          blockId: prefill?.blockId ?? "",
+          blockMode: prefill?.blockId ? "existing" : "measurement-only",
+          itemDescription: matchedCategory?.name
+            ? `${matchedCategory.name} Order`
+            : "",
+        },
+      ],
     });
 
     setFoundCustomer(mapCustomerDetailsToCustomerByPhone(prefilledCustomer));
@@ -916,6 +1000,8 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
     hasMeasurementPrefill,
     isPrefilledCustomerLoading,
     prefilledCustomer,
+    prefill?.blockId,
+    prefill?.categoryId,
     reset,
   ]);
 
@@ -955,9 +1041,13 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   // };
 
   const getFilteredBlocks = (selectedCategoryId?: string) => {
-    const sourceBlocks = linkedBlocks.length
-      ? linkedBlocks
-      : (foundCustomer?.blocks ?? []);
+    const sourceBlocks = [
+      ...(foundCustomer?.blocks ?? []),
+      ...linkedBlocks,
+    ].filter(
+      (block, index, list) =>
+        block.id && list.findIndex((item) => item.id === block.id) === index,
+    );
 
     if (!sourceBlocks.length) return [];
     if (!selectedCategoryId) return sourceBlocks;
@@ -975,10 +1065,16 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   };
 
   const submitOrder: SubmitHandler<CreateOrderFormValues> = async (values) => {
+    setSubmitError(null);
+
     if (values.customerMode !== "existing" || !values.customerId) {
+      const message = "Existing customer is required before creating an order.";
+
       form.setError("customerName", {
-        message: "Existing customer is required before creating an order.",
+        message,
       });
+      setSubmitError(message);
+      toast.error(message);
       return;
     }
 
@@ -1033,13 +1129,31 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
       ],
     };
 
-    await createOrderMutation.mutateAsync(payload);
+    try {
+      await createOrderMutation.mutateAsync(payload);
 
-    if (onSubmit) {
-      await onSubmit(payload);
+      if (onSubmit) {
+        await onSubmit(payload);
+      }
+
+      toast.success("Order saved successfully.");
+      navigate({ to: "/app/orders" });
+    } catch (error) {
+      const message = getSubmitErrorMessage(error);
+      setSubmitError(message);
+      toast.error(message);
     }
+  };
 
-    navigate({ to: "/app/orders" });
+  const handleInvalidSubmit = (
+    errors: FieldErrors<CreateOrderFormInput>,
+  ) => {
+    const message =
+      getFirstFieldErrorMessage(errors) ??
+      "Please complete the required fields before saving the order.";
+
+    setSubmitError(message);
+    toast.error(message);
   };
 
   const isSubmitting = createOrderMutation.isPending;
@@ -1070,7 +1184,10 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
   return (
     <div className="min-h-screen bg-slate-50/60">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(submitOrder)}>
+        <form
+          noValidate
+          onSubmit={form.handleSubmit(submitOrder, handleInvalidSubmit)}
+        >
           <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="mx-auto flex max-w-7xl gap-4 px-4 py-4 lg:px-6 justify-between">
               <PageHeader />
@@ -1119,6 +1236,24 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
 
           <main className="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[1fr_340px] lg:px-6">
             <div className="space-y-5">
+              {submitError && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
+                >
+                  {submitError}
+                </div>
+              )}
+
+              {hasMeasurementPrefill &&
+                !isPrefillMeasurementLoading &&
+                !prefillMeasurement && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                    Selected measurement could not be loaded. Please select the
+                    customer and category again before saving.
+                  </div>
+                )}
+
               {isCategoriesError && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
                   Categories could not be loaded. Please refresh the page.
@@ -1289,8 +1424,6 @@ export function CreateOrderPage({ prefill, onSubmit }: CreateOrderPageProps) {
                                   }
                                   onValueChange={(selectedCategoryId) => {
                                     field.onChange(selectedCategoryId);
-
-                                    console.log(selectedCategoryId);
 
                                     setValue(
                                       "items.0.categoryId",
@@ -1906,8 +2039,6 @@ function OrderItemMeasurementsSection({
       enabled: Boolean(safeCategoryId) && !shouldUsePrefillFields,
     },
   );
-
-  console.log(measurementFieldsResponse);
 
   const measurementFields = useMemo(() => {
     if (shouldUsePrefillFields) {

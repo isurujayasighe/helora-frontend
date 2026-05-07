@@ -153,10 +153,10 @@ export default function Dashboard() {
                 </div>
 
                 <div className="min-w-0">
-                  <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
+                  <h1 className="text-xl font-bold tracking-tight text-slate-950 md:text-2xl">
                     Dashboard
                   </h1>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
+                  <p className="mt-1 text-sm font-medium text-slate-800">
                     Track customers, blocks, orders, and promised deliveries in
                     one place.
                   </p>

@@ -147,7 +147,7 @@ export default function WhatsAppPage() {
   };
 
   const handleRetry = async (message: WhatsAppMessage) => {
-    await retryMessage.mutateAsync(message.id);
+    await retryMessage.mutateAsync(message);
     await refetch();
   };
 

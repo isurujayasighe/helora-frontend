@@ -183,6 +183,7 @@ export const useCreateOrder = () => {
       queryClient.invalidateQueries({ queryKey: ["measurements"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp"] });
     },
   });
 };

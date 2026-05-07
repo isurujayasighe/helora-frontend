@@ -50,8 +50,22 @@ import {
   type MeasurementVerificationStatus,
 } from "@/api/useGetLatestMeasurement";
 
+import { useCreateMeasurement } from "@/api/useCreateMeasurement";
 import { useUpdateMeasurement } from "@/api/useUpdateMeasurements";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useGetCategories, type Category } from "@/api/useGetCategories";
+import {
+  useMeasurementFieldsQuery,
+  type MeasurementField,
+  type MeasurementFieldsResponse,
+} from "@/modules/app/measurements/api/useGetMeasurementsFieldsByCID";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type MeasurementItem = {
   id: string;
@@ -94,10 +108,14 @@ function getVerificationLabel(status?: MeasurementVerificationStatus | null) {
       return "Verified OK";
     case "NEEDS_UPDATE":
       return "Needs Update";
+    case "UPDATED":
+      return "Updated";
     case "REJECTED":
       return "Rejected";
     case "PENDING":
       return "Pending";
+    case "NOT_VERIFIED":
+      return "Not Verified";
     default:
       return "Not Verified";
   }
@@ -109,9 +127,12 @@ function getVerificationClasses(status?: MeasurementVerificationStatus | null) {
       return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "NEEDS_UPDATE":
       return "border-amber-200 bg-amber-50 text-amber-700";
+    case "UPDATED":
+      return "border-blue-200 bg-blue-50 text-blue-700";
     case "REJECTED":
       return "border-red-200 bg-red-50 text-red-700";
     case "PENDING":
+    case "NOT_VERIFIED":
       return "border-slate-200 bg-slate-50 text-slate-700";
     default:
       return "border-slate-200 bg-slate-50 text-slate-600";
@@ -139,6 +160,47 @@ function getMeasurementItems(
       isRequired: item.field.isRequired,
       sortOrder: item.field.sortOrder,
     }));
+}
+
+function getMeasurementFieldRows(
+  response?: MeasurementFieldsResponse | MeasurementField[],
+): MeasurementField[] {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response.data)) return response.data;
+  return [];
+}
+
+function getBlockCategoryId(assignment: CustomerBlockAssignment) {
+  return assignment.block.category?.id ?? "";
+}
+
+function getInitialMeasurementCategoryId(blocks: CustomerBlockAssignment[]) {
+  const block = blocks.find((assignment) => assignment.isDefault) ?? blocks[0];
+
+  return block ? getBlockCategoryId(block) : "";
+}
+
+function getInitialMeasurementBlockId(
+  blocks: CustomerBlockAssignment[],
+  categoryId: string,
+) {
+  const matchingBlocks = categoryId
+    ? blocks.filter((assignment) => getBlockCategoryId(assignment) === categoryId)
+    : blocks;
+
+  return (matchingBlocks.find((assignment) => assignment.isDefault) ?? matchingBlocks[0])
+    ?.block.id ?? "";
+}
+
+function getMeasurementValueMap(measurement: Measurement | null | undefined) {
+  if (!measurement?.values?.length) return {};
+
+  return measurement.values.reduce<Record<string, string>>((result, item) => {
+    result[item.fieldId] =
+      item.value ?? (item.numericValue != null ? String(item.numericValue) : "");
+    return result;
+  }, {});
 }
 
 function CustomerInitial({ name }: { name?: string | null }) {
@@ -194,16 +256,486 @@ function EmptyMeasurementState() {
   );
 }
 
+function AddMeasurementForm({
+  customerId,
+  blocks,
+  categories,
+  initialCategoryId,
+  initialBlockId,
+  initialValues,
+  initialMeasurementNote,
+  initialBlock,
+  initialCategory,
+  previousMeasurementId,
+  previousVersionNo,
+  isNewVersion = false,
+  onSaved,
+  onCancel,
+}: {
+  customerId: string;
+  blocks: CustomerBlockAssignment[];
+  categories: Category[];
+  initialCategoryId?: string;
+  initialBlockId?: string;
+  initialValues?: Record<string, string>;
+  initialMeasurementNote?: string;
+  initialBlock?: Measurement["block"] | null;
+  initialCategory?: Measurement["category"] | null;
+  previousMeasurementId?: string;
+  previousVersionNo?: number;
+  isNewVersion?: boolean;
+  onSaved: (measurement: Measurement) => void;
+  onCancel: () => void;
+}) {
+  const createMeasurementMutation = useCreateMeasurement();
+
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState(() =>
+    initialCategoryId || getInitialMeasurementCategoryId(blocks),
+  );
+  const [selectedBlockId, setSelectedBlockId] = React.useState(() =>
+    initialBlockId ||
+    getInitialMeasurementBlockId(
+      blocks,
+      initialCategoryId || getInitialMeasurementCategoryId(blocks),
+    ),
+  );
+  const [values, setValues] = React.useState<Record<string, string>>(
+    initialValues ?? {},
+  );
+  const [notes, setNotes] = React.useState<Record<string, string>>({});
+  const [measurementNote, setMeasurementNote] = React.useState(
+    initialMeasurementNote ??
+      (isNewVersion
+        ? "New measurement version created because the previous measurement changed heavily."
+        : "Legacy customer measurement added before placing order."),
+  );
+
+  const categoryOptions = React.useMemo(() => {
+    const activeCategories = categories
+      .filter((category) => category.isActive)
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+      }));
+    const blockCategories = blocks
+      .map((assignment) => assignment.block.category)
+      .filter((category): category is NonNullable<typeof category> =>
+        Boolean(category?.id),
+      )
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+      }));
+    const seedCategory = initialCategory?.id
+      ? [{ id: initialCategory.id, name: initialCategory.name }]
+      : [];
+
+    return [...activeCategories, ...blockCategories, ...seedCategory].filter(
+      (category, index, list) =>
+        list.findIndex((item) => item.id === category.id) === index,
+    );
+  }, [blocks, categories, initialCategory]);
+
+  const categoryBlocks = React.useMemo(
+    () => {
+      const assignedBlocks = blocks
+        .filter(
+          (assignment) => getBlockCategoryId(assignment) === selectedCategoryId,
+        )
+        .map((assignment) => assignment.block);
+      const seedBlock =
+        initialBlock?.id && initialBlock.categoryId === selectedCategoryId
+          ? [initialBlock]
+          : [];
+
+      return [...assignedBlocks, ...seedBlock].filter(
+        (block, index, list) =>
+          list.findIndex((item) => item.id === block.id) === index,
+      );
+    },
+    [blocks, initialBlock, selectedCategoryId],
+  );
+
+  const selectedBlock = categoryBlocks.find(
+    (block) => block.id === selectedBlockId,
+  );
+
+  const {
+    data: measurementFieldsResponse,
+    isLoading: isMeasurementFieldsLoading,
+    isFetching: isMeasurementFieldsFetching,
+    isError: isMeasurementFieldsError,
+  } = useMeasurementFieldsQuery(
+    {
+      pageIndex: 0,
+      pageSize: 100,
+      categoryId: selectedCategoryId,
+      isActive: true,
+    },
+    {
+      enabled: Boolean(selectedCategoryId),
+    },
+  );
+
+  const measurementFields = React.useMemo(
+    () =>
+      getMeasurementFieldRows(measurementFieldsResponse)
+        .filter((field) => field.isActive)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [measurementFieldsResponse],
+  );
+
+  const isLoadingFields =
+    Boolean(selectedCategoryId) &&
+    (isMeasurementFieldsLoading || isMeasurementFieldsFetching);
+
+  const hasAnyValue = measurementFields.some(
+    (field) => values[field.id]?.trim(),
+  );
+
+  const missingRequiredFields = measurementFields.filter(
+    (field) => field.isRequired && !values[field.id]?.trim(),
+  );
+
+  const isSaveDisabled =
+    createMeasurementMutation.isPending ||
+    !customerId ||
+    !selectedCategoryId ||
+    isLoadingFields ||
+    isMeasurementFieldsError ||
+    measurementFields.length === 0 ||
+    missingRequiredFields.length > 0 ||
+    !hasAnyValue;
+
+  React.useEffect(() => {
+    const nextCategoryId =
+      initialCategoryId || getInitialMeasurementCategoryId(blocks);
+    setSelectedCategoryId(nextCategoryId);
+    setSelectedBlockId(
+      initialBlockId || getInitialMeasurementBlockId(blocks, nextCategoryId),
+    );
+    setValues(initialValues ?? {});
+    setNotes({});
+    setMeasurementNote(
+      initialMeasurementNote ??
+        (isNewVersion
+          ? "New measurement version created because the previous measurement changed heavily."
+          : "Legacy customer measurement added before placing order."),
+    );
+  }, [
+    blocks,
+    initialBlockId,
+    initialCategoryId,
+    initialMeasurementNote,
+    initialValues,
+    isNewVersion,
+  ]);
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedBlockId(getInitialMeasurementBlockId(blocks, categoryId));
+    setValues({});
+    setNotes({});
+  };
+
+  const handleBlockChange = (blockId: string) => {
+    const block = categoryBlocks.find((item) => item.id === blockId);
+    setSelectedBlockId(blockId);
+
+    const blockCategoryId = block?.category?.id ?? selectedCategoryId;
+    if (blockCategoryId && blockCategoryId !== selectedCategoryId) {
+      setSelectedCategoryId(blockCategoryId);
+      setValues({});
+      setNotes({});
+    }
+  };
+
+  const handleSave = async () => {
+    if (isSaveDisabled) return;
+
+    const measurement = await createMeasurementMutation.mutateAsync({
+      customerId,
+      blockId: selectedBlockId || undefined,
+      categoryId: selectedCategoryId,
+      verificationStatus: "NOT_VERIFIED",
+      verificationNote: isNewVersion
+        ? "New measurement version added from dashboard customer search."
+        : "Measurement added from dashboard customer search.",
+      previousMeasurementId,
+      versionNo: previousVersionNo ? previousVersionNo + 1 : undefined,
+      notes: measurementNote.trim() || undefined,
+      values: measurementFields
+        .filter(
+          (field) => values[field.id]?.trim() || notes[field.id]?.trim(),
+        )
+        .map((field) => ({
+          fieldId: field.id,
+          value: values[field.id]?.trim() || undefined,
+          note: notes[field.id]?.trim() || undefined,
+        })),
+    });
+
+    onSaved(measurement);
+  };
+
+  return (
+    <div className="space-y-4 rounded-lg border border-blue-100 bg-blue-50/40 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-blue-700 shadow-sm">
+          <Ruler className="h-4 w-4" />
+        </div>
+
+        <div className="min-w-0">
+          <h4 className="text-sm font-black text-slate-900">
+            {isNewVersion ? "New Measurements" : "Add Measurements"}
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {isNewVersion
+              ? "Use this when the customer's body measurements changed heavily. The previous measurement stays available as history."
+              : "Select the garment category first. Measurement fields will load for that category and the saved measurement will be used for the order."}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+            Category
+          </label>
+          <select
+            value={selectedCategoryId}
+            onChange={(event) => handleCategoryChange(event.target.value)}
+            className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+          >
+            <option value="">Select category</option>
+            {categoryOptions.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+            Block No Optional
+          </label>
+          <select
+            value={selectedBlockId}
+            onChange={(event) => handleBlockChange(event.target.value)}
+            disabled={!selectedCategoryId}
+            className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-100"
+          >
+            <option value="">
+              {!selectedCategoryId
+                ? "Select category first"
+                : "No block - create after order"}
+            </option>
+            {categoryBlocks.map((assignment) => (
+              <option key={assignment.id} value={assignment.id}>
+                {assignment.blockNumber}
+                {assignment.sizeLabel ? ` - ${assignment.sizeLabel}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {selectedBlock && (
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+          Using block {selectedBlock.blockNumber}
+          {selectedBlock.category?.name
+            ? ` for ${selectedBlock.category.name}`
+            : ""}
+        </div>
+      )}
+
+      {selectedCategoryId && !selectedBlock && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+          No block selected. Save the measurements now and create or link the
+          block after placing the order.
+        </div>
+      )}
+
+      {!selectedCategoryId && (
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500">
+          Select a category to enter measurements.
+        </div>
+      )}
+
+      {isLoadingFields && (
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading measurement fields...
+        </div>
+      )}
+
+      {selectedCategoryId && isMeasurementFieldsError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          Measurement fields could not be loaded. Please try again.
+        </div>
+      )}
+
+      {selectedCategoryId &&
+        !isLoadingFields &&
+        !isMeasurementFieldsError &&
+        measurementFields.length === 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+            No active measurement fields found for this category.
+          </div>
+        )}
+
+      {measurementFields.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {measurementFields.map((field) => {
+            const inputType = String(field.inputType);
+            const isTextArea = inputType === "TEXTAREA";
+
+            return (
+              <div
+                key={field.id}
+                className={cn(
+                  "rounded-lg border border-slate-200 bg-white p-3",
+                  isTextArea && "sm:col-span-2 md:col-span-3",
+                )}
+              >
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                      {field.label}
+                    </p>
+                    {field.unit && (
+                      <p className="mt-0.5 text-[11px] font-semibold text-slate-400">
+                        Unit: {field.unit}
+                      </p>
+                    )}
+                  </div>
+
+                  {field.isRequired && (
+                    <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-red-600">
+                      Required
+                    </span>
+                  )}
+                </div>
+
+                {isTextArea ? (
+                  <Textarea
+                    value={values[field.id] ?? ""}
+                    onChange={(event) =>
+                      setValues((previous) => ({
+                        ...previous,
+                        [field.id]: event.target.value,
+                      }))
+                    }
+                    className="min-h-24 rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-900"
+                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                  />
+                ) : (
+                  <Input
+                    value={values[field.id] ?? ""}
+                    onChange={(event) =>
+                      setValues((previous) => ({
+                        ...previous,
+                        [field.id]: event.target.value,
+                      }))
+                    }
+                    inputMode={
+                      field.inputType === "DECIMAL" ||
+                      field.inputType === "NUMBER" ||
+                      inputType === "INTEGER"
+                        ? "decimal"
+                        : "text"
+                    }
+                    className="h-11 rounded-xl border-slate-200 bg-white text-base font-black text-slate-900"
+                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                  />
+                )}
+
+                <Input
+                  value={notes[field.id] ?? ""}
+                  onChange={(event) =>
+                    setNotes((previous) => ({
+                      ...previous,
+                      [field.id]: event.target.value,
+                    }))
+                  }
+                  className="mt-2 h-9 rounded-xl border-slate-200 bg-white text-xs"
+                  placeholder="Optional note"
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+          Measurement Note
+        </p>
+        <Textarea
+          value={measurementNote}
+          onChange={(event) => setMeasurementNote(event.target.value)}
+          className="mt-2 min-h-20 rounded-xl border-slate-200 bg-white text-sm"
+          placeholder="Example: Measurements added from legacy block confirmation."
+        />
+      </div>
+
+      {missingRequiredFields.length > 0 && selectedCategoryId && (
+        <p className="text-xs font-semibold text-amber-700">
+          Required fields missing:{" "}
+          {missingRequiredFields.map((field) => field.label).join(", ")}
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="mr-2 h-11 rounded-lg border-slate-200 px-5 font-bold"
+          disabled={createMeasurementMutation.isPending}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          type="button"
+          className="h-11 rounded-lg bg-slate-900 px-5 font-bold text-white hover:bg-slate-800"
+          disabled={isSaveDisabled}
+          onClick={handleSave}
+        >
+          {createMeasurementMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              {isNewVersion ? "Save New Measurements" : "Save Measurements"}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function LatestMeasurementSection({
   latestMeasurement,
   measurementItems,
   isLoading,
   isFetching,
+  isAddMode,
   isEditMode,
   editableValues,
   editableNotes,
   changeNote,
   isSaving,
+  canAddMeasurement,
+  addMeasurementForm,
+  onAdd,
+  onCancelAdd,
   onEdit,
   onCancelEdit,
   onSave,
@@ -215,11 +747,16 @@ function LatestMeasurementSection({
   measurementItems: MeasurementItem[];
   isLoading: boolean;
   isFetching: boolean;
+  isAddMode: boolean;
   isEditMode: boolean;
   editableValues: Record<string, string>;
   editableNotes: Record<string, string>;
   changeNote: string;
   isSaving: boolean;
+  canAddMeasurement: boolean;
+  addMeasurementForm: React.ReactNode;
+  onAdd: () => void;
+  onCancelAdd: () => void;
   onEdit: () => void;
   onCancelEdit: () => void;
   onSave: () => void;
@@ -240,6 +777,8 @@ function LatestMeasurementSection({
                   "flex h-9 w-9 items-center justify-center rounded-2xl",
                   isEditMode
                     ? "bg-amber-50 text-amber-700"
+                    : isAddMode
+                      ? "bg-blue-50 text-blue-700"
                     : "bg-blue-50 text-blue-700",
                 )}
               >
@@ -252,12 +791,22 @@ function LatestMeasurementSection({
 
               <div>
                 <h4 className="text-sm font-black text-slate-900">
-                  {isEditMode ? "Edit Measurements" : "Latest Measurements"}
+                  {isEditMode
+                    ? "Edit Measurements"
+                    : isAddMode
+                      ? hasMeasurement
+                        ? "New Measurements"
+                        : "Add Measurements"
+                      : "Latest Measurements"}
                 </h4>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {isEditMode
                     ? "Update only the values that changed after confirming with the customer."
-                    : "Confirm these previous measurements before placing the order."}
+                    : isAddMode
+                      ? hasMeasurement
+                        ? "Create a new measurement version for heavy body measurement changes."
+                        : "Create the first measurement for this customer."
+                      : "Confirm these previous measurements before placing the order."}
                 </p>
               </div>
             </div>
@@ -270,7 +819,18 @@ function LatestMeasurementSection({
                 </div>
               )}
 
-              {hasMeasurement && !isEditMode && (
+              {isAddMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg border-slate-200 px-3 text-xs font-black"
+                  onClick={onCancelAdd}
+                >
+                  Cancel
+                </Button>
+              )}
+
+              {hasMeasurement && !isEditMode && !isAddMode && (
                 <Button
                   type="button"
                   variant="outline"
@@ -281,6 +841,32 @@ function LatestMeasurementSection({
                   Edit Measurements
                 </Button>
               )}
+
+              {hasMeasurement && !isEditMode && !isAddMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                  disabled={!canAddMeasurement}
+                  onClick={onAdd}
+                >
+                  <Ruler className="mr-1.5 h-3.5 w-3.5" />
+                  New Measurements
+                </Button>
+              )}
+
+              {!hasMeasurement && !isAddMode && !isLoading && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                  disabled={!canAddMeasurement}
+                  onClick={onAdd}
+                >
+                  <Ruler className="mr-1.5 h-3.5 w-3.5" />
+                  Add Measurements
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -288,8 +874,24 @@ function LatestMeasurementSection({
         <div className="p-4 sm:p-5">
           {isLoading ? (
             <MeasurementSkeleton />
+          ) : isAddMode ? (
+            addMeasurementForm
           ) : !hasMeasurement ? (
-            <EmptyMeasurementState />
+            <div className="space-y-4">
+              <EmptyMeasurementState />
+
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  className="h-10 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800"
+                  disabled={!canAddMeasurement}
+                  onClick={onAdd}
+                >
+                  <Ruler className="mr-2 h-4 w-4" />
+                  Add Measurements
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-5">
               {isEditMode && (
@@ -832,6 +1434,10 @@ export function DashboardCustomerSearchCard() {
 
   const [isMeasurementEditMode, setIsMeasurementEditMode] =
     React.useState(false);
+  const [isMeasurementAddMode, setIsMeasurementAddMode] =
+    React.useState(false);
+  const [createdMeasurement, setCreatedMeasurement] =
+    React.useState<Measurement | null>(null);
 
   const [editableMeasurementValues, setEditableMeasurementValues] =
     React.useState<Record<string, string>>({});
@@ -863,6 +1469,8 @@ export function DashboardCustomerSearchCard() {
     isFetching: isCustomerDetailsFetching,
   } = useGetCustomerById(selectedCustomer?.id, isDetailOpen);
 
+  const { data: categories = [] } = useGetCategories();
+
   const updateMeasurementMutation = useUpdateMeasurement();
 
   const customerList = customers ?? [];
@@ -891,15 +1499,22 @@ export function DashboardCustomerSearchCard() {
         }
       : null);
 
+  const activeMeasurement = createdMeasurement ?? latestMeasurement;
+
   const measurementItems = React.useMemo(
-    () => getMeasurementItems(latestMeasurement),
-    [latestMeasurement],
+    () => getMeasurementItems(activeMeasurement),
+    [activeMeasurement],
+  );
+
+  const newMeasurementInitialValues = React.useMemo(
+    () => getMeasurementValueMap(activeMeasurement),
+    [activeMeasurement],
   );
 
   const showCustomerList = trimmedSearch.length > 0 && !selectedCustomer;
 
   React.useEffect(() => {
-    if (!latestMeasurement?.values?.length) {
+    if (!activeMeasurement?.values?.length) {
       setEditableMeasurementValues({});
       setEditableMeasurementNotes({});
       setMeasurementChangeNote("");
@@ -910,7 +1525,7 @@ export function DashboardCustomerSearchCard() {
     const nextValues: Record<string, string> = {};
     const nextNotes: Record<string, string> = {};
 
-    latestMeasurement.values.forEach((item) => {
+    activeMeasurement.values.forEach((item) => {
       nextValues[item.fieldId] =
         item.value ??
         (item.numericValue != null ? String(item.numericValue) : "");
@@ -921,26 +1536,31 @@ export function DashboardCustomerSearchCard() {
     setEditableMeasurementNotes(nextNotes);
     setMeasurementChangeNote("");
     setIsMeasurementEditMode(false);
-  }, [latestMeasurement?.id]);
+    setIsMeasurementAddMode(false);
+  }, [activeMeasurement?.id]);
 
   const handleClear = () => {
     setSearch("");
     setSelectedCustomer(null);
     setIsDetailOpen(false);
     setIsMeasurementEditMode(false);
+    setIsMeasurementAddMode(false);
+    setCreatedMeasurement(null);
   };
 
   const handleSelectCustomer = (customer: CustomerLookupItem) => {
     setSelectedCustomer(customer);
     setSearch(customer.fullName);
     setIsMeasurementEditMode(false);
+    setIsMeasurementAddMode(false);
+    setCreatedMeasurement(null);
   };
 
   const handleCancelMeasurementEdit = () => {
     const nextValues: Record<string, string> = {};
     const nextNotes: Record<string, string> = {};
 
-    latestMeasurement?.values?.forEach((item) => {
+    activeMeasurement?.values?.forEach((item) => {
       nextValues[item.fieldId] =
         item.value ??
         (item.numericValue != null ? String(item.numericValue) : "");
@@ -954,41 +1574,44 @@ export function DashboardCustomerSearchCard() {
   };
 
   const handleSaveMeasurementChanges = async () => {
-    if (!latestMeasurement) return;
+    if (!activeMeasurement) return;
 
-    const values = latestMeasurement.values.map((item) => ({
+    const values = activeMeasurement.values.map((item) => ({
       fieldId: item.fieldId,
       value: editableMeasurementValues[item.fieldId]?.trim() || null,
       note: editableMeasurementNotes[item.fieldId]?.trim() || null,
     }));
 
-    await updateMeasurementMutation.mutateAsync({
-      measurementId: latestMeasurement.id,
+    const measurement = await updateMeasurementMutation.mutateAsync({
+      measurementId: activeMeasurement.id,
       verificationStatus: "NEEDS_UPDATE",
       verificationNote:
         measurementChangeNote.trim() ||
         "Measurement updated during customer confirmation.",
-      notes: latestMeasurement.notes,
+      notes: activeMeasurement.notes,
       values,
     });
 
+    setCreatedMeasurement(measurement);
     setIsMeasurementEditMode(false);
   };
 
   const handlePlaceOrder = () => {
     if (!selectedCustomer) return;
+    if (!activeMeasurement) return;
 
     navigate({
-      to: "/app/orders",
+      to: "/app/create-order-page",
       search: {
-        addOrder: true,
         customerId: selectedCustomer.id,
-        measurementId: latestMeasurement?.id,
-        blockId: latestMeasurement?.blockId ?? undefined,
-        categoryId: latestMeasurement?.categoryId ?? undefined,
+        measurementId: activeMeasurement.id,
+        blockId: activeMeasurement.blockId ?? undefined,
+        categoryId: activeMeasurement.categoryId ?? undefined,
       },
     });
   };
+
+  const canAddMeasurement = Boolean(selectedCustomer);
 
   return (
     <>
@@ -998,7 +1621,7 @@ export function DashboardCustomerSearchCard() {
             <div className="min-w-0">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">
+                  <h3 className="text-sm font-bold text-slate-900">
                     Find Customer
                   </h3>
                   <p className="mt-0.5 text-xs text-slate-500">
@@ -1025,7 +1648,7 @@ export function DashboardCustomerSearchCard() {
                   }}
                   placeholder="Search customer by name, phone or town..."
                   className={cn(
-                    "h-13 w-full rounded-2xl border-slate-200 bg-slate-50 pl-11 pr-11 text-base font-semibold text-slate-900 shadow-none outline-none transition",
+                    "h-13 w-full rounded-lg border-slate-200 bg-slate-50 pl-11 pr-11 text-base font-semibold text-slate-900 shadow-none outline-none transition",
                     "placeholder:text-sm placeholder:font-medium placeholder:text-slate-400",
                     "focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50",
                   )}
@@ -1109,7 +1732,7 @@ export function DashboardCustomerSearchCard() {
             <Button
               type="button"
               className={cn(
-                "h-13 w-full rounded-2xl px-6 text-sm font-black shadow-sm",
+                "h-13 w-full rounded-lg px-6 text-sm font-bold shadow-sm",
                 "disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100",
               )}
               disabled={!selectedCustomer}
@@ -1225,15 +1848,53 @@ export function DashboardCustomerSearchCard() {
                   />
 
                   <LatestMeasurementSection
-                    latestMeasurement={latestMeasurement}
+                    latestMeasurement={activeMeasurement}
                     measurementItems={measurementItems}
                     isLoading={isMeasurementsLoading}
                     isFetching={isMeasurementsFetching}
+                    isAddMode={isMeasurementAddMode}
                     isEditMode={isMeasurementEditMode}
                     editableValues={editableMeasurementValues}
                     editableNotes={editableMeasurementNotes}
                     changeNote={measurementChangeNote}
                     isSaving={updateMeasurementMutation.isPending}
+                    canAddMeasurement={canAddMeasurement}
+                    addMeasurementForm={
+                      selectedCustomer ? (
+                        <AddMeasurementForm
+                          customerId={selectedCustomer.id}
+                          blocks={detailedCustomer?.customerBlocks ?? []}
+                          categories={categories}
+                          initialCategoryId={activeMeasurement?.categoryId}
+                          initialBlockId={activeMeasurement?.blockId ?? undefined}
+                          initialValues={
+                            activeMeasurement
+                              ? newMeasurementInitialValues
+                              : undefined
+                          }
+                          initialMeasurementNote={
+                            activeMeasurement
+                              ? "New measurement version created because the previous measurement changed heavily."
+                              : undefined
+                          }
+                          initialBlock={activeMeasurement?.block}
+                          initialCategory={activeMeasurement?.category}
+                          previousMeasurementId={activeMeasurement?.id}
+                          previousVersionNo={activeMeasurement?.versionNo}
+                          isNewVersion={Boolean(activeMeasurement)}
+                          onSaved={(measurement) => {
+                            setCreatedMeasurement(measurement);
+                            setIsMeasurementAddMode(false);
+                          }}
+                          onCancel={() => setIsMeasurementAddMode(false)}
+                        />
+                      ) : null
+                    }
+                    onAdd={() => {
+                      setIsMeasurementEditMode(false);
+                      setIsMeasurementAddMode(true);
+                    }}
+                    onCancelAdd={() => setIsMeasurementAddMode(false)}
                     onEdit={() => setIsMeasurementEditMode(true)}
                     onCancelEdit={handleCancelMeasurementEdit}
                     onSave={handleSaveMeasurementChanges}
@@ -1271,7 +1932,9 @@ export function DashboardCustomerSearchCard() {
                     type="button"
                     className="h-11 rounded-lg bg-slate-900 px-5 font-bold text-white hover:bg-slate-800"
                     disabled={
+                      !activeMeasurement ||
                       isMeasurementEditMode ||
+                      isMeasurementAddMode ||
                       isMeasurementsLoading ||
                       updateMeasurementMutation.isPending ||
                       !selectedCustomer

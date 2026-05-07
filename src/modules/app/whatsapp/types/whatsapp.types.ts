@@ -3,7 +3,8 @@ export type WhatsAppMessageStatus =
   | "SENT"
   | "DELIVERED"
   | "READ"
-  | "FAILED";
+  | "FAILED"
+  | "RECEIVED";
 
 export type WhatsAppMessageType =
   | "ORDER_CREATED"
@@ -33,6 +34,8 @@ export interface WhatsAppMessage {
 
   customerId?: string | null;
   orderId?: string | null;
+  groupOrderId?: string | null;
+  paymentId?: string | null;
 
   phoneNumber: string;
   message: string;

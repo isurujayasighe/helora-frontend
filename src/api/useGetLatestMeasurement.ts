@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 
 export type MeasurementVerificationStatus =
   | "PENDING"
+  | "NOT_VERIFIED"
   | "VERIFIED_OK"
   | "NEEDS_UPDATE"
+  | "UPDATED"
   | "REJECTED";
 
 export type MeasurementInputType =
@@ -150,6 +152,11 @@ type UseGetLatestMeasurementParams = {
   enabled?: boolean;
 };
 
+type UseGetMeasurementByIdParams = {
+  measurementId?: string;
+  enabled?: boolean;
+};
+
 export const measurementKeys = {
   all: ["measurements"] as const,
 
@@ -194,5 +201,26 @@ export function useGetLatestMeasurement({
     },
 
     enabled: enabled && Boolean(customerId),
+  });
+}
+
+export function useGetMeasurementById({
+  measurementId,
+  enabled = true,
+}: UseGetMeasurementByIdParams) {
+  return useQuery({
+    queryKey: measurementKeys.detail(measurementId),
+
+    queryFn: async () => {
+      if (!measurementId) return null;
+
+      const response = await covalentHubClient.get<ApiResponse<Measurement>>(
+        `/measurements/${measurementId}`,
+      );
+
+      return response.data.data;
+    },
+
+    enabled: enabled && Boolean(measurementId),
   });
 }
