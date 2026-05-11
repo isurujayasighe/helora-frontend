@@ -11,16 +11,22 @@ export type MeasurementFieldConfig = {
 
 type MeasurementFieldsProps = {
   fields: MeasurementFieldConfig[];
-  value: Record<string, string | number | undefined>;
+  value?: Record<string, string | number | undefined>;
+  values?: Record<string, string | number | undefined>;
   onChange: (key: string, value: string) => void;
+  disabled?: boolean;
 };
 
 export function MeasurementFields({
   fields,
   value,
+  values,
   onChange,
+  disabled = false,
 }: MeasurementFieldsProps) {
   if (!fields.length) return null;
+
+  const fieldValues = values ?? value ?? {};
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -47,7 +53,8 @@ export function MeasurementFields({
               type="number"
               step="0.01"
               min="0"
-              value={value?.[field.key] ?? ""}
+              value={fieldValues[field.key] ?? ""}
+              disabled={disabled}
               onChange={(e) => onChange(field.key, e.target.value)}
               placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             />

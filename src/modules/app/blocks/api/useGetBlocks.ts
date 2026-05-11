@@ -28,6 +28,8 @@ export type GetBlocksParams = {
   categoryId?: string;
   customerId?: string;
   status?: string;
+  includeCounts?: boolean;
+  includeTotal?: boolean;
 };
 
 const getBlocks = async (
@@ -43,6 +45,8 @@ const getBlocks = async (
         categoryId: params.categoryId || undefined,
         customerId: params.customerId || undefined,
         status: params.status || undefined,
+        includeCounts: params.includeCounts,
+        includeTotal: params.includeTotal,
       },
     }
   );

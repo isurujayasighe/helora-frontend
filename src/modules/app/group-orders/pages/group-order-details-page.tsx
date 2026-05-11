@@ -165,7 +165,7 @@ export function GroupOrderDetailsPage() {
     groupOrder.deliveryTown || groupOrder.town || groupOrder.coordinatorCustomer?.town || "-";
 
   return (
-    <PermissionGate action="read" subject="Orders">
+    <PermissionGate action="read" subject="group-orders">
       <div className="min-h-screen bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div

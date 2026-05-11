@@ -41,6 +41,7 @@ import { useCan } from "@/auth/rbac/useCan";
 import { useGetUserById } from "../../api/useGetUserById";
 import { useGetRoles } from "@/api/useGetRoles";
 import { useUpdateUserRole } from "../../api/useChangeRole"; // 1. Import the hook
+import type { Role } from "@/modules/app/roles/types/role.types";
 
 /* ------------------------------------------------------------------ */
 /* Schema                                                             */
@@ -65,11 +66,12 @@ interface Props {
 export function UserDetailsSheet({ open, userId, onClose }: Props) {
   // 1. State & Permissions
   const [mode, setMode] = useState<"view" | "edit">("view");
-  const canEdit = useCan("update", "Users");
+  const canEdit = useCan("update", "settings-users");
 
   // 2. Data Fetching
   const { data: user, isLoading: isUserLoading } = useGetUserById(userId);
-  const { data: roles = [], isLoading: isRolesLoading } = useGetRoles();
+  const { data: rolesResponse, isLoading: isRolesLoading } = useGetRoles();
+  const roles = rolesResponse?.items ?? [];
 
   console.log("Fetched user details:", user);
   
@@ -311,7 +313,7 @@ export function UserDetailsSheet({ open, userId, onClose }: Props) {
                             <SelectValue placeholder="Select a role" />
                           </SelectTrigger>
                           <SelectContent>
-                            {roles.map((role) => (
+                            {roles.map((role: Role) => (
                               <SelectItem key={role.id} value={role.id}>
                                 {role.name}
                               </SelectItem>

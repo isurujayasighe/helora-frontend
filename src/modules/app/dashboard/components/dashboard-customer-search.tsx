@@ -186,11 +186,17 @@ function getInitialMeasurementBlockId(
   categoryId: string,
 ) {
   const matchingBlocks = categoryId
-    ? blocks.filter((assignment) => getBlockCategoryId(assignment) === categoryId)
+    ? blocks.filter(
+        (assignment) => getBlockCategoryId(assignment) === categoryId,
+      )
     : blocks;
 
-  return (matchingBlocks.find((assignment) => assignment.isDefault) ?? matchingBlocks[0])
-    ?.block.id ?? "";
+  return (
+    (
+      matchingBlocks.find((assignment) => assignment.isDefault) ??
+      matchingBlocks[0]
+    )?.block.id ?? ""
+  );
 }
 
 function getMeasurementValueMap(measurement: Measurement | null | undefined) {
@@ -198,7 +204,8 @@ function getMeasurementValueMap(measurement: Measurement | null | undefined) {
 
   return measurement.values.reduce<Record<string, string>>((result, item) => {
     result[item.fieldId] =
-      item.value ?? (item.numericValue != null ? String(item.numericValue) : "");
+      item.value ??
+      (item.numericValue != null ? String(item.numericValue) : "");
     return result;
   }, {});
 }
@@ -289,15 +296,16 @@ function AddMeasurementForm({
 }) {
   const createMeasurementMutation = useCreateMeasurement();
 
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState(() =>
-    initialCategoryId || getInitialMeasurementCategoryId(blocks),
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState(
+    () => initialCategoryId || getInitialMeasurementCategoryId(blocks),
   );
-  const [selectedBlockId, setSelectedBlockId] = React.useState(() =>
-    initialBlockId ||
-    getInitialMeasurementBlockId(
-      blocks,
-      initialCategoryId || getInitialMeasurementCategoryId(blocks),
-    ),
+  const [selectedBlockId, setSelectedBlockId] = React.useState(
+    () =>
+      initialBlockId ||
+      getInitialMeasurementBlockId(
+        blocks,
+        initialCategoryId || getInitialMeasurementCategoryId(blocks),
+      ),
   );
   const [values, setValues] = React.useState<Record<string, string>>(
     initialValues ?? {},
@@ -336,25 +344,22 @@ function AddMeasurementForm({
     );
   }, [blocks, categories, initialCategory]);
 
-  const categoryBlocks = React.useMemo(
-    () => {
-      const assignedBlocks = blocks
-        .filter(
-          (assignment) => getBlockCategoryId(assignment) === selectedCategoryId,
-        )
-        .map((assignment) => assignment.block);
-      const seedBlock =
-        initialBlock?.id && initialBlock.categoryId === selectedCategoryId
-          ? [initialBlock]
-          : [];
+  const categoryBlocks = React.useMemo(() => {
+    const assignedBlocks = blocks
+      .filter(
+        (assignment) => getBlockCategoryId(assignment) === selectedCategoryId,
+      )
+      .map((assignment) => assignment.block);
+    const seedBlock =
+      initialBlock?.id && initialBlock.categoryId === selectedCategoryId
+        ? [initialBlock]
+        : [];
 
-      return [...assignedBlocks, ...seedBlock].filter(
-        (block, index, list) =>
-          list.findIndex((item) => item.id === block.id) === index,
-      );
-    },
-    [blocks, initialBlock, selectedCategoryId],
-  );
+    return [...assignedBlocks, ...seedBlock].filter(
+      (block, index, list) =>
+        list.findIndex((item) => item.id === block.id) === index,
+    );
+  }, [blocks, initialBlock, selectedCategoryId]);
 
   const selectedBlock = categoryBlocks.find(
     (block) => block.id === selectedBlockId,
@@ -389,8 +394,8 @@ function AddMeasurementForm({
     Boolean(selectedCategoryId) &&
     (isMeasurementFieldsLoading || isMeasurementFieldsFetching);
 
-  const hasAnyValue = measurementFields.some(
-    (field) => values[field.id]?.trim(),
+  const hasAnyValue = measurementFields.some((field) =>
+    values[field.id]?.trim(),
   );
 
   const missingRequiredFields = measurementFields.filter(
@@ -465,9 +470,7 @@ function AddMeasurementForm({
       versionNo: previousVersionNo ? previousVersionNo + 1 : undefined,
       notes: measurementNote.trim() || undefined,
       values: measurementFields
-        .filter(
-          (field) => values[field.id]?.trim() || notes[field.id]?.trim(),
-        )
+        .filter((field) => values[field.id]?.trim() || notes[field.id]?.trim())
         .map((field) => ({
           fieldId: field.id,
           value: values[field.id]?.trim() || undefined,
@@ -779,7 +782,7 @@ function LatestMeasurementSection({
                     ? "bg-amber-50 text-amber-700"
                     : isAddMode
                       ? "bg-blue-50 text-blue-700"
-                    : "bg-blue-50 text-blue-700",
+                      : "bg-blue-50 text-blue-700",
                 )}
               >
                 {isEditMode ? (
@@ -1257,91 +1260,91 @@ function EmptyDetailState({ message }: { message: string }) {
 function CustomerOrdersSection({ orders }: { orders: CustomerOrderSummary[] }) {
   return (
     <DetailSection title="Order Details" count={orders.length}>
-  {!orders.length ? (
-    <EmptyDetailState message="No orders found for this customer." />
-  ) : (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="overflow-x-auto">
-        <Table className="min-w-180">
-  <TableHeader>
-    <TableRow className="bg-slate-50 hover:bg-slate-50">
-      <TableHead className="h-10 text-start text-[10px] text-slate-800">
-        Order No
-      </TableHead>
+      {!orders.length ? (
+        <EmptyDetailState message="No orders found for this customer." />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto">
+            <Table className="min-w-180">
+              <TableHeader>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="h-10 text-start text-[10px] text-slate-800">
+                    Order No
+                  </TableHead>
 
-      <TableHead className="h-10 text-start text-[10px] text-slate-800">
-        Date
-      </TableHead>
+                  <TableHead className="h-10 text-start text-[10px] text-slate-800">
+                    Date
+                  </TableHead>
 
-      <TableHead className="h-10 text-start text-[10px] text-slate-800">
-        Promise Date
-      </TableHead>
+                  <TableHead className="h-10 text-start text-[10px] text-slate-800">
+                    Promise Date
+                  </TableHead>
 
-      <TableHead className="h-10 text-start text-[10px] text-slate-800">
-        Status
-      </TableHead>
+                  <TableHead className="h-10 text-start text-[10px] text-slate-800">
+                    Status
+                  </TableHead>
 
-      <TableHead className="h-10 text-start text-[10px] text-slate-800">
-        Block No
-      </TableHead>
-    </TableRow>
-  </TableHeader>
+                  <TableHead className="h-10 text-start text-[10px] text-slate-800">
+                    Block No
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
 
-  <TableBody>
-    {orders.map((order) => {
-      const blockNumbers = Array.from(
-        new Set(
-          order.items
-            .map((item) => item.block?.blockNumber)
-            .filter(Boolean),
-        ),
-      );
+              <TableBody>
+                {orders.map((order) => {
+                  const blockNumbers = Array.from(
+                    new Set(
+                      order.items
+                        .map((item) => item.block?.blockNumber)
+                        .filter(Boolean),
+                    ),
+                  );
 
-      return (
-        <TableRow
-          key={order.id}
-          className="transition-colors hover:bg-slate-50"
-        >
-          <TableCell className="py-3 text-start align-middle">
-            <p className="whitespace-nowrap text-xs ">
-              {order.orderNumber}
-            </p>
-          </TableCell>
+                  return (
+                    <TableRow
+                      key={order.id}
+                      className="transition-colors hover:bg-slate-50"
+                    >
+                      <TableCell className="py-3 text-start align-middle">
+                        <p className="whitespace-nowrap text-xs ">
+                          {order.orderNumber}
+                        </p>
+                      </TableCell>
 
-          <TableCell className="py-3 text-start">
-            <p className="whitespace-nowrap text-sm font-semibold text-slate-600">
-              {formatDate(order.orderDate)}
-            </p>
-          </TableCell>
+                      <TableCell className="py-3 text-start">
+                        <p className="whitespace-nowrap text-sm font-semibold text-slate-600">
+                          {formatDate(order.orderDate)}
+                        </p>
+                      </TableCell>
 
-          <TableCell className="py-3 text-start">
-            <p className="whitespace-nowrap text-sm font-semibold text-slate-600">
-              {formatDate(order.promisedDate)}
-            </p>
-          </TableCell>
+                      <TableCell className="py-3 text-start">
+                        <p className="whitespace-nowrap text-sm font-semibold text-slate-600">
+                          {formatDate(order.promisedDate)}
+                        </p>
+                      </TableCell>
 
-          <TableCell className="py-3 text-center ">
-            <div className="flex justify-start">
-              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
-                {order.status}
-              </span>
-            </div>
-          </TableCell>
+                      <TableCell className="py-3 text-center ">
+                        <div className="flex justify-start">
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
+                            {order.status}
+                          </span>
+                        </div>
+                      </TableCell>
 
-          <TableCell className="py-3 text-center align-middle">
-            <p className="mx-auto max-w-55 truncate text-sm font-semibold text-slate-700">
-              {blockNumbers.length ? blockNumbers.join(", ") : "-"}
-            </p>
-          </TableCell>
-        </TableRow>
-      );
-    })}
-  </TableBody>
-</Table>
-      </div>
-    </div>
-  )}
-</DetailSection>
+                      <TableCell className="py-3 text-center align-middle">
+                        <p className="mx-auto max-w-55 truncate text-sm font-semibold text-slate-700">
+                          {blockNumbers.length ? blockNumbers.join(", ") : "-"}
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </DetailSection>
   );
 }
 
@@ -1352,75 +1355,75 @@ function CustomerBlocksSection({
 }) {
   return (
     <DetailSection title="Block Details" count={blocks.length}>
-  {!blocks.length ? (
-    <EmptyDetailState message="No blocks assigned to this customer." />
-  ) : (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-slate-50 hover:bg-slate-50">
-            <TableHead className="h-10 text-[10px]  text-slate-800">
-              Block No
-            </TableHead>
+      {!blocks.length ? (
+        <EmptyDetailState message="No blocks assigned to this customer." />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableHead className="h-10 text-[10px]  text-slate-800">
+                  Block No
+                </TableHead>
 
-              <TableHead className="h-10 text-[10px]  text-slate-800">
-              Category
-            </TableHead>
+                <TableHead className="h-10 text-[10px]  text-slate-800">
+                  Category
+                </TableHead>
 
-              <TableHead className="h-10 text-[10px]  text-slate-800">
-              Status
-            </TableHead>
+                <TableHead className="h-10 text-[10px]  text-slate-800">
+                  Status
+                </TableHead>
 
-              <TableHead className="h-10 text-[10px]  text-slate-800">
-              Default
-            </TableHead>
-          </TableRow>
-        </TableHeader>
+                <TableHead className="h-10 text-[10px]  text-slate-800">
+                  Default
+                </TableHead>
+              </TableRow>
+            </TableHeader>
 
-        <TableBody>
-          {blocks.map((assignment) => (
-            <TableRow
-              key={assignment.id}
-              className="transition-colors hover:bg-slate-50"
-            >
-              <TableCell className="py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-slate-900">
-                    {assignment.block.blockNumber}
-                  </p>
-                </div>
-              </TableCell>
+            <TableBody>
+              {blocks.map((assignment) => (
+                <TableRow
+                  key={assignment.id}
+                  className="transition-colors hover:bg-slate-50"
+                >
+                  <TableCell className="py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-900">
+                        {assignment.block.blockNumber}
+                      </p>
+                    </div>
+                  </TableCell>
 
-              <TableCell className="py-3">
-                <p className="truncate text-sm font-semibold text-slate-700">
-                  {assignment.block.category?.name ?? "-"}
-                </p>
-              </TableCell>
+                  <TableCell className="py-3">
+                    <p className="truncate text-sm font-semibold text-slate-700">
+                      {assignment.block.category?.name ?? "-"}
+                    </p>
+                  </TableCell>
 
-              <TableCell className="py-3">
-                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
-                  {assignment.block.status}
-                </span>
-              </TableCell>
+                  <TableCell className="py-3">
+                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
+                      {assignment.block.status}
+                    </span>
+                  </TableCell>
 
-              <TableCell className="py-3 text-right">
-                {assignment.isDefault ? (
-                  <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">
-                    Default
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold text-slate-400">
-                    -
-                  </span>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )}
-</DetailSection>
+                  <TableCell className="py-3 text-right">
+                    {assignment.isDefault ? (
+                      <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+                        Default
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-slate-400">
+                        -
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </DetailSection>
   );
 }
 
@@ -1434,8 +1437,7 @@ export function DashboardCustomerSearchCard() {
 
   const [isMeasurementEditMode, setIsMeasurementEditMode] =
     React.useState(false);
-  const [isMeasurementAddMode, setIsMeasurementAddMode] =
-    React.useState(false);
+  const [isMeasurementAddMode, setIsMeasurementAddMode] = React.useState(false);
   const [createdMeasurement, setCreatedMeasurement] =
     React.useState<Measurement | null>(null);
 
@@ -1839,14 +1841,6 @@ export function DashboardCustomerSearchCard() {
                     </div>
                   )}
 
-                  <CustomerOrdersSection
-                    orders={detailedCustomer?.orders ?? []}
-                  />
-
-                  <CustomerBlocksSection
-                    blocks={detailedCustomer?.customerBlocks ?? []}
-                  />
-
                   <LatestMeasurementSection
                     latestMeasurement={activeMeasurement}
                     measurementItems={measurementItems}
@@ -1866,7 +1860,9 @@ export function DashboardCustomerSearchCard() {
                           blocks={detailedCustomer?.customerBlocks ?? []}
                           categories={categories}
                           initialCategoryId={activeMeasurement?.categoryId}
-                          initialBlockId={activeMeasurement?.blockId ?? undefined}
+                          initialBlockId={
+                            activeMeasurement?.blockId ?? undefined
+                          }
                           initialValues={
                             activeMeasurement
                               ? newMeasurementInitialValues
@@ -1912,6 +1908,16 @@ export function DashboardCustomerSearchCard() {
                     }
                     onChangeNoteChange={setMeasurementChangeNote}
                   />
+
+                  <CustomerOrdersSection
+                    orders={detailedCustomer?.orders ?? []}
+                  />
+
+                  <CustomerBlocksSection
+                    blocks={detailedCustomer?.customerBlocks ?? []}
+                  />
+
+                  
                 </div>
               </div>
 

@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { useCreateUser } from "../../api/useCreateUser";
 import { useGetRoles } from "@/api/useGetRoles";
 import { showToastError } from "@/utils/show-toast-success";
+import type { Role } from "@/modules/app/roles/types/role.types";
 
 interface Props {
   open: boolean;
@@ -36,7 +37,8 @@ interface Props {
 }
 
 export function CreateUserDialog({ open, onClose }: Props) {
-  const { data: roles = [], isLoading: isLoadingRoles } = useGetRoles();
+  const { data: rolesResponse, isLoading: isLoadingRoles } = useGetRoles();
+  const roles = rolesResponse?.items ?? [];
   const { mutateAsync: createUser, isPending } = useCreateUser();
 
   const form = useForm({
@@ -241,7 +243,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                         onValueChange={field.handleChange}
                         className="grid gap-3"
                       >
-                        {roles.map((role: any) => {
+                        {roles.map((role: Role) => {
                           const isSelected = field.state.value === role.id;
 
                           return (
@@ -276,7 +278,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
                                   {getFriendlyRoleDescription(
                                     role.name,
-                                    role.description
+                                    role.description ?? undefined
                                   )}
                                 </p>
                               </div>

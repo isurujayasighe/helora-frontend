@@ -112,7 +112,7 @@ export default function AccountPage() {
   }, []);
 
   return (
-    <PermissionGate action="read" subject="Orders">
+    <PermissionGate action="read" subject="orders">
       <AnimatePresence mode="wait">
         <motion.div
           key="invoice-page"

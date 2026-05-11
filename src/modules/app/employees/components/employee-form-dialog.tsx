@@ -41,25 +41,32 @@ import { useCreateEmployee, useUpdateEmployee } from "../api/useGetEmployeeList"
 const employeeSchema = z.object({
   fullName: z.string().min(2, "Employee name is required"),
   phoneNumber: z.string().min(7, "Phone number is required"),
-  alternatePhone: z.string().optional(),
-  nic: z.string().optional(),
-  address: z.string().optional(),
-  town: z.string().optional(),
+  alternatePhone: z.string(),
+  nic: z.string(),
+  address: z.string(),
+  town: z.string(),
 
-  department: z.string().min(1, "Department is required"),
+  department: z.enum([
+    "TAILORING",
+    "CUTTING",
+    "FINISHING",
+    "SALES",
+    "ACCOUNTS",
+    "MANAGEMENT",
+  ]),
   designation: z.string().min(2, "Job role is required"),
-  salaryType: z.string().min(1, "Salary type is required"),
+  salaryType: z.enum(["MONTHLY", "DAILY", "PIECE_RATE"]),
 
-  basicSalary: z.number().nullable().optional(),
-  dailyRate: z.number().nullable().optional(),
-  pieceRate: z.number().nullable().optional(),
+  basicSalary: z.number().nullable(),
+  dailyRate: z.number().nullable(),
+  pieceRate: z.number().nullable(),
 
   joinedDate: z.string().min(1, "Joined date is required"),
-  status: z.string().min(1, "Status is required"),
+  status: z.enum(["ACTIVE", "INACTIVE", "LEFT"]),
 
-  emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
-  notes: z.string().optional(),
+  emergencyContactName: z.string(),
+  emergencyContactPhone: z.string(),
+  notes: z.string(),
 });
 
 interface Props {

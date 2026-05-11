@@ -123,7 +123,7 @@ export default function MeasurementFieldsPage() {
 
   const deleteField = useDeleteMeasurementField();
 
-  const fields = data ?? [];
+  const fields = data?.data ?? [];
   const pagination = data?.pagination;
   const total = pagination?.totalItems ?? 0;
   const pageCount = Math.max(1, pagination?.totalPages ?? 1);
@@ -461,7 +461,7 @@ export default function MeasurementFieldsPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    disabled={!pagination?.hasPreviousPage}
+                    disabled={!pagination?.currentPage}
                     onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
                     className="h-9 rounded-lg font-bold"
                   >
@@ -470,7 +470,7 @@ export default function MeasurementFieldsPage() {
 
                   <Button
                     variant="outline"
-                    disabled={!pagination?.hasNextPage}
+                    disabled={!pagination?.pageSize}
                     onClick={() => setPageIndex((prev) => prev + 1)}
                     className="h-9 rounded-lg font-bold"
                   >

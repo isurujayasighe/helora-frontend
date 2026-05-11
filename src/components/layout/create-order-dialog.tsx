@@ -38,7 +38,10 @@ import {
   useFindCustomerByPhoneMutation,
   type CustomerByPhone,
 } from "@/api/useFindCustomerByPhone";
-import { useGetCustomerById } from "../../modules/app/customers/api/useGetCustomerbyId";
+import {
+  useGetCustomerById,
+  type CustomerDetails,
+} from "../../modules/app/customers/api/useGetCustomerbyId";
 import { useGetLatestMeasurement } from "@/api/useGetLatestMeasurement";
 
 import {
@@ -315,6 +318,49 @@ const buildInitialValues = (): CreateOrderFormInput => ({
   specialNotes: "",
 
   items: [buildInitialItem()],
+});
+
+const mapCustomerDetailsToCustomerByPhone = (
+  customer: CustomerDetails,
+): CustomerByPhone => ({
+  id: customer.id,
+  tenantId: customer.tenantId,
+  fullName: customer.fullName ?? "",
+  phoneNumber: customer.phoneNumber ?? "",
+  alternatePhone: customer.alternatePhone ?? null,
+  hospitalName: customer.hospitalName ?? null,
+  town: customer.town ?? null,
+  address: customer.address ?? null,
+  notes: customer.notes ?? null,
+  createdAt: customer.createdAt,
+  updatedAt: customer.updatedAt,
+  blocks: customer.customerBlocks.map((assignment) => ({
+    id: assignment.block.id,
+    tenantId: customer.tenantId,
+    customerId: customer.id,
+    categoryId: assignment.block.category?.id ?? "",
+    blockNumber: assignment.block.blockNumber,
+    readyMadeSize: assignment.block.readyMadeSize,
+    sizeLabel: assignment.block.sizeLabel,
+    fitNotes: assignment.block.fitNotes,
+    description: assignment.block.description,
+    status: assignment.block.status,
+    isDefault: assignment.isDefault,
+    lastUsedAt: assignment.block.lastUsedAt,
+    remarks: assignment.block.remarks,
+    category: assignment.block.category
+      ? {
+          id: assignment.block.category.id,
+          tenantId: customer.tenantId,
+          name: assignment.block.category.name,
+          description: assignment.block.category.description,
+        }
+      : null,
+  })),
+  _count: {
+    blocks: customer._count.customerBlocks,
+    orders: customer._count.orders,
+  },
 });
 
 function SectionCard({
@@ -649,14 +695,14 @@ export function CreateOrderDialog({
 
     reset({
       ...buildInitialValues(),
-      phoneNumber: prefilledCustomer.data.phoneNumber ?? "",
+      phoneNumber: prefilledCustomer.phoneNumber ?? "",
       customerMode: "existing",
-      customerId: prefilledCustomer.data.id,
-      customerName: prefilledCustomer.data.fullName ?? "",
-      customerTown: prefilledCustomer.data.town ?? "",
-      customerAddress: prefilledCustomer.data.address ?? "",
-      customerNotes: prefilledCustomer.data.notes ?? "",
-      hospitalName: prefilledCustomer.data.town ?? "",
+      customerId: prefilledCustomer.id,
+      customerName: prefilledCustomer.fullName ?? "",
+      customerTown: prefilledCustomer.town ?? "",
+      customerAddress: prefilledCustomer.address ?? "",
+      customerNotes: prefilledCustomer.notes ?? "",
+      hospitalName: prefilledCustomer.hospitalName ?? "",
       orderSource: "PHYSICAL_SHOP",
       paymentStatus: "UNPAID",
       paymentMode: "CASH",
@@ -675,7 +721,7 @@ export function CreateOrderDialog({
       ],
     });
 
-    setFoundCustomer(prefilledCustomer);
+    setFoundCustomer(mapCustomerDetailsToCustomerByPhone(prefilledCustomer));
     setCustomerSearched(true);
   }, [
     open,
@@ -945,12 +991,12 @@ export function CreateOrderDialog({
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-base font-black text-slate-900">
-                                  {prefilledCustomer.data.fullName ?? "-"}
+                                  {prefilledCustomer.fullName ?? "-"}
                                 </p>
                                 <p className="mt-1 text-xs text-slate-500">
-                                  {prefilledCustomer.data.phoneNumber ?? "-"}
-                                  {prefilledCustomer.data.town
-                                    ? ` • ${prefilledCustomer.data.town}`
+                                  {prefilledCustomer.phoneNumber ?? "-"}
+                                  {prefilledCustomer.town
+                                    ? ` • ${prefilledCustomer.town}`
                                     : ""}
                                 </p>
                               </div>

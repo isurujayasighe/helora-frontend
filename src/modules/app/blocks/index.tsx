@@ -95,6 +95,8 @@ export default function BlocksPage() {
     categoryId: categoryId || undefined,
     customerId: customerId || undefined,
     status: status === "all" ? undefined : status,
+    includeCounts: false,
+    includeTotal: false,
   });
 
   const blocksList = blocksResponse?.data.items ?? [];
@@ -117,18 +119,12 @@ export default function BlocksPage() {
       block.customerBlocks?.some((item: any) => item.isDefault),
     ).length;
 
-    const totalOrderUses = blocksList.reduce(
-      (sum: number, block: any) => sum + (block._count?.orderItems ?? 0),
-      0,
-    );
-
     return {
-      totalBlocks: pagination.totalItems,
+      totalBlocks: blocksList.length,
       activeBlocks,
       defaultBlocks,
-      totalOrderUses,
     };
-  }, [blocksList, pagination.totalItems]);
+  }, [blocksList]);
 
   const handleViewBlock = (blockId: string) => {
     setSelectedBlockId(blockId);
@@ -225,9 +221,9 @@ export default function BlocksPage() {
             {/* Stats */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <BlockStatCard
-                title="Total Blocks"
+                title="Visible Blocks"
                 value={stats.totalBlocks}
-                description="All matching blocks"
+                description="Loaded on this page"
                 icon={Blocks}
               />
 
@@ -246,9 +242,9 @@ export default function BlocksPage() {
               />
 
               <BlockStatCard
-                title="Order Uses"
-                value={stats.totalOrderUses}
-                description="Used in orders"
+                title="Page"
+                value={currentPage}
+                description="Current result page"
                 icon={PackageCheck}
               />
             </div>

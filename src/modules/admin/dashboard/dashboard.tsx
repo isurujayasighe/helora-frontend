@@ -146,7 +146,7 @@ export default function Dashboard() {
   const userEmail = "sarah@techflow.com";
   const accountId = "TF-8829";
 
-  const canReadDashboard = useCan("read", "Dashboard");
+  const canReadDashboard = useCan("read", "dashboard");
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -157,7 +157,7 @@ export default function Dashboard() {
   if (!canReadDashboard) return <Link to="/">Unauthorized</Link>;
 
   return (
-    <PermissionGate action="read" subject="Dashboard">
+    <PermissionGate action="read" subject="dashboard">
       <div className="flex h-full flex-col overflow-auto  bg-slate-50/50">
         <AnimatePresence mode="wait">
           {loading ? (

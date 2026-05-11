@@ -161,7 +161,7 @@ export function AddOrderToGroupDialog({
       limit: 8,
     });
 
-  const customers = customerLookupResponse?.data ?? [];
+  const customers = customerLookupResponse ?? [];
 
   const {
     data: latestMeasurement,

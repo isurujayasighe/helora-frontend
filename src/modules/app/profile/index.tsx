@@ -73,7 +73,7 @@ export default function ProfilePage() {
   });
 
   return (
-    <PermissionGate action="read" subject="Profile">
+    <PermissionGate action="read" subject="profile">
       <AnimatePresence mode="wait">
         <motion.div
           key="account"
