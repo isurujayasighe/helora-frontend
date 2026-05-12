@@ -1,4 +1,4 @@
-name = "cloudflare-workers-autoconfig-helora-frontend"
+name = "helora-frontend"
 compatibility_date = "2026-04-28"
 
 [assets]
