@@ -10,9 +10,6 @@ const booleanSearchParam = z.preprocess(
 
 const orderCreateSearchSchema = z.object({
   customerId: z.string().optional(),
-  measurementId: z.string().optional(),
-  blockId: z.string().optional(),
-  categoryId: z.string().optional(),
 
   /**
    * Optional context when creating from group order page.
@@ -37,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/app/create-order-page/")({
   validateSearch: orderCreateSearchSchema,
   component: OrderCreateRoute,
   staticData: {
-    title: "Create Order",
+    title: "Order Builder",
     requiresAuth: true,
     breadcrumbs: [
       {
@@ -46,8 +43,8 @@ export const Route = createFileRoute("/_authenticated/app/create-order-page/")({
         permission: { action: "read", subject: "orders" },
       },
       {
-        label: "Create Order",
-        to: "/app/order-create",
+        label: "Order Builder",
+        to: "/app/create-order-page",
         permission: { action: "create", subject: "orders" },
       },
     ],
@@ -61,9 +58,6 @@ function OrderCreateRoute() {
     <CreateOrderPage
       prefill={{
         customerId: search.customerId,
-        measurementId: search.measurementId,
-        blockId: search.blockId,
-        categoryId: search.categoryId,
       }}
     />
   );

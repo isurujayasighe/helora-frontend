@@ -39,13 +39,27 @@ export type OrderItemStatus =
   | "DELIVERED"
   | "CANCELLED";
 
+export type OrderItemType = "GARMENT" | "ACCESSORY" | "PACKAGE" | "SERVICE";
+
+export type PriceSource =
+  | "PACKAGE_PRICE"
+  | "PACKAGE_INCLUDED_ITEM"
+  | "ADDITIONAL_ITEM_PRICE"
+  | "MEASUREMENT_CHART_PRICE"
+  | "FIXED_ITEM_PRICE"
+  | "MANUAL_OVERRIDE"
+  | "FREE_OF_CHARGE";
+
 export type OrderItemMeasurements = Record<
   string,
   string | number | null | undefined
 >;
 
 export type CreateOrderItemPayload = {
-  categoryId: string;
+  itemType?: OrderItemType;
+  categoryId?: string;
+  packageTemplateId?: string;
+  packageTemplateItemId?: string;
 
   /**
    * Existing block. Optional because new order can be created
@@ -61,8 +75,12 @@ export type CreateOrderItemPayload = {
 
   itemDescription: string;
   quantity: number;
-  unitPrice: number;
-  lineTotal: number;
+  calculatedUnitPrice?: number;
+  unitPrice?: number;
+  lineTotal?: number;
+  priceSource?: PriceSource;
+  isPriceOverridden?: boolean;
+  overrideReason?: string;
 
   notes?: string;
   tailorNote?: string;
@@ -88,6 +106,7 @@ export type CreateOrderItemPayload = {
 export type CreateOrderPayload = {
   customerId: string;
   groupOrderId?: string;
+  packageTemplateId?: string;
 
   orderNumber?: string;
   orderDate?: string;
@@ -123,6 +142,43 @@ export type CreateOrderResponse = {
   message?: string;
   data: CreatedOrder;
   error?: string | null;
+};
+
+export type PricePreviewPayload = {
+  customerId: string;
+  packageTemplateId?: string;
+  courierCharges?: number;
+  items: CreateOrderItemPayload[];
+};
+
+export type PricePreviewItem = {
+  index: number;
+  itemType: OrderItemType;
+  categoryId: string | null;
+  packageTemplateId: string | null;
+  packageTemplateItemId: string | null;
+  blockId: string | null;
+  measurementId: string | null;
+  itemDescription: string;
+  quantity: number;
+  calculatedUnitPrice: number;
+  unitPrice: number;
+  lineTotal: number;
+  priceSource: PriceSource;
+  isPriceOverridden: boolean;
+  overrideReason: string | null;
+};
+
+export type PricePreviewResponse = {
+  success: boolean;
+  data: {
+    packagePrice: number;
+    items: PricePreviewItem[];
+    warnings: string[];
+    courierCharges: number;
+    totalAmount: number;
+    payableAmount: number;
+  };
 };
 
 const isEmptyValue = (value: unknown) => {
@@ -172,6 +228,20 @@ const createOrder = async (payload: CreateOrderPayload) => {
   return response.data;
 };
 
+const previewOrderPrice = async (payload: PricePreviewPayload) => {
+  const cleanedPayload = cleanObject({
+    ...payload,
+    items: payload.items.map(cleanOrderItem),
+  });
+
+  const response = await covalentHubClient.post<PricePreviewResponse>(
+    "/orders/price-preview",
+    cleanedPayload,
+  );
+
+  return response.data.data;
+};
+
 export const useCreateOrder = () => {
   const queryClient = useQueryClient();
 
@@ -185,5 +255,11 @@ export const useCreateOrder = () => {
       queryClient.invalidateQueries({ queryKey: ["blocks"] });
       queryClient.invalidateQueries({ queryKey: ["whatsapp"] });
     },
+  });
+};
+
+export const useOrderPricePreview = () => {
+  return useMutation({
+    mutationFn: previewOrderPrice,
   });
 };

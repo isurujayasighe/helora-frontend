@@ -256,8 +256,8 @@ function EmptyMeasurementState() {
       </h4>
 
       <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-500">
-        This customer does not have a saved latest measurement yet. Add or
-        verify measurements before creating the next order.
+        This customer does not have a saved measurement for the selected garment
+        part yet. Add measurements before assigning that part to an order.
       </p>
     </div>
   );
@@ -800,7 +800,7 @@ function LatestMeasurementSection({
                       ? hasMeasurement
                         ? "New Measurements"
                         : "Add Measurements"
-                      : "Latest Measurements"}
+                      : "Measurement Actions"}
                 </h4>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {isEditMode
@@ -809,7 +809,7 @@ function LatestMeasurementSection({
                       ? hasMeasurement
                         ? "Create a new measurement version for heavy body measurement changes."
                         : "Create the first measurement for this customer."
-                      : "Confirm these previous measurements before placing the order."}
+                      : "Use this area to edit the selected measurement or create a new version before starting an order."}
                 </p>
               </div>
             </div>
@@ -1427,6 +1427,182 @@ function CustomerBlocksSection({
   );
 }
 
+function MeasurementBlockCoverageSection({
+  customer,
+  categories,
+}: {
+  customer: CustomerDetails | null;
+  categories: Category[];
+}) {
+  const rows = React.useMemo(() => {
+    const byCategory = new Map<
+      string,
+      {
+        categoryId: string;
+        categoryName: string;
+        block: CustomerBlockAssignment | null;
+        measurement: NonNullable<CustomerDetails["measurements"]>[number] | null;
+      }
+    >();
+
+    categories
+      .filter((category) => category.isActive)
+      .forEach((category) => {
+        byCategory.set(category.id, {
+          categoryId: category.id,
+          categoryName: category.name,
+          block: null,
+          measurement: null,
+        });
+      });
+
+    customer?.customerBlocks?.forEach((assignment) => {
+      const category = assignment.block.category;
+      if (!category?.id) return;
+
+      const row =
+        byCategory.get(category.id) ??
+        {
+          categoryId: category.id,
+          categoryName: category.name,
+          block: null,
+          measurement: null,
+        };
+
+      if (!row.block || assignment.isDefault) {
+        row.block = assignment;
+      }
+
+      if (assignment.measurement && !row.measurement) {
+        row.measurement = {
+          ...assignment.measurement,
+          categoryId: category.id,
+          blockId: assignment.block.id,
+          category,
+          block: {
+            id: assignment.block.id,
+            blockNumber: assignment.block.blockNumber,
+          },
+        };
+      }
+
+      byCategory.set(category.id, row);
+    });
+
+    customer?.measurements?.forEach((measurement) => {
+      const categoryId = measurement.categoryId ?? measurement.category?.id;
+      if (!categoryId) return;
+
+      const row =
+        byCategory.get(categoryId) ??
+        {
+          categoryId,
+          categoryName: measurement.category?.name ?? "Garment part",
+          block: null,
+          measurement: null,
+        };
+
+      if (
+        !row.measurement ||
+        new Date(measurement.createdAt).getTime() >
+          new Date(row.measurement.createdAt).getTime()
+      ) {
+        row.measurement = measurement;
+      }
+
+      byCategory.set(categoryId, row);
+    });
+
+    return Array.from(byCategory.values()).sort((a, b) =>
+      a.categoryName.localeCompare(b.categoryName),
+    );
+  }, [categories, customer]);
+
+  return (
+    <DetailSection title="Measurement & Block Coverage" count={rows.length}>
+      {!rows.length ? (
+        <EmptyDetailState message="No garment categories found for coverage." />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto">
+            <Table className="min-w-180">
+              <TableHeader>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="h-10 text-[10px] text-slate-800">
+                    Garment Part
+                  </TableHead>
+                  <TableHead className="h-10 text-[10px] text-slate-800">
+                    Latest Block
+                  </TableHead>
+                  <TableHead className="h-10 text-[10px] text-slate-800">
+                    Latest Measurement
+                  </TableHead>
+                  <TableHead className="h-10 text-[10px] text-slate-800">
+                    Status
+                  </TableHead>
+                  <TableHead className="h-10 text-right text-[10px] text-slate-800">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {rows.map((row) => {
+                  const hasMeasurement = Boolean(row.measurement);
+                  const hasBlock = Boolean(row.block ?? row.measurement?.block);
+
+                  return (
+                    <TableRow key={row.categoryId}>
+                      <TableCell className="py-3 text-sm font-black text-slate-900">
+                        {row.categoryName}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm font-semibold text-slate-700">
+                        {row.block?.block.blockNumber ??
+                          row.measurement?.block?.blockNumber ??
+                          "-"}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm font-semibold text-slate-700">
+                        {row.measurement?.measurementNumber ?? "-"}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold",
+                            hasMeasurement
+                              ? getVerificationClasses(
+                                  row.measurement?.verificationStatus as
+                                    | MeasurementVerificationStatus
+                                    | null,
+                                )
+                              : "border-amber-200 bg-amber-50 text-amber-700",
+                          )}
+                        >
+                          {hasMeasurement
+                            ? getVerificationLabel(
+                                row.measurement?.verificationStatus as
+                                  | MeasurementVerificationStatus
+                                  | null,
+                              )
+                            : hasBlock
+                              ? "Block only"
+                              : "Missing"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-3 text-right text-xs font-bold text-slate-500">
+                        {hasMeasurement ? "Edit or new version below" : "Add measurement below"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </DetailSection>
+  );
+}
+
 export function DashboardCustomerSearchCard() {
   const navigate = useNavigate();
 
@@ -1493,6 +1669,7 @@ export function DashboardCustomerSearchCard() {
           updatedAt: "",
           customerBlocks: [],
           orders: [],
+          measurements: [],
           _count: {
             customerBlocks: 0,
             orders: 0,
@@ -1598,17 +1775,13 @@ export function DashboardCustomerSearchCard() {
     setIsMeasurementEditMode(false);
   };
 
-  const handlePlaceOrder = () => {
+  const handleStartOrder = () => {
     if (!selectedCustomer) return;
-    if (!activeMeasurement) return;
 
     navigate({
       to: "/app/create-order-page",
       search: {
         customerId: selectedCustomer.id,
-        measurementId: activeMeasurement.id,
-        blockId: activeMeasurement.blockId ?? undefined,
-        categoryId: activeMeasurement.categoryId ?? undefined,
       },
     });
   };
@@ -1740,7 +1913,7 @@ export function DashboardCustomerSearchCard() {
               disabled={!selectedCustomer}
               onClick={() => setIsDetailOpen(true)}
             >
-              Customer Details
+              Customer Workspace
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -1752,7 +1925,7 @@ export function DashboardCustomerSearchCard() {
           {/* Fixed Header */}
           <DialogHeader className="shrink-0 border-b border-gray-300 px-5 py-4 bg-background">
             <DialogTitle className="text-base font-black text-slate-900">
-              Customer Details
+              Customer Order Workspace
             </DialogTitle>
           </DialogHeader>
 
@@ -1840,6 +2013,11 @@ export function DashboardCustomerSearchCard() {
                       Updating details
                     </div>
                   )}
+
+                  <MeasurementBlockCoverageSection
+                    customer={detailedCustomer}
+                    categories={categories}
+                  />
 
                   <LatestMeasurementSection
                     latestMeasurement={activeMeasurement}
@@ -1938,16 +2116,15 @@ export function DashboardCustomerSearchCard() {
                     type="button"
                     className="h-11 rounded-lg bg-slate-900 px-5 font-bold text-white hover:bg-slate-800"
                     disabled={
-                      !activeMeasurement ||
                       isMeasurementEditMode ||
                       isMeasurementAddMode ||
                       isMeasurementsLoading ||
                       updateMeasurementMutation.isPending ||
                       !selectedCustomer
                     }
-                    onClick={handlePlaceOrder}
+                    onClick={handleStartOrder}
                   >
-                    Place Order
+                    Start Order
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>

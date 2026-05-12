@@ -27,13 +27,21 @@ export type CustomerMeasurementValue = {
 export type CustomerMeasurementSummary = {
   id: string;
   measurementNumber: string;
+  categoryId?: string;
+  blockId?: string | null;
   verificationStatus: string;
   verifiedAt: string | null;
   verificationNote: string | null;
   notes: string | null;
+  versionNo?: number;
   createdAt: string;
   updatedAt: string;
   values: CustomerMeasurementValue[];
+  category?: CustomerCategorySummary | null;
+  block?: {
+    id: string;
+    blockNumber: string;
+  } | null;
 };
 
 export type CustomerCategorySummary = {
@@ -136,6 +144,7 @@ export type CustomerDetails = {
 
   customerBlocks: CustomerBlockAssignment[];
   orders: CustomerOrderSummary[];
+  measurements: CustomerMeasurementSummary[];
 
   _count: {
     customerBlocks: number;

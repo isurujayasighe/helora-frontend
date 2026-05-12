@@ -18,6 +18,7 @@ import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-p
 import { Route as authActivateAccountRouteImport } from './routes/(auth)/activate-account'
 import { Route as AuthenticatedAppWhatsappRouteRouteImport } from './routes/_authenticated/app/whatsapp/route'
 import { Route as AuthenticatedAppUsersRouteRouteImport } from './routes/_authenticated/app/users/route'
+import { Route as AuthenticatedAppPackageTemplatesRouteRouteImport } from './routes/_authenticated/app/package-templates/route'
 import { Route as AuthenticatedAppMeasurementsRouteRouteImport } from './routes/_authenticated/app/measurements/route'
 import { Route as AuthenticatedAppCategoryRouteRouteImport } from './routes/_authenticated/app/category/route'
 import { Route as AuthenticatedAppSupportIndexRouteImport } from './routes/_authenticated/app/support/index'
@@ -82,6 +83,12 @@ const AuthenticatedAppUsersRouteRoute =
   AuthenticatedAppUsersRouteRouteImport.update({
     id: '/app/users',
     path: '/app/users',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppPackageTemplatesRouteRoute =
+  AuthenticatedAppPackageTemplatesRouteRouteImport.update({
+    id: '/app/package-templates',
+    path: '/app/package-templates',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppMeasurementsRouteRoute =
@@ -208,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof authResetPasswordRoute
   '/app/category': typeof AuthenticatedAppCategoryRouteRoute
   '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
+  '/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
   '/app/users': typeof AuthenticatedAppUsersRouteRoute
   '/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -237,6 +245,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof authResetPasswordRoute
   '/app/category': typeof AuthenticatedAppCategoryRouteRoute
   '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
+  '/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
   '/app/users': typeof AuthenticatedAppUsersRouteRoute
   '/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -268,6 +277,7 @@ export interface FileRoutesById {
   '/(auth)/reset-password': typeof authResetPasswordRoute
   '/_authenticated/app/category': typeof AuthenticatedAppCategoryRouteRoute
   '/_authenticated/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
+  '/_authenticated/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRouteRoute
   '/_authenticated/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/_authenticated/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/app/category'
     | '/app/measurements'
+    | '/app/package-templates'
     | '/app/users'
     | '/app/whatsapp'
     | '/app/group-orders/$groupOrderId'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/app/category'
     | '/app/measurements'
+    | '/app/package-templates'
     | '/app/users'
     | '/app/whatsapp'
     | '/app/group-orders/$groupOrderId'
@@ -358,6 +370,7 @@ export interface FileRouteTypes {
     | '/(auth)/reset-password'
     | '/_authenticated/app/category'
     | '/_authenticated/app/measurements'
+    | '/_authenticated/app/package-templates'
     | '/_authenticated/app/users'
     | '/_authenticated/app/whatsapp'
     | '/_authenticated/app/group-orders/$groupOrderId'
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/app/users'
       fullPath: '/app/users'
       preLoaderRoute: typeof AuthenticatedAppUsersRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/package-templates': {
+      id: '/_authenticated/app/package-templates'
+      path: '/app/package-templates'
+      fullPath: '/app/package-templates'
+      preLoaderRoute: typeof AuthenticatedAppPackageTemplatesRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/measurements': {
@@ -593,6 +613,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCategoryRouteRoute: typeof AuthenticatedAppCategoryRouteRoute
   AuthenticatedAppMeasurementsRouteRoute: typeof AuthenticatedAppMeasurementsRouteRoute
+  AuthenticatedAppPackageTemplatesRouteRoute: typeof AuthenticatedAppPackageTemplatesRouteRoute
   AuthenticatedAppUsersRouteRoute: typeof AuthenticatedAppUsersRouteRoute
   AuthenticatedAppWhatsappRouteRoute: typeof AuthenticatedAppWhatsappRouteRoute
   AuthenticatedAppGroupOrdersGroupOrderIdRoute: typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -618,6 +639,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCategoryRouteRoute: AuthenticatedAppCategoryRouteRoute,
   AuthenticatedAppMeasurementsRouteRoute:
     AuthenticatedAppMeasurementsRouteRoute,
+  AuthenticatedAppPackageTemplatesRouteRoute:
+    AuthenticatedAppPackageTemplatesRouteRoute,
   AuthenticatedAppUsersRouteRoute: AuthenticatedAppUsersRouteRoute,
   AuthenticatedAppWhatsappRouteRoute: AuthenticatedAppWhatsappRouteRoute,
   AuthenticatedAppGroupOrdersGroupOrderIdRoute:

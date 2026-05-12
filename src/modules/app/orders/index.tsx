@@ -91,9 +91,6 @@ export default function OrdersPage() {
       replace: true,
       search: {
         customerId: orderSearch.customerId,
-        measurementId: orderSearch.measurementId,
-        blockId: orderSearch.blockId,
-        categoryId: orderSearch.categoryId,
         orderSource: "PHYSICAL_SHOP",
       },
     });
@@ -101,9 +98,6 @@ export default function OrdersPage() {
     navigate,
     orderSearch.addOrder,
     orderSearch.customerId,
-    orderSearch.measurementId,
-    orderSearch.blockId,
-    orderSearch.categoryId,
   ]);
 
   useEffect(() => {
