@@ -8,24 +8,29 @@ import { covalentHubClient } from "@/services/clients/covalent.client";
 
 interface UpdateUserRoleVariables {
   userId: string;
-  roleId: string; // The UI selects a single role, but API expects an array
+  tenantId: string;
+  roleId: string;
 }
 
 interface UpdateRolePayload {
-  roleIds: string[];
+  roleId: string;
 }
 
 /* ------------------------------------------------------------------ */
 /* API Function                                                       */
 /* ------------------------------------------------------------------ */
 
-async function updateUserRole({ userId, roleId }: UpdateUserRoleVariables) {
+async function updateUserRole({
+  userId,
+  tenantId,
+  roleId,
+}: UpdateUserRoleVariables) {
   const payload: UpdateRolePayload = {
-    roleIds: [roleId], // Wrap single ID in array as per API requirement
+    roleId,
   };
 
   const { data } = await covalentHubClient.patch(
-    `/auth-service/api/Admin/Users/${userId}/role`,
+    `/users/${userId}/access/${tenantId}`,
     payload
   );
 

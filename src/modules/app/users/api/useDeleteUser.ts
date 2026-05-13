@@ -6,9 +6,16 @@ export const useDeleteUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (userId: string) => {
-      // Endpoint: DELETE /api/Admin/Users/{id}
-      const response = await covalentHubClient.delete(`/auth-service/api/Admin/Users/${userId}`);
+    mutationFn: async ({
+      userId,
+      tenantId,
+    }: {
+      userId: string;
+      tenantId: string;
+    }) => {
+      const response = await covalentHubClient.delete(
+        `/users/${userId}/access/${tenantId}`
+      );
       return response.data;
     },
     onSuccess: () => {

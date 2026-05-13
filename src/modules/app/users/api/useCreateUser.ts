@@ -7,9 +7,12 @@ import { showToastError, showToastSuccess } from "@/utils/show-toast-success";
 /* ------------------------------------------------------------------ */
 
 export interface CreateUserPayload {
-  userName: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
-  roleID: string; // UUID
+  roleId: string;
+  status?: "ACTIVE" | "INVITED" | "DISABLED";
+  isActiveAccess?: boolean;
 }
 
 // Optional: Define response shape if needed, otherwise 'any' or 'void' works
@@ -26,9 +29,8 @@ interface CreateUserResponse {
 /* ------------------------------------------------------------------ */
 
 async function createUser(payload: CreateUserPayload) {
-  // POST /admin/User
   const response = await covalentHubClient.post<CreateUserResponse>(
-    "/auth-service/api/TenantUsers", 
+    "/users",
     payload
   );
   return response.data;

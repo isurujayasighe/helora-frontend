@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/auth/store/authStore";
 import { appConfig } from "@/config/runtime-config";
+import { refreshSession } from "@/auth/api/refresh-session";
 
 interface FailedRequest {
   resolve: (token: string) => void;
@@ -50,7 +51,9 @@ covalentHubClient.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry
+      originalRequest &&
+      !originalRequest._retry &&
+      !String(originalRequest.url ?? "").includes("/auth/refresh")
     ) {
       if (isRefreshing) {
         // Queue requests while refresh is happening
@@ -69,23 +72,16 @@ covalentHubClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post(
-          `${appConfig.API_URL || '/api'}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
+        const { accessToken } = await refreshSession();
 
-        const newToken = response.data.accessToken;
-        useAuthStore.setState(response.data.accessToken,response.data.expiresIn);
+        processQueue(null, accessToken);
 
-        processQueue(null, newToken);
-
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        originalRequest.headers = originalRequest.headers ?? {};
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return covalentHubClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // clearAccessToken();
-        // dispatchLogout(); // optional
+        useAuthStore.getState().logout();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

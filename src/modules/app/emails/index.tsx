@@ -1,10 +1,26 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Mail,
+  MessageCircle,
+  MoreVertical,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Send,
+} from "lucide-react";
+
+import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { fadeUp } from "@/components/motions/MotionFade";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -12,7 +28,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,144 +36,116 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
-  AlertTriangle,
-  CheckCheck,
-  ChevronDown,
-  Eye,
-  Mail,
-  MessageCircle,
-  MoreVertical,
-  RefreshCw,
-  Search,
-  Send,
-  Smartphone,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  useEmailLogsQuery,
+  useResendEmail,
+  useSendEmail,
+} from "./api/email-api";
+import { EmailDetailDialog } from "./components/email-detail-dialog";
+import { EmailStatusBadge } from "./components/email-status-badge";
+import { SendEmailDialog } from "./components/send-email-dialog";
 import type {
-  WhatsAppMessage,
-  WhatsAppMessageDirection,
-  WhatsAppMessageStatus,
-  WhatsAppMessageType,
-} from "./types/whatsapp.types";
-import {
-  useRetryWhatsAppMessage,
-  useWhatsAppMessagesQuery,
-} from "./api/whatsapp-api";
-import { WhatsAppMessageStatusBadge } from "./components/whatsapp-message-status-badge";
-import { WhatsAppMessageTypeBadge } from "./components/whatsapp-message-type-badge";
-import { WhatsAppMessageDetailsDialog } from "./components/whatsapp-message-detail-dialog";
+  EmailLog,
+  EmailRelatedEntityType,
+  EmailStatus,
+} from "./types/email.types";
 
-type StatusFilter = "ALL" | WhatsAppMessageStatus;
-type TypeFilter = "ALL" | WhatsAppMessageType;
-type DirectionFilter = "ALL" | WhatsAppMessageDirection;
+type StatusFilter = "ALL" | EmailStatus;
+type EntityFilter = "ALL" | EmailRelatedEntityType;
 
 const statusFilters: Array<{ value: StatusFilter; label: string }> = [
   { value: "ALL", label: "All status" },
-  { value: "PENDING", label: "Waiting" },
+  { value: "PENDING", label: "Pending" },
   { value: "SENT", label: "Sent" },
-  { value: "DELIVERED", label: "Delivered" },
-  { value: "READ", label: "Read" },
   { value: "FAILED", label: "Failed" },
 ];
 
-const typeFilters: Array<{ value: TypeFilter; label: string }> = [
-  { value: "ALL", label: "All message types" },
-  { value: "ORDER_CREATED", label: "Order Created" },
-  { value: "ORDER_READY", label: "Order Ready" },
-  { value: "PAYMENT_RECEIVED", label: "Payment Received" },
-  { value: "PAYMENT_REMINDER", label: "Payment Reminder" },
-  { value: "GENERAL", label: "General" },
+const entityFilters: Array<{ value: EntityFilter; label: string }> = [
+  { value: "ALL", label: "All entities" },
+  { value: "ORDER", label: "Orders" },
+  { value: "PAYMENT", label: "Payments" },
+  { value: "CUSTOMER", label: "Customers" },
+  { value: "USER", label: "Users" },
+  { value: "GROUP_ORDER", label: "Group Orders" },
+  { value: "OTHER", label: "Other" },
 ];
 
-const directionFilters: Array<{ value: DirectionFilter; label: string }> = [
-  { value: "ALL", label: "All directions" },
-  { value: "OUTBOUND", label: "Sent to customer" },
-  { value: "INBOUND", label: "Received from customer" },
-];
-
-export default function WhatsAppPage() {
-  const [search, setSearch] = useState("");
+export default function EmailsPage() {
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
-  const [directionFilter, setDirectionFilter] =
-    useState<DirectionFilter>("ALL");
-
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-
+  const [entityFilter, setEntityFilter] = useState<EntityFilter>("ALL");
+  const [relatedEntityId, setRelatedEntityId] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize] = useState(10);
-
+  const [composeOpen, setComposeOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] =
-    useState<WhatsAppMessage | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
 
-  const { data, isLoading, isRefetching, refetch } = useWhatsAppMessagesQuery({
+  const { data, isLoading, isRefetching, refetch } = useEmailLogsQuery({
     pageIndex,
     pageSize,
-    search,
+    recipientEmail: recipientEmail || undefined,
     status: statusFilter === "ALL" ? undefined : statusFilter,
-    type: typeFilter === "ALL" ? undefined : typeFilter,
-    direction: directionFilter === "ALL" ? undefined : directionFilter,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
+    relatedEntityType: entityFilter === "ALL" ? undefined : entityFilter,
+    relatedEntityId: relatedEntityId || undefined,
+    fromDate: fromDate || undefined,
+    toDate: toDate || undefined,
   });
 
-  const retryMessage = useRetryWhatsAppMessage();
+  const sendEmail = useSendEmail();
+  const resendEmail = useResendEmail();
 
-  const messages = data?.items ?? [];
+  const emails = data?.items ?? [];
   const pagination = data?.pagination;
   const total = pagination?.totalItems ?? 0;
   const pageCount = Math.max(1, pagination?.totalPages ?? 1);
 
   const stats = useMemo(() => {
-    const sent = messages.filter((item) =>
-      ["SENT", "DELIVERED", "READ"].includes(item.status)
-    ).length;
-
-    const delivered = messages.filter(
-      (item) => item.status === "DELIVERED" || item.status === "READ"
-    ).length;
-
-    const failed = messages.filter((item) => item.status === "FAILED").length;
-
-    const waiting = messages.filter((item) => item.status === "PENDING").length;
-
     return {
       total,
-      sent,
-      delivered,
-      failed,
-      waiting,
+      sent: emails.filter((email) => email.status === "SENT").length,
+      pending: emails.filter((email) => email.status === "PENDING").length,
+      failed: emails.filter((email) => email.status === "FAILED").length,
     };
-  }, [messages, total]);
-
-  const openDetails = (message: WhatsAppMessage) => {
-    setSelectedMessage(message);
-    setDetailsOpen(true);
-  };
+  }, [emails, total]);
 
   const resetFilters = () => {
-    setSearch("");
+    setRecipientEmail("");
     setStatusFilter("ALL");
-    setTypeFilter("ALL");
-    setDirectionFilter("ALL");
-    setDateFrom("");
-    setDateTo("");
+    setEntityFilter("ALL");
+    setRelatedEntityId("");
+    setFromDate("");
+    setToDate("");
     setPageIndex(0);
   };
 
-  const handleRetry = async (message: WhatsAppMessage) => {
-    await retryMessage.mutateAsync(message);
+  const openDetails = (email: EmailLog) => {
+    setSelectedEmail(email);
+    setDetailsOpen(true);
+  };
+
+  const handleResend = async (email: EmailLog) => {
+    await resendEmail.mutateAsync(email.id);
     await refetch();
   };
 
   return (
-    <PermissionGate action="read" subject="whatsapp">
+    <PermissionGate action="read" subject="emails">
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
         <AnimatePresence mode="wait">
           <motion.div
-            key="helora-whatsapp"
+            key="helora-emails"
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -168,16 +155,15 @@ export default function WhatsAppPage() {
             <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-                  <Smartphone className="h-5 w-5" />
+                  <Mail className="h-5 w-5" />
                 </div>
-
                 <div className="min-w-0">
                   <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
-                    WhatsApp Messages
+                    Email Messages
                   </h1>
                   <p className="mt-1 text-sm font-medium text-slate-500">
-                    View customer messages, delivery status, and failed message
-                    attempts.
+                    Track transactional emails, delivery state, and provider
+                    message IDs.
                   </p>
                 </div>
               </div>
@@ -188,9 +174,9 @@ export default function WhatsAppPage() {
                   asChild
                   className="h-9 rounded-lg bg-white font-bold"
                 >
-                  <Link to="/app/emails">
-                    <Mail className="mr-2 h-4 w-4" />
-                    Email
+                  <Link to="/app/whatsapp">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
                   </Link>
                 </Button>
 
@@ -207,35 +193,42 @@ export default function WhatsAppPage() {
                   />
                   Refresh
                 </Button>
+
+                <PermissionGate action="create" subject="emails">
+                  <Button
+                    onClick={() => setComposeOpen(true)}
+                    className="h-9 rounded-lg font-bold shadow-sm"
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Email
+                  </Button>
+                </PermissionGate>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <WhatsAppStatCard
-                title="Total Messages"
+              <EmailStatCard
+                title="Total Emails"
                 value={stats.total}
-                description="All message records"
-                icon={MessageCircle}
+                description="All email records"
+                icon={Mail}
               />
-
-              <WhatsAppStatCard
+              <EmailStatCard
                 title="Sent"
                 value={stats.sent}
-                description="Sent, delivered, or read"
+                description="Accepted by provider"
+                icon={CheckCircle2}
+              />
+              <EmailStatCard
+                title="Pending"
+                value={stats.pending}
+                description="Saved before send"
                 icon={Send}
               />
-
-              <WhatsAppStatCard
-                title="Delivered"
-                value={stats.delivered}
-                description="Reached customer phone"
-                icon={CheckCheck}
-              />
-
-              <WhatsAppStatCard
+              <EmailStatCard
                 title="Failed"
                 value={stats.failed}
-                description="Need checking or retry"
+                description="Needs checking"
                 icon={AlertTriangle}
               />
             </div>
@@ -243,35 +236,42 @@ export default function WhatsAppPage() {
             <Card className="rounded-lg border-slate-200 shadow-sm">
               <CardContent className="p-3 md:p-4">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="grid w-full gap-3 md:grid-cols-[1fr_180px_180px] xl:max-w-4xl">
+                  <div className="grid w-full gap-3 md:grid-cols-[1fr_180px_180px_180px] xl:max-w-5xl">
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
-                        value={search}
+                        value={recipientEmail}
                         onChange={(event) => {
-                          setSearch(event.target.value);
+                          setRecipientEmail(event.target.value);
                           setPageIndex(0);
                         }}
-                        placeholder="Search customer, phone, order number, message..."
+                        placeholder="Search recipient email..."
                         className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
                       />
                     </div>
-
+                    <Input
+                      value={relatedEntityId}
+                      onChange={(event) => {
+                        setRelatedEntityId(event.target.value);
+                        setPageIndex(0);
+                      }}
+                      placeholder="Related entity ID"
+                      className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
+                    />
                     <Input
                       type="date"
-                      value={dateFrom}
+                      value={fromDate}
                       onChange={(event) => {
-                        setDateFrom(event.target.value);
+                        setFromDate(event.target.value);
                         setPageIndex(0);
                       }}
                       className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
                     />
-
                     <Input
                       type="date"
-                      value={dateTo}
+                      value={toDate}
                       onChange={(event) => {
-                        setDateTo(event.target.value);
+                        setToDate(event.target.value);
                         setPageIndex(0);
                       }}
                       className="h-10 rounded-lg border-slate-200 bg-slate-50 font-semibold shadow-none focus-visible:bg-white"
@@ -291,40 +291,25 @@ export default function WhatsAppPage() {
                         setPageIndex(0);
                       }}
                     />
-
                     <FilterDropdown
-                      label="Type"
+                      label="Entity"
                       value={
-                        typeFilters.find((item) => item.value === typeFilter)
-                          ?.label ?? "Type"
+                        entityFilters.find((item) => item.value === entityFilter)
+                          ?.label ?? "Entity"
                       }
-                      items={typeFilters}
+                      items={entityFilters}
                       onSelect={(value) => {
-                        setTypeFilter(value as TypeFilter);
+                        setEntityFilter(value as EntityFilter);
                         setPageIndex(0);
                       }}
                     />
 
-                    <FilterDropdown
-                      label="Direction"
-                      value={
-                        directionFilters.find(
-                          (item) => item.value === directionFilter
-                        )?.label ?? "Direction"
-                      }
-                      items={directionFilters}
-                      onSelect={(value) => {
-                        setDirectionFilter(value as DirectionFilter);
-                        setPageIndex(0);
-                      }}
-                    />
-
-                    {(search ||
+                    {(recipientEmail ||
                       statusFilter !== "ALL" ||
-                      typeFilter !== "ALL" ||
-                      directionFilter !== "ALL" ||
-                      dateFrom ||
-                      dateTo) && (
+                      entityFilter !== "ALL" ||
+                      relatedEntityId ||
+                      fromDate ||
+                      toDate) && (
                       <Button
                         variant="ghost"
                         onClick={resetFilters}
@@ -343,38 +328,35 @@ export default function WhatsAppPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <CardTitle className="text-base font-black text-slate-950">
-                      Message Log
+                      Email Log
                     </CardTitle>
                     <CardDescription className="mt-1 text-sm font-medium text-slate-500">
-                      Check which WhatsApp messages were sent, delivered, read,
-                      or failed.
+                      Review transactional emails sent by Helora ERP.
                     </CardDescription>
                   </div>
-
                   <Badge
                     variant="outline"
                     className="hidden rounded-lg px-3 py-1 font-bold text-slate-600 sm:inline-flex"
                   >
-                    {total} messages
+                    {total} emails
                   </Badge>
                 </div>
               </CardHeader>
 
               <CardContent className="min-h-0 flex-1 overflow-auto p-0">
-                <WhatsAppMessageTable
-                  messages={messages}
+                <EmailTable
+                  emails={emails}
                   isLoading={isLoading}
+                  isResending={resendEmail.isPending}
                   onView={openDetails}
-                  onRetry={handleRetry}
-                  isRetrying={retryMessage.isPending}
+                  onResend={handleResend}
                 />
               </CardContent>
 
-              <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3">
+              <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-slate-500">
                   Page {pageIndex + 1} of {pageCount}
                 </p>
-
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -382,9 +364,9 @@ export default function WhatsAppPage() {
                     onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
                     className="h-9 rounded-lg font-bold"
                   >
+                    <ChevronLeft className="mr-1 h-4 w-4" />
                     Previous
                   </Button>
-
                   <Button
                     variant="outline"
                     disabled={!pagination?.hasNextPage}
@@ -392,6 +374,7 @@ export default function WhatsAppPage() {
                     className="h-9 rounded-lg font-bold"
                   >
                     Next
+                    <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -399,22 +382,29 @@ export default function WhatsAppPage() {
           </motion.div>
         </AnimatePresence>
 
-        <WhatsAppMessageDetailsDialog
+        <SendEmailDialog
+          open={composeOpen}
+          isPending={sendEmail.isPending}
+          onOpenChange={setComposeOpen}
+          onSend={(payload) => sendEmail.mutateAsync(payload)}
+        />
+
+        <EmailDetailDialog
           open={detailsOpen}
-          message={selectedMessage}
-          isRetrying={retryMessage.isPending}
+          email={selectedEmail}
+          isResending={resendEmail.isPending}
           onClose={() => {
             setDetailsOpen(false);
-            setSelectedMessage(null);
+            setSelectedEmail(null);
           }}
-          onRetry={handleRetry}
+          onResend={handleResend}
         />
       </div>
     </PermissionGate>
   );
 }
 
-function WhatsAppStatCard({
+function EmailStatCard({
   title,
   value,
   description,
@@ -438,8 +428,7 @@ function WhatsAppStatCard({
               {description}
             </p>
           </div>
-
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
             <Icon className="h-5 w-5" />
           </div>
         </div>
@@ -473,11 +462,9 @@ function FilterDropdown({
           <ChevronDown className="ml-2 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-
         {items.map((item) => (
           <DropdownMenuItem key={item.value} onClick={() => onSelect(item.value)}>
             {item.label}
@@ -488,18 +475,18 @@ function FilterDropdown({
   );
 }
 
-function WhatsAppMessageTable({
-  messages,
+function EmailTable({
+  emails,
   isLoading,
-  isRetrying,
+  isResending,
   onView,
-  onRetry,
+  onResend,
 }: {
-  messages: WhatsAppMessage[];
+  emails: EmailLog[];
   isLoading: boolean;
-  isRetrying?: boolean;
-  onView: (message: WhatsAppMessage) => void;
-  onRetry: (message: WhatsAppMessage) => void;
+  isResending?: boolean;
+  onView: (email: EmailLog) => void;
+  onResend: (email: EmailLog) => void;
 }) {
   if (isLoading) {
     return (
@@ -514,138 +501,113 @@ function WhatsAppMessageTable({
     );
   }
 
-  if (!messages.length) {
+  if (!emails.length) {
     return (
       <div className="flex h-80 flex-col items-center justify-center p-6 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-          <MessageCircle className="h-7 w-7" />
+          <Mail className="h-7 w-7" />
         </div>
-
         <h3 className="mt-4 text-lg font-black text-slate-950">
-          No WhatsApp messages found
+          No email logs found
         </h3>
         <p className="mt-1 max-w-md text-sm font-medium text-slate-500">
-          Messages will appear here after Helora sends order updates, payment
-          messages, or reminders.
+          Emails will appear here after Helora sends order updates, receipts,
+          statements, and reminders.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="min-w-287.5">
-      <div className="grid grid-cols-[1.2fr_1fr_1.5fr_1fr_1fr_1fr_70px] border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
-        <div>Customer</div>
-        <div>Phone</div>
-        <div>Message</div>
-        <div>Type</div>
-        <div>Status</div>
-        <div>Created</div>
-        <div />
-      </div>
-
-      {messages.map((message) => {
-        const customerName = message.customer?.fullName || "Unknown customer";
-        const orderNumber = message.order?.orderNumber;
-
-        return (
-          <div
-            key={message.id}
-            className="grid grid-cols-[1.2fr_1fr_1.5fr_1fr_1fr_1fr_70px] items-center border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Recipient</TableHead>
+          <TableHead>Subject</TableHead>
+          <TableHead>Entity</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Provider</TableHead>
+          <TableHead>Created</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {emails.map((email) => (
+          <TableRow
+            key={email.id}
+            className="cursor-pointer"
+            onClick={() => onView(email)}
           >
-            <button
-              type="button"
-              onClick={() => onView(message)}
-              className="min-w-0 text-left"
-            >
-              <p className="truncate font-black text-slate-950">
-                {customerName}
+            <TableCell>
+              <p className="font-bold text-slate-900">{email.recipientEmail}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {email.cc?.length ? `CC ${email.cc.length}` : "Direct email"}
               </p>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-500">
-                {orderNumber ? `Order ${orderNumber}` : "No order linked"}
-              </p>
-            </button>
-
-            <div>
-              <p className="font-bold text-slate-800">{message.phoneNumber}</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
-                {message.direction === "OUTBOUND"
-                  ? "Sent to customer"
-                  : "Received"}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onView(message)}
-              className="min-w-0 text-left"
-            >
-              <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-700">
-                {message.message}
-              </p>
-
-              {message.status === "FAILED" && message.errorMessage && (
-                <p className="mt-1 truncate text-xs font-bold text-red-600">
-                  {message.errorMessage}
-                </p>
+            </TableCell>
+            <TableCell className="max-w-100 truncate">{email.subject}</TableCell>
+            <TableCell>
+              {email.relatedEntityType ? (
+                <Badge variant="outline" className="rounded-lg">
+                  {email.relatedEntityType}
+                </Badge>
+              ) : (
+                "-"
               )}
-            </button>
-
-            <WhatsAppMessageTypeBadge type={message.type} />
-
-            <WhatsAppMessageStatusBadge status={message.status} />
-
-            <div>
-              <p className="font-bold text-slate-800">
-                {formatDate(message.createdAt)}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
-                {formatTime(message.createdAt)}
-              </p>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onView(message)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-
-                {message.status === "FAILED" && (
-                  <DropdownMenuItem
-                    disabled={isRetrying}
-                    onClick={() => onRetry(message)}
+            </TableCell>
+            <TableCell>
+              <EmailStatusBadge status={email.status} />
+            </TableCell>
+            <TableCell>{email.provider}</TableCell>
+            <TableCell>{formatDateTime(email.createdAt)}</TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-lg"
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Try Again
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onView(email);
+                    }}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      })}
-    </div>
+                  <DropdownMenuItem
+                    disabled={isResending}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onResend(email);
+                    }}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Resend
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-LK", {
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString("en-LK", {
     year: "numeric",
     month: "short",
     day: "2-digit",
-  });
-}
-
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString("en-LK", {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
+

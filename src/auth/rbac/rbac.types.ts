@@ -16,6 +16,7 @@ export type PageSubject =
   | "employees"
   | "attendance"
   | "whatsapp"
+  | "emails"
   | "reports"
   | "settings"
   | "settings-users"

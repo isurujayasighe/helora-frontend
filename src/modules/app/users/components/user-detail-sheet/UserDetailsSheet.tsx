@@ -103,7 +103,11 @@ export function UserDetailsSheet({ open, userId, onClose }: Props) {
         // We only call this if the role is selected.
         // Note: The hook handles success/error toasts internally.
         if (value.roleId) {
-           await updateRole({ userId, roleId: value.roleId });
+           const tenantId = user?.memberships?.[0]?.tenantId;
+
+           if (tenantId) {
+             await updateRole({ userId, tenantId, roleId: value.roleId });
+           }
         }
 
         // B. Handle Name/Email update (Placeholder)
@@ -165,7 +169,7 @@ export function UserDetailsSheet({ open, userId, onClose }: Props) {
                  variant={user?.isActive ? 'default' : 'secondary'} 
                  className={cn("mr-2 capitalize", user?.isActive && "bg-emerald-600 hover:bg-emerald-700")}
                >
-                 {user?.isActive || 'Unknown'}
+                 {user?.isActive ? "Active" : "Inactive"}
                </Badge>
             )}
             <SheetClose asChild>

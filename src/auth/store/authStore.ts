@@ -19,6 +19,7 @@ interface AuthState {
   user: AuthUser | null;
 
   setAuth: (payload: { accessToken: string; user: AuthUser }) => void;
+  setAccessToken: (accessToken: string) => void;
   logout: () => void;
 }
 
@@ -43,6 +44,20 @@ export const useAuthStore = create<AuthState>()(
             },
             false,
             "auth/setAuth"
+          );
+        },
+
+        setAccessToken: (accessToken) => {
+          apiClient.defaults.headers.common["Authorization"] =
+            `Bearer ${accessToken}`;
+
+          set(
+            {
+              status: "authenticated",
+              accessToken,
+            },
+            false,
+            "auth/setAccessToken"
           );
         },
 

@@ -25,6 +25,7 @@ import {
   MoreHorizontal,
   User,
   LogOut,
+  Mail,
 } from "lucide-react";
 
 
@@ -168,9 +169,20 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
         ],
       },
       {
-        title: "WhatsApp",
-        url: "/app/whatsapp",
+        title: "Communication",
         icon: MessageCircle,
+        children: [
+          {
+            title: "Email",
+            url: "/app/emails",
+            icon: Mail,
+          },
+          {
+            title: "WhatsApp",
+            url: "/app/whatsapp",
+            icon: MessageCircle,
+          },
+        ],
       },
       {
         title: "Reports",

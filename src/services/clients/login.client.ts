@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../../auth/store/authStore';
 import { appConfig } from '@/config/runtime-config';
+import { refreshSession } from '@/auth/api/refresh-session';
 
 // --- 1. Helper: Extract URL Context (Keep this logic) ---
 export function getTenantInfo() {
@@ -80,17 +81,11 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Call Refresh Endpoint (Sends HttpOnly Cookie)
-        const { data } = await axios.post(
-          '/auth/refresh', 
-          { withCredentials: true }
-        );
-
-        // 1. Update Store with new Token
-        useAuthStore.getState().setAuth(data.accessToken);
+        const { accessToken } = await refreshSession();
 
         // 2. Update Header on the failed request
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        originalRequest.headers = originalRequest.headers ?? {};
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         
         // 3. Re-inject Headers (Just to be safe for the retry)
         const state = useAuthStore.getState();

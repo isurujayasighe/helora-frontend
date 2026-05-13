@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
-import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 import { EnterpriseLottieLoader } from "@/components/common/IntialLoader";
-import { appConfig } from "@/config/runtime-config";
+import { refreshSession } from "../api/refresh-session";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const status = useAuthStore((state) => state.status);
@@ -18,27 +17,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-        const baseURL = appConfig.API_URL || "/api";
+        const { accessToken, user } = await refreshSession();
 
-        const response = await axios.post(
-          `${baseURL}/auth/refresh`,
-          {},
-          {
-            withCredentials: true,
-            headers: {
-              "Content-Type": "application/json",
-            },
+        if (accessToken) {
+          if (user) {
+            setAuth({
+              accessToken,
+              user,
+            });
           }
-        );
-
-        const accessToken = response.data?.accessToken;
-        const user = response.data?.user;
-
-        if (accessToken && user) {
-          setAuth({
-            accessToken,
-            user,
-          });
           return;
         }
 

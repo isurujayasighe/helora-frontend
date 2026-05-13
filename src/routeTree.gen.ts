@@ -20,6 +20,7 @@ import { Route as AuthenticatedAppWhatsappRouteRouteImport } from './routes/_aut
 import { Route as AuthenticatedAppUsersRouteRouteImport } from './routes/_authenticated/app/users/route'
 import { Route as AuthenticatedAppPackageTemplatesRouteRouteImport } from './routes/_authenticated/app/package-templates/route'
 import { Route as AuthenticatedAppMeasurementsRouteRouteImport } from './routes/_authenticated/app/measurements/route'
+import { Route as AuthenticatedAppEmailsRouteRouteImport } from './routes/_authenticated/app/emails/route'
 import { Route as AuthenticatedAppCategoryRouteRouteImport } from './routes/_authenticated/app/category/route'
 import { Route as AuthenticatedAppSupportIndexRouteImport } from './routes/_authenticated/app/support/index'
 import { Route as AuthenticatedAppSettingsIndexRouteImport } from './routes/_authenticated/app/settings/index'
@@ -95,6 +96,12 @@ const AuthenticatedAppMeasurementsRouteRoute =
   AuthenticatedAppMeasurementsRouteRouteImport.update({
     id: '/app/measurements',
     path: '/app/measurements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppEmailsRouteRoute =
+  AuthenticatedAppEmailsRouteRouteImport.update({
+    id: '/app/emails',
+    path: '/app/emails',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppCategoryRouteRoute =
@@ -214,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/reset-password': typeof authResetPasswordRoute
   '/app/category': typeof AuthenticatedAppCategoryRouteRoute
+  '/app/emails': typeof AuthenticatedAppEmailsRouteRoute
   '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
   '/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
   '/app/users': typeof AuthenticatedAppUsersRouteRoute
@@ -244,6 +252,7 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/reset-password': typeof authResetPasswordRoute
   '/app/category': typeof AuthenticatedAppCategoryRouteRoute
+  '/app/emails': typeof AuthenticatedAppEmailsRouteRoute
   '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
   '/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
   '/app/users': typeof AuthenticatedAppUsersRouteRoute
@@ -276,6 +285,7 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
   '/_authenticated/app/category': typeof AuthenticatedAppCategoryRouteRoute
+  '/_authenticated/app/emails': typeof AuthenticatedAppEmailsRouteRoute
   '/_authenticated/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
   '/_authenticated/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRouteRoute
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/app/category'
+    | '/app/emails'
     | '/app/measurements'
     | '/app/package-templates'
     | '/app/users'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/app/category'
+    | '/app/emails'
     | '/app/measurements'
     | '/app/package-templates'
     | '/app/users'
@@ -369,6 +381,7 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(auth)/reset-password'
     | '/_authenticated/app/category'
+    | '/_authenticated/app/emails'
     | '/_authenticated/app/measurements'
     | '/_authenticated/app/package-templates'
     | '/_authenticated/app/users'
@@ -479,6 +492,13 @@ declare module '@tanstack/react-router' {
       path: '/app/measurements'
       fullPath: '/app/measurements'
       preLoaderRoute: typeof AuthenticatedAppMeasurementsRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/emails': {
+      id: '/_authenticated/app/emails'
+      path: '/app/emails'
+      fullPath: '/app/emails'
+      preLoaderRoute: typeof AuthenticatedAppEmailsRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/category': {
@@ -612,6 +632,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppCategoryRouteRoute: typeof AuthenticatedAppCategoryRouteRoute
+  AuthenticatedAppEmailsRouteRoute: typeof AuthenticatedAppEmailsRouteRoute
   AuthenticatedAppMeasurementsRouteRoute: typeof AuthenticatedAppMeasurementsRouteRoute
   AuthenticatedAppPackageTemplatesRouteRoute: typeof AuthenticatedAppPackageTemplatesRouteRoute
   AuthenticatedAppUsersRouteRoute: typeof AuthenticatedAppUsersRouteRoute
@@ -637,6 +658,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppCategoryRouteRoute: AuthenticatedAppCategoryRouteRoute,
+  AuthenticatedAppEmailsRouteRoute: AuthenticatedAppEmailsRouteRoute,
   AuthenticatedAppMeasurementsRouteRoute:
     AuthenticatedAppMeasurementsRouteRoute,
   AuthenticatedAppPackageTemplatesRouteRoute:

@@ -51,10 +51,15 @@ export function CreateUserDialog({ open, onClose }: Props) {
 
     onSubmit: async ({ value }) => {
       try {
+        const [firstName, ...lastNameParts] = value.fullName.trim().split(/\s+/);
+
         await createUser({
-          userName: value.fullName,
+          firstName,
+          lastName: lastNameParts.join(" ") || undefined,
           email: value.email,
-          roleID: value.role,
+          roleId: value.role,
+          status: "INVITED",
+          isActiveAccess: true,
         });
 
         onClose();
@@ -82,7 +87,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-3xl p-0 sm:max-w-2xl">
+      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-2xl gap-0">
         {/* Header */}
         <DialogHeader className="border-b bg-white px-5 py-4">
           <div className="flex items-center gap-3">
@@ -341,7 +346,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
               onClick={onClose}
               disabled={isPending}
               type="button"
-              className="h-11 rounded-2xl font-bold"
+              className="h-11 font-bold"
             >
               Cancel
             </Button>
@@ -353,7 +358,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                   type="button"
                   onClick={form.handleSubmit}
                   disabled={!canSubmit || isPending}
-                  className="h-11 min-w-36 rounded-2xl font-bold"
+                  className="h-11 min-w-36 font-bold"
                 >
                   {isPending ? (
                     <>

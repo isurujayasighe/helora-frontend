@@ -16,7 +16,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ChevronLeft,
   ChevronDown,
+  ChevronRight,
   Download,
   ListFilter,
   MoreVerticalIcon,
@@ -31,24 +33,17 @@ import {
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
-import { DataTable } from "./components/data-table/user-table";
-import { usersColumns } from "./components/data-table/user-column";
 import { UserDetailsSheet } from "./components/user-detail-sheet/UserDetailsSheet";
 import { CreateUserDialog } from "./components/create-user-sheet/create-user-sheet";
 import { DeleteUserDialog } from "./components/deleteUserDialog";
+import { UsersTable } from "./components/users-table";
 
 import { useUsersQuery, type User } from "./api/useUserDetails";
 import { useDeleteUser } from "./api/useDeleteUser";
 import { Route } from "@/routes/_authenticated/app/users/route";
+import { useGetRoles } from "@/api/useGetRoles";
 
-type UserStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
-type UserRoleFilter =
-  | "ALL"
-  | "OWNER"
-  | "ADMIN"
-  | "MANAGER"
-  | "STAFF"
-  | "TAILOR";
+type UserStatusFilter = "ALL" | "ACTIVE" | "INVITED" | "DISABLED";
 
 const STATUS_FILTERS: Array<{
   label: string;
@@ -56,19 +51,8 @@ const STATUS_FILTERS: Array<{
 }> = [
   { label: "All users", value: "ALL" },
   { label: "Active", value: "ACTIVE" },
-  { label: "Inactive", value: "INACTIVE" },
-];
-
-const ROLE_FILTERS: Array<{
-  label: string;
-  value: UserRoleFilter;
-}> = [
-  { label: "All roles", value: "ALL" },
-  { label: "Owner", value: "OWNER" },
-  { label: "Admin", value: "ADMIN" },
-  { label: "Manager", value: "MANAGER" },
-  { label: "Staff", value: "STAFF" },
-  { label: "Tailor", value: "TAILOR" },
+  { label: "Invited", value: "INVITED" },
+  { label: "Disabled", value: "DISABLED" },
 ];
 
 export default function HeloraUsersPage() {
@@ -76,7 +60,6 @@ export default function HeloraUsersPage() {
 
   const { userId, action } = Route.useSearch();
 
-  const canManageAll = useCan("manage", "all");
   const canCreateUser =
     useCan("create", "settings-users") || useCan("create", "all");
   const canDeleteUser =
@@ -84,57 +67,53 @@ export default function HeloraUsersPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
-  const [roleFilter, setRoleFilter] = useState<UserRoleFilter>("ALL");
+  const [roleFilter, setRoleFilter] = useState("ALL");
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
+  const { data: rolesResponse } = useGetRoles();
+  const roles = rolesResponse?.items ?? [];
 
   const { data, isLoading, isRefetching, refetch } = useUsersQuery({
     pageIndex: pagination.pageIndex,
     pageSize: pagination.pageSize,
     search,
-
-    /**
-     * Add these to your hook only if backend supports them.
-     * If not supported yet, remove these two fields and filter server-side later.
-     */
     status: statusFilter === "ALL" ? undefined : statusFilter,
-    role: roleFilter === "ALL" ? undefined : roleFilter,
-  } as any);
+    roleId: roleFilter === "ALL" ? undefined : roleFilter,
+  });
 
   const users = data?.items ?? [];
   const totalUsers = data?.total ?? 0;
+  const usersPagination = data?.pagination ?? {
+    page: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   const userStats = useMemo(() => {
     const activeUsers = users.filter((user: any) => {
-      return user.status === "ACTIVE" || user.isActive === true;
+      return user.status === "ACTIVE" && user.isActive === true;
     }).length;
 
     const adminUsers = users.filter((user: any) => {
-      const roleName =
-        user.roleName ||
-        user.role ||
-        user.accessLevel ||
-        user.membershipRole ||
-        "";
+      const roleName = user.memberships
+        ?.map((membership: any) => membership.role?.name)
+        .join(" ");
 
       return String(roleName).toUpperCase().includes("ADMIN");
     }).length;
 
     const tailorUsers = users.filter((user: any) => {
-      const roleName =
-        user.roleName ||
-        user.role ||
-        user.accessLevel ||
-        user.membershipRole ||
-        "";
+      const roleName = user.memberships
+        ?.map((membership: any) => membership.role?.name)
+        .join(" ");
 
       return String(roleName).toUpperCase().includes("TAILOR");
     }).length;
@@ -210,7 +189,11 @@ export default function HeloraUsersPage() {
 
     if (!selectedUserId) return;
 
-    deleteUser(selectedUserId, {
+    const tenantId = userToDelete?.memberships?.[0]?.tenantId;
+
+    if (!tenantId) return;
+
+    deleteUser({ userId: selectedUserId, tenantId }, {
       onSuccess: () => {
         setDeleteDialogOpen(false);
         setUserToDelete(null);
@@ -228,6 +211,16 @@ export default function HeloraUsersPage() {
       pageIndex: 0,
     }));
   };
+
+  const safeTotalPages = Math.max(usersPagination.totalPages || 1, 1);
+  const canGoPrevious = usersPagination.hasPreviousPage || pagination.pageIndex > 0;
+  const canGoNext =
+    usersPagination.hasNextPage || pagination.pageIndex + 1 < safeTotalPages;
+
+  const selectedRoleLabel =
+    roleFilter === "ALL"
+      ? "All"
+      : roles.find((role) => role.id === roleFilter)?.name ?? "Role";
 
   return (
     <PermissionGate action="read" subject="settings-users">
@@ -388,7 +381,7 @@ export default function HeloraUsersPage() {
                             variant="secondary"
                             className="ml-2 rounded-lg bg-slate-100 text-slate-700"
                           >
-                            {roleFilter === "ALL" ? "All" : roleFilter}
+                            {selectedRoleLabel}
                           </Badge>
                           <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
@@ -398,19 +391,32 @@ export default function HeloraUsersPage() {
                         <DropdownMenuLabel>Filter by role</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        {ROLE_FILTERS.map((item) => (
+                        <DropdownMenuCheckboxItem
+                          checked={roleFilter === "ALL"}
+                          onCheckedChange={() => {
+                            setRoleFilter("ALL");
+                            setPagination((prev) => ({
+                              ...prev,
+                              pageIndex: 0,
+                            }));
+                          }}
+                        >
+                          All roles
+                        </DropdownMenuCheckboxItem>
+
+                        {roles.map((role) => (
                           <DropdownMenuCheckboxItem
-                            key={item.value}
-                            checked={roleFilter === item.value}
+                            key={role.id}
+                            checked={roleFilter === role.id}
                             onCheckedChange={() => {
-                              setRoleFilter(item.value);
+                              setRoleFilter(role.id);
                               setPagination((prev) => ({
                                 ...prev,
                                 pageIndex: 0,
                               }));
                             }}
                           >
-                            {item.label}
+                            {role.name}
                           </DropdownMenuCheckboxItem>
                         ))}
                       </DropdownMenuContent>
@@ -474,20 +480,63 @@ export default function HeloraUsersPage() {
               </CardHeader>
 
               <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
-                <DataTable
-                  data={users}
-                  columns={usersColumns({
-                    isSuperAdmin: canManageAll,
-                    onView: openUserSheet,
-                    onDelete: handleDeleteClick,
-                    canDelete: canDeleteUser,
-                  })}
-                  pageCount={Math.ceil(totalUsers / pagination.pageSize)}
-                  pagination={pagination}
-                  onPaginationChange={setPagination}
+                <UsersTable
+                  users={users}
                   isLoading={isLoading}
+                  canDelete={canDeleteUser}
+                  onView={openUserSheet}
+                  onDelete={handleDeleteClick}
                 />
               </CardContent>
+
+              <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-500">
+                  Showing {users.length} of {totalUsers} users
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg"
+                    disabled={!canGoPrevious || isLoading || isRefetching}
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        pageIndex: Math.max(prev.pageIndex - 1, 0),
+                      }))
+                    }
+                  >
+                    <ChevronLeft className="mr-1 h-4 w-4" />
+                    Previous
+                  </Button>
+
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
+                    {usersPagination.page} / {safeTotalPages}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg"
+                    disabled={!canGoNext || isLoading || isRefetching}
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        pageIndex: Math.min(
+                          prev.pageIndex + 1,
+                          safeTotalPages - 1,
+                        ),
+                      }))
+                    }
+                  >
+                    Next
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </Card>
           </motion.div>
         </AnimatePresence>
