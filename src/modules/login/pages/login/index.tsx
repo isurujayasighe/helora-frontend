@@ -51,14 +51,14 @@ export default function LoginPage() {
     },
   });
 
-useEffect(() => {
-  if (isSuccess && user) {
-    navigate({
-      to: "/app/dashboard",
-      replace: true,
-    });
-  }
-}, [isSuccess, user, navigate]);
+  useEffect(() => {
+    if (isSuccess && user) {
+      navigate({
+        to: "/app/dashboard",
+        replace: true,
+      });
+    }
+  }, [isSuccess, user, navigate]);
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -74,14 +74,14 @@ useEffect(() => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f5f6ff]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),transparent_45%)]" />
-      <div className="absolute bottom-0 right-0 h-72 w-72 rounded-tl-[999px] bg-white/30" />
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="absolute inset-x-0 top-0 h-48 bg-white/80" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-slate-100/70" />
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-6">
-        <div className="w-full max-w-117.5 rounded-lg border border-slate-200/80 bg-white/95 p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-8">
+        <div className="w-full max-w-117.5 rounded-lg border border-border bg-white p-6 shadow-lg sm:p-8">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-2xl">
-              Welcome Back
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              Welcome back
             </h2>
             <p className="mt-1 text-sm text-slate-600 sm:text-sm">
               Please enter your credentials to access the floor.
@@ -101,7 +101,7 @@ useEffect(() => {
                     <FormControl>
                      <Input
                           {...field}
-                          placeholder="name@tailorflow.com"
+                          placeholder="name@helora.app"
                           className={`text-sm ${
                             form.formState.errors.email
                               ? "border-red-500"
@@ -126,7 +126,7 @@ useEffect(() => {
 
                       <Button
                         variant="link"
-                        className="h-auto p-0 text-xs font-medium text-blue-700"
+                        className="h-auto p-0 text-xs font-medium text-primary"
                         type="button"
                         onClick={() => navigate({ to: "/forgot-password" })}
                       >
@@ -171,16 +171,16 @@ useEffect(() => {
               <Button
                 type="submit"
                 disabled={isLoading || !form.formState.isValid}
-                className="h-12 w-full rounded-xl bg-blue-700 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-70"
+                className="h-12 w-full rounded-lg bg-primary text-sm font-semibold text-white hover:bg-[#151343] disabled:opacity-70"
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loging In...
+                    Logging in...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    Login In
+                    Log in
                     <ArrowRight className="h-4 w-4" />
                   </span>
                 )}
@@ -203,11 +203,11 @@ useEffect(() => {
             <button className="transition-colors hover:text-slate-800">
               Help Center
             </button>
-            <span className="text-slate-300">•</span>
+            <span className="text-slate-300">/</span>
             <button className="transition-colors hover:text-slate-800">
               IT Support
             </button>
-            <span className="text-slate-300">•</span>
+            <span className="text-slate-300">/</span>
             <button className="transition-colors hover:text-slate-800">
               Privacy Policy
             </button>

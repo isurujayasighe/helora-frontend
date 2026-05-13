@@ -1,6 +1,7 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { SidebarTrigger } from '../ui/sidebar'
+import { Search } from 'lucide-react'
 
 interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
   fixed?: boolean
@@ -30,14 +31,14 @@ export const Header = ({
   return (
     <header
       className={cn(
-        'bg-white flex h-14 items-center border border-slate-200  p-4 sm:gap-4 transition-shadow duration-300 dark:bg-secondary-900/75 dark:border-secondary-700/50',
+        'bg-white/95 backdrop-blur-xl flex h-14 items-center border-b border-border px-4 py-0 sm:gap-4 transition-shadow duration-300 dark:bg-secondary-900/75 dark:border-secondary-700/50',
         fixed && 'header-fixed peer/header fixed z-50 w-[inherit] ',
         offset > 10 && fixed ? 'shadow-sm' : 'shadow-0',
         className
       )}
       {...props}
     >
-      <SidebarTrigger variant='ghost' className='scale-125 sm:scale-100' />
+      <SidebarTrigger variant='ghost' className='scale-125 text-muted-foreground hover:text-primary sm:scale-100' />
       
       {children}
     </header>
@@ -45,3 +46,19 @@ export const Header = ({
 }
 
 Header.displayName = 'Header'
+
+export function HeaderQuickSearch() {
+  return (
+    <div className="relative hidden w-full max-w-lg md:block">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input
+        aria-label="Quick search"
+        placeholder="Search customers, orders, blocks..."
+        className="h-10 w-full rounded-lg border border-input bg-[#f9fafb] pl-10 pr-14 text-sm font-medium text-foreground shadow-xs outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10"
+      />
+      <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-white px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground lg:block">
+        Ctrl K
+      </kbd>
+    </div>
+  )
+}

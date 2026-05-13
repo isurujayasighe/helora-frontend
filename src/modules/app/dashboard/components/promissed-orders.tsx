@@ -25,30 +25,27 @@ function formatCalendarParts(dateString: string) {
   };
 }
 
-function PromisedOrderListItem({
-  order,
-}: {
-  order: UpcomingPromisedOrder;
-}) {
+function PromisedOrderListItem({ order }: { order: UpcomingPromisedOrder }) {
   const { month, day } = formatCalendarParts(order.date);
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-4">
-      <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
-        <span className="text-[10px] font-bold uppercase tracking-wide text-orange-500">
+    <div className="flex items-center gap-4 rounded-lg border border-border bg-white px-4 py-3 transition hover:border-slate-300">
+      <div className="flex h-13 w-13 shrink-0 flex-col items-center justify-center rounded-lg border border-border bg-slate-50">
+        <span className="text-[10px] font-semibold uppercase text-amber-600">
           {month}
         </span>
-        <span className="text-[18px] font-bold leading-none text-slate-950">
+        <span className="text-lg font-semibold leading-none text-slate-950">
           {day}
         </span>
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-slate-800">
+        <p className="truncate text-sm font-semibold text-slate-900">
           {order.title}
         </p>
-        <p className="mt-1 text-sm text-slate-500">
-          {order.units} {order.units === 1 ? "Unit" : "Units"} • #{order.orderNo}
+        <p className="mt-1 text-xs text-slate-500">
+          {order.units} {order.units === 1 ? "Unit" : "Units"} / #
+          {order.orderNo}
         </p>
       </div>
     </div>
@@ -60,19 +57,14 @@ export function UpcomingPromisedOrders({
   className,
 }: UpcomingPromisedOrdersProps) {
   return (
-    <Card
-      className={cn(
-        "rounded-xl border border-slate-200 bg-white p-0 shadow-none",
-        className
-      )}
-    >
-      <CardHeader className="px-6 pb-4 pt-5">
-        <CardTitle className="text-xl font-bold tracking-tight text-slate-950">
+    <Card className={cn("rounded-lg border-border bg-white p-0", className)}>
+      <CardHeader className="border-b border-border px-5 py-4">
+        <CardTitle className="text-base font-semibold text-slate-950">
           Upcoming Promised Orders
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="px-6 pb-6 pt-0">
+      <CardContent className="p-4">
         <div className="space-y-3">
           {orders.map((order) => (
             <PromisedOrderListItem key={order.id} order={order} />

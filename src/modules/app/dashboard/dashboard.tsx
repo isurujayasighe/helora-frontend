@@ -135,7 +135,7 @@ export default function Dashboard() {
 
   return (
     <PermissionGate action="read" subject="dashboard">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
         <AnimatePresence mode="wait">
           <motion.div
             key="helora-dashboard"
@@ -143,22 +143,20 @@ export default function Dashboard() {
             initial="hidden"
             animate="visible"
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={cn("flex h-full flex-col gap-4 p-3 md:p-5")}
+            className={cn("flex h-full flex-col gap-5 p-4 md:p-6")}
           >
-            {/* Header */}
-            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm">
                   <Shirt className="h-5 w-5" />
                 </div>
 
                 <div className="min-w-0">
-                  <h1 className="text-xl font-bold tracking-tight text-slate-950 md:text-2xl">
+                  <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                     Dashboard
                   </h1>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
-                    Track customers, blocks, orders, and promised deliveries in
-                    one place.
+                  <p className="mt-1 text-sm text-slate-500">
+                    Track customers, orders, production blocks, and promised deliveries.
                   </p>
                 </div>
               </div>
@@ -166,7 +164,7 @@ export default function Dashboard() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
-                  className="h-9 rounded-lg bg-white font-bold"
+                  className="h-10 rounded-lg bg-white"
                   onClick={() => navigate({ to: "/app/customers" })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -174,7 +172,7 @@ export default function Dashboard() {
                 </Button>
 
                 <Button
-                  className="h-9 rounded-lg font-bold shadow-sm"
+                  className="h-10 rounded-lg shadow-sm"
                   onClick={() => setIsCreateOrderOpen(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -183,7 +181,7 @@ export default function Dashboard() {
 
                 <Button
                   variant="outline"
-                  className="h-9 rounded-lg bg-white font-bold"
+                  className="h-10 rounded-lg bg-white"
                   onClick={() => navigate({ to: "/app/blocks" })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -192,10 +190,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Quick search */}
             <DashboardCustomerSearchCard />
 
-            {/* Stats */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {dashboardStats.map((stat) => (
                 <DashboardStatCard
@@ -210,24 +206,15 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Main work area */}
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-              <Card className="min-w-0 rounded-lg border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-0">
-                  <UpcomingPromisedOrders orders={upcomingOrders} />
-                </CardContent>
-              </Card>
+              <UpcomingPromisedOrders orders={upcomingOrders} />
 
-              <Card className="min-w-0 rounded-lg border-slate-200 bg-white shadow-sm">
-                <CardContent className="p-0">
-                  <RecentOrdersTableCard
-                    orders={recentOrders}
-                    currentPage={recentOrdersPage}
-                    totalPages={5}
-                    onPageChange={setRecentOrdersPage}
-                  />
-                </CardContent>
-              </Card>
+              <RecentOrdersTableCard
+                orders={recentOrders}
+                currentPage={recentOrdersPage}
+                totalPages={5}
+                onPageChange={setRecentOrdersPage}
+              />
             </div>
           </motion.div>
         </AnimatePresence>
@@ -263,7 +250,7 @@ function DashboardStatCard({
   return (
     <Card
       className={cn(
-        "rounded-lg border-slate-200 bg-white shadow-sm",
+        "rounded-lg border-border bg-white shadow-sm",
         danger && "border-red-200"
       )}
     >
@@ -271,12 +258,12 @@ function DashboardStatCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-slate-500">{title}</p>
+              <p className="text-sm font-medium text-slate-500">{title}</p>
 
               <Badge
                 variant="secondary"
                 className={cn(
-                  "rounded-lg px-2 py-0.5 text-xs font-bold",
+                  "px-2 py-0.5 text-xs font-semibold",
                   danger
                     ? "bg-red-50 text-red-700"
                     : "bg-slate-100 text-slate-600"
@@ -288,21 +275,21 @@ function DashboardStatCard({
 
             <p
               className={cn(
-                "mt-2 text-2xl font-black tracking-tight text-slate-950",
+                "mt-2 text-2xl font-semibold tracking-tight text-slate-950",
                 danger && "text-red-600"
               )}
             >
               {value}
             </p>
 
-            <p className="mt-1 text-xs font-semibold text-slate-400">
+            <p className="mt-1 text-xs text-slate-500">
               {description}
             </p>
           </div>
 
           <div
             className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700",
               danger && "bg-red-50 text-red-600"
             )}
           >

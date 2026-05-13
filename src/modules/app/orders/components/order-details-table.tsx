@@ -84,44 +84,44 @@ export function OrdersTable({
   const safeTotalPages = Math.max(totalPages, 1);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-white">
       <div className="overflow-x-auto">
         <Table className="min-w-275">
-          <TableHeader className="bg-slate-50">
-            <TableRow className="border-slate-200 hover:bg-slate-50">
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <TableHeader>
+            <TableRow>
+              <TableHead>
                 Order Number
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Customer Name
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Order Date
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Promised Date
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Status
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Item Count
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Total Amount
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead>
                 Balance
               </TableHead>
 
-              <TableHead className="px-4 py-4 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <TableHead className="text-right">
                 Actions
               </TableHead>
             </TableRow>
@@ -132,7 +132,7 @@ export function OrdersTable({
               <TableRow>
                 <TableCell
                   colSpan={9}
-                  className="h-32 px-4 py-10 text-center text-sm text-slate-500"
+                  className="h-32 text-center text-sm text-slate-500"
                 >
                   No orders found.
                 </TableCell>
@@ -141,29 +141,29 @@ export function OrdersTable({
               orders.map((order) => (
                 <TableRow
                   key={order.id}
-                  className="border-slate-100 transition-colors hover:bg-slate-50/70"
+                  className="border-border transition-colors"
                 >
-                  <TableCell className="px-4 py-4 text-xs font-semibold text-blue-600">
+                  <TableCell className="font-semibold text-primary">
                     #{order.orderNumber}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4  text-slate-700">
+                  <TableCell className="text-slate-700">
                     {order.customer?.fullName || "-"}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4  text-slate-600">
+                  <TableCell className="text-slate-600">
                     {formatDate(order.orderDate)}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4  text-slate-600">
+                  <TableCell className="text-slate-600">
                     {formatDate(order.promisedDate)}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4">
+                  <TableCell>
                     <Badge
                       variant="outline"
                       className={cn(
-                        "rounded-full text-[10px] font-semibold",
+                        "text-xs font-semibold",
                         statusClass(order.status),
                       )}
                     >
@@ -171,19 +171,19 @@ export function OrdersTable({
                     </Badge>
                   </TableCell>
 
-                  <TableCell className="px-4 py-4  text-slate-700">
+                  <TableCell className="text-slate-700">
                     {order._count?.items ?? order.items.length}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4  font-medium text-slate-800">
+                  <TableCell className="font-medium text-slate-800">
                     {formatCurrency(order.totalAmount)}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4 font-medium text-slate-800">
+                  <TableCell className="font-medium text-slate-800">
                     {formatCurrency(order.balanceAmount)}
                   </TableCell>
 
-                  <TableCell className="px-4 py-4 text-right">
+                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -213,7 +213,7 @@ export function OrdersTable({
         </Table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-border bg-[#fcfcfd] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm text-slate-500">
           Showing {orders.length} of {totalCount} orders
         </span>
@@ -229,7 +229,7 @@ export function OrdersTable({
             Previous
           </Button>
 
-          <div className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700">
+          <div className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
             {currentPage} / {safeTotalPages}
           </div>
 

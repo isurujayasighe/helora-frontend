@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Blocks,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Grid2x2,
   PackageCheck,
@@ -35,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useGetBlocks } from "./api/useGetBlocks";
+import { useGetCategories } from "./api/useGetCategories";
 import { BlocksTable } from "./components/blocks-table";
 import { BlockDetailsDialog } from "./components/block-details-dialog";
 import { CreateBlockDialog } from "./components/create-block-dialog";
@@ -56,8 +59,7 @@ const blockStatusOptions = [
 export default function BlocksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [customerId, setCustomerId] = useState("");
+  const [categoryId, setCategoryId] = useState("all");
   const [status, setStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -70,6 +72,10 @@ export default function BlocksPage() {
     null,
   );
   const [_editBlockOpen, setEditBlockOpen] = useState(false);
+  const { data: categoriesResponse, isLoading: isCategoriesLoading } =
+    useGetCategories();
+
+  const categories = categoriesResponse?.data ?? [];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -81,7 +87,7 @@ export default function BlocksPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, categoryId, customerId, status]);
+  }, [debouncedSearch, categoryId, status]);
 
   const {
     data: blocksResponse,
@@ -92,11 +98,10 @@ export default function BlocksPage() {
     page: currentPage,
     pageSize: PAGE_SIZE,
     search: debouncedSearch || undefined,
-    categoryId: categoryId || undefined,
-    customerId: customerId || undefined,
+    categoryId: categoryId === "all" ? undefined : categoryId,
     status: status === "all" ? undefined : status,
     includeCounts: false,
-    includeTotal: false,
+    includeTotal: true,
   });
 
   const blocksList = blocksResponse?.data.items ?? [];
@@ -120,11 +125,11 @@ export default function BlocksPage() {
     ).length;
 
     return {
-      totalBlocks: blocksList.length,
+      totalBlocks: pagination.totalItems,
       activeBlocks,
       defaultBlocks,
     };
-  }, [blocksList]);
+  }, [blocksList, pagination.totalItems]);
 
   const handleViewBlock = (blockId: string) => {
     setSelectedBlockId(blockId);
@@ -134,8 +139,7 @@ export default function BlocksPage() {
   const handleClearFilters = () => {
     setSearchTerm("");
     setDebouncedSearch("");
-    setCategoryId("");
-    setCustomerId("");
+    setCategoryId("all");
     setStatus("all");
     setCurrentPage(1);
   };
@@ -146,8 +150,13 @@ export default function BlocksPage() {
   };
 
   const hasFilters = Boolean(
-    debouncedSearch || categoryId || customerId || status !== "all",
+    debouncedSearch || categoryId !== "all" || status !== "all",
   );
+
+  const safeTotalPages = Math.max(pagination.totalPages || 1, 1);
+  const canGoPrevious = pagination.hasPreviousPage || currentPage > 1;
+  const canGoNext =
+    pagination.hasNextPage || currentPage < safeTotalPages;
 
   return (
     <PermissionGate action="read" subject="blocks">
@@ -262,7 +271,7 @@ export default function BlocksPage() {
               </CardHeader>
 
               <CardContent className="p-4">
-                <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
+                <div className="grid gap-3 lg:grid-cols-[1fr_240px_180px_auto]">
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -274,19 +283,25 @@ export default function BlocksPage() {
                     />
                   </div>
 
-                  <Input
-                    value={categoryId}
-                    onChange={(event) => setCategoryId(event.target.value)}
-                    placeholder="Category ID"
-                    className="h-10 rounded-lg border-slate-200 bg-white"
-                  />
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
 
-                  <Input
-                    value={customerId}
-                    onChange={(event) => setCustomerId(event.target.value)}
-                    placeholder="Customer ID"
-                    className="h-10 rounded-lg border-slate-200 bg-white"
-                  />
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                      {isCategoriesLoading && (
+                        <SelectItem value="loading" disabled>
+                          Loading categories...
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
 
                   <div className="flex gap-2">
                     <Select value={status} onValueChange={setStatus}>
@@ -360,6 +375,48 @@ export default function BlocksPage() {
                   />
                 )}
               </CardContent>
+
+              <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-500">
+                  Showing {blocksList.length} of {pagination.totalItems} blocks
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg"
+                    disabled={!canGoPrevious || isFetching}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(page - 1, 1))
+                    }
+                  >
+                    <ChevronLeft className="mr-1 h-4 w-4" />
+                    Previous
+                  </Button>
+
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
+                    {pagination.page} / {safeTotalPages}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg"
+                    disabled={!canGoNext || isFetching}
+                    onClick={() =>
+                      setCurrentPage((page) =>
+                        Math.min(page + 1, safeTotalPages),
+                      )
+                    }
+                  >
+                    Next
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </Card>
           </motion.div>
         </AnimatePresence>
@@ -402,7 +459,7 @@ function BlockStatCard({
   return (
     <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
       <CardContent className="flex items-center gap-3 p-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
           <Icon className="h-5 w-5" />
         </div>
 

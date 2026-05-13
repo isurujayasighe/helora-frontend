@@ -198,7 +198,7 @@ export default function OrdersPage() {
 
   return (
     <PermissionGate action="read" subject="orders">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
         <AnimatePresence mode="wait">
           <motion.div
             key="helora-orders-page"
@@ -206,24 +206,24 @@ export default function OrdersPage() {
             initial="hidden"
             animate="visible"
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex h-full flex-col gap-4 p-3 md:p-5"
+            className="flex h-full flex-col gap-5 p-4 md:p-6"
           >
-            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm">
                   <Shirt className="h-5 w-5" />
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-xl font-bold text-slate-900">
-                      My Orders
+                    <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-950">
+                      Orders
                     </h1>
 
                     {isFetching && !isLoading && (
                       <Badge
                         variant="secondary"
-                        className="rounded-lg bg-blue-50 text-blue-700"
+                        className="border-blue-200 bg-blue-50 text-blue-700"
                       >
                         Updating
                       </Badge>
@@ -231,7 +231,7 @@ export default function OrdersPage() {
                   </div>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    View, filter and manage customer garment orders.
+                    View, filter, and manage customer garment orders.
                   </p>
                 </div>
               </div>
@@ -242,7 +242,7 @@ export default function OrdersPage() {
                   variant="outline"
                   onClick={() => refetch()}
                   disabled={isFetching}
-                  className="rounded-lg"
+                  className="h-10 rounded-lg"
                 >
                   <RefreshCw
                     className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")}
@@ -250,7 +250,7 @@ export default function OrdersPage() {
                   Refresh
                 </Button>
 
-                <Button type="button" variant="outline" className="rounded-lg">
+                <Button type="button" variant="outline" className="h-10 rounded-lg">
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
@@ -259,7 +259,7 @@ export default function OrdersPage() {
                   <Button
                     type="button"
                     onClick={handleOpenCreateOrder}
-                    className="rounded-lg bg-slate-900 hover:bg-slate-800"
+                    className="h-10 rounded-lg"
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Create Order
@@ -299,11 +299,11 @@ export default function OrdersPage() {
               />
             </div>
 
-            <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-              <CardHeader className="border-b border-slate-100 px-4 py-3">
+            <Card className="rounded-lg border-border bg-white">
+              <CardHeader className="border-b border-border px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <CardTitle className="text-base font-bold text-slate-900">
+                    <CardTitle className="text-base font-semibold text-slate-900">
                       Order List
                     </CardTitle>
                     <CardDescription className="text-sm text-slate-500">
@@ -324,7 +324,7 @@ export default function OrdersPage() {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4 p-4">
+              <CardContent className="space-y-4 p-5">
                 <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px_180px]">
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -332,12 +332,12 @@ export default function OrdersPage() {
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       placeholder="Search orders..."
-                      className="rounded-lg border-slate-200 bg-white pl-9"
+                      className="pl-9"
                     />
                   </div>
 
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="rounded-lg border-slate-200 bg-white">
+                    <SelectTrigger className="h-10 rounded-lg border-input bg-white shadow-xs">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
 
@@ -354,7 +354,7 @@ export default function OrdersPage() {
                     type="date"
                     value={orderDate}
                     onChange={(event) => setOrderDate(event.target.value)}
-                    className="rounded-lg border-slate-200 bg-white"
+                    className="bg-white"
                     aria-label="Order date"
                   />
 
@@ -362,7 +362,7 @@ export default function OrdersPage() {
                     type="date"
                     value={promisedDate}
                     onChange={(event) => setPromisedDate(event.target.value)}
-                    className="rounded-lg border-slate-200 bg-white"
+                    className="bg-white"
                     aria-label="Promised date"
                   />
                 </div>
@@ -404,20 +404,20 @@ function StatCard({
   danger?: boolean;
 }) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+    <Card className="rounded-lg border-border bg-white">
       <CardContent className="flex items-center gap-3 p-4">
         <div
           className={cn(
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-            danger ? "bg-red-50 text-red-600" : "bg-slate-900 text-white",
+            danger ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-700",
           )}
         >
           <Icon className="h-5 w-5" />
         </div>
 
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-500">{title}</p>
-          <p className="mt-0.5 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="mt-0.5 text-2xl font-semibold text-slate-900">{value}</p>
           <p className="mt-0.5 truncate text-xs text-slate-400">
             {description}
           </p>

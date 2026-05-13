@@ -8,32 +8,32 @@
   /* =========================
      Core surfaces
      ========================= */
-  --background:  #f8f8f8; /* Very light slate tint #f2f3f8 */ 
-  --foreground: oklch(0.26 0.05 262);
+  --background: #f7f9fc;
+  --foreground: #344054;
 
-  --card: oklch(100% 0.00011 271.152); /* #ffffff */
-  --card-foreground: oklch(0.26 0.05 262);
+  --card: #ffffff;
+  --card-foreground: #344054;
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.3 0.045 195);
+  --popover-foreground: #344054;
 
   /* =========================
      Brand
      ========================= */
-  --primary: oklch(0.3 0.045 195); /* #03363d */
+  --primary: #080726;
   --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.955 0.006 80); /* #f3f0ee */
-  --secondary-foreground: oklch(18.447% 0.08005 274.251);
+  --secondary: #eef4ff;
+  --secondary-foreground: #1849a9;
 
   /* =========================
      Muted & accent
      ========================= */
-  --muted: oklch(0.98 0 0);
-  --muted-foreground: oklch(0.36 0.045 195); /* #17494d */
+  --muted: #f3f4f6;
+  --muted-foreground: #667085;
 
-  --accent: oklch(0.85 0.04 185); /* #bdd9d7 */
-  --accent-foreground: oklch(0.3 0.045 195);
+  --accent: #ecfdf3;
+  --accent-foreground: #027a48;
 
   /* =========================
      Destructive
@@ -44,46 +44,37 @@
   /* =========================
      Borders & inputs
      ========================= */
-  --border: oklch(94.788% 0.01403 186.388);
-  --input: oklch(0.85 0.04 185);
-  --ring: oklch(0.36 0.045 195);
+  --border: #e1e7ef;
+  --input: #d0d5dd;
+  --ring: #080726;
 
   /* =========================
-     Charts (teal-aligned)
+     Charts
      ========================= */
-  --chart-1: oklch(0.3 0.045 195);
-  --chart-2: oklch(0.36 0.045 195);
-  --chart-3: oklch(0.85 0.04 185);
-  --chart-4: oklch(0.75 0.08 90);
-  --chart-5: oklch(0.63 0.23 29);
+  --chart-1: #175cd3;
+  --chart-2: #079455;
+  --chart-3: #dc6803;
+  --chart-4: #7a5af8;
+  --chart-5: #d92d20;
 
   
 
   /* =========================
-     Sidebar (Light / White Theme)
+     Sidebar
      ========================= */
-  /* Main Background: Deep Indigo */
-  /* The Base Brand Orange */
-  --sidebar: #141c29;
+  --sidebar: #ffffff;
   
-  /* Text: Cleaned up for better contrast on orange */
-  --sidebar-foreground: oklch(0.98 0.01 20); 
+  --sidebar-foreground: #475467; 
 
-  /* Active Item: Deep Charcoal or Rich Navy */
-  /* Instead of Indigo, use a color that makes the orange pop without clashing */
-  --sidebar-primary: oklch(0.25 0.04 260); 
-  --sidebar-primary-foreground: oklch(0.98 0.01 20);
+  --sidebar-primary: #080726; 
+  --sidebar-primary-foreground: #ffffff;
 
-  /* Hover State: A semi-transparent white/light orange */
-  /* This feels more modern than the dark grey-blue you had */
-  --sidebar-accent: oklch(57.61% 0.00007 271.152 / 0.247); 
-  --sidebar-accent-foreground: oklch(0.98 0.01 20);
+  --sidebar-accent: #eef4ff; 
+  --sidebar-accent-foreground: #175cd3;
 
-  /* Borders: A darker shade of the sidebar color for a "seamless" look */
-  --sidebar-border: oklch(26.405% 0.14743 274.74);
+  --sidebar-border: #eaecf0;
 
-  /* Focus Ring: Matching the brand orange but with high chrome */
-  --sidebar-ring: oklch(26.405% 0.14743 274.74);
+  --sidebar-ring: #080726;
   /* =========================
      Enterprise status colors
      ========================= */
@@ -110,10 +101,10 @@
   /* =========================
      Typography
      ========================= */
-  --font-sans: Roboto, system-ui, ui-sans-serif, sans-serif;
+  --font-sans: Inter, system-ui, ui-sans-serif, sans-serif;
 
   /* =========================
-     Radius & spacing
+     Radius & spacingx`
      ========================= */
   --radius: 0.5rem;
   --spacing: 0.25rem;
@@ -121,23 +112,23 @@
   /* =========================
      Shadows (OKLCH-based alpha)
      ========================= */
---shadow-sm: 
-    0 1px 2px 0 oklch(0 0 0 / 0.05);
+  --shadow-sm: 
+    0 1px 2px 0 rgb(16 24 40 / 0.05);
 
   /* Clean, crisp elevation for standard buttons/inputs */
   --shadow: 
-    0 1px 2px 0 oklch(0 0 0 / 0.06), 
-    0 1px 3px 0 oklch(0 0 0 / 0.1);
+    0 1px 2px 0 rgb(16 24 40 / 0.05), 
+    0 1px 3px 0 rgb(16 24 40 / 0.06);
 
   /* Mid-level elevation for small cards or dropdowns */
   --shadow-md: 
-    0 4px 6px -1px oklch(0 0 0 / 0.08), 
-    0 2px 4px -2px oklch(0 0 0 / 0.04);
+    0 8px 18px -14px rgb(16 24 40 / 0.18), 
+    0 2px 4px -2px rgb(16 24 40 / 0.05);
 
   /* Premium feel for main dashboard cards */
   --shadow-lg: 
-    0 10px 15px -3px oklch(0 0 0 / 0.06), 
-    0 4px 6px -4px oklch(0 0 0 / 0.04);
+    0 20px 36px -28px rgb(16 24 40 / 0.25), 
+    0 8px 16px -14px rgb(16 24 40 / 0.12);
 
   /* Deep immersion for modals and flyouts */
   --shadow-xl: 
@@ -317,7 +308,7 @@
 
 @theme {
   --text-sm: 0.85rem;
-  --text-sm--letter-spacing: 0.03rem;
+  --text-sm--letter-spacing: 0;
   --text-xl: 1.25rem;
   --text-lg: 1.125rem;
   --text-xl: 1.25rem;
@@ -327,7 +318,7 @@
 }
 
 body {
-  letter-spacing: var(--tracking-normal);
+  letter-spacing: 0;
 }
 
 @layer base {
@@ -341,6 +332,18 @@ body {
   }
   body {
     @apply bg-background text-foreground min-h-svh w-full;
+    font-feature-settings:
+      "cv02",
+      "cv03",
+      "cv04",
+      "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgb(23 92 211 / 0.16);
+    color: #1849a9;
   }
 
   button:not(:disabled),
@@ -359,6 +362,62 @@ body {
 }
 
 @layer utilities {
+  .bg-slate-50\/60 {
+    background-color: rgb(247 249 252 / 0.9);
+  }
+  .bg-slate-50 {
+    background-color: #f8fbff;
+  }
+  .bg-slate-100 {
+    background-color: #f1f5fb;
+  }
+  .bg-slate-900 {
+    background-color: #080726;
+  }
+  .bg-indigo-600 {
+    background-color: #7a5af8;
+  }
+  .bg-blue-700 {
+    background-color: #175cd3;
+  }
+  .hover\:bg-slate-800:hover {
+    background-color: #151343;
+  }
+  .hover\:bg-blue-800:hover {
+    background-color: #1849a9;
+  }
+  .text-slate-950,
+  .text-slate-900 {
+    color: #344054;
+  }
+  .text-slate-800,
+  .text-slate-700,
+  .text-slate-600 {
+    color: #4b5565;
+  }
+  .text-slate-500,
+  .text-slate-400 {
+    color: #667085;
+  }
+  .text-indigo-300,
+  .text-blue-700 {
+    color: #175cd3;
+  }
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300 {
+    border-color: #e1e7ef;
+  }
+  .shadow-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  .shadow-md {
+    box-shadow: var(--shadow-md);
+  }
+  .shadow-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
   .text-destructive {
     color: hsl(var(--destructive));
   }

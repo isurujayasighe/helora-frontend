@@ -25,7 +25,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "15rem"
+const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "5rem" // Your updated width
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -550,7 +550,7 @@ function SidebarMenuButton({
       <TooltipContent
         side="right"
         align="center"
-        className="border-slate-800 bg-slate-900 text-white"
+        className="border-border bg-[#080726] text-white"
         hidden={state !== "collapsed" || isMobile}
         {...tooltip}
       />

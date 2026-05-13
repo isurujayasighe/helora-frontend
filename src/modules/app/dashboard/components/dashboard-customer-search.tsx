@@ -214,7 +214,7 @@ function CustomerInitial({ name }: { name?: string | null }) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() || "C";
 
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white shadow-sm">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white shadow-sm">
       {initial}
     </div>
   );
@@ -1790,13 +1790,13 @@ export function DashboardCustomerSearchCard() {
 
   return (
     <>
-      <Card className="relative z-30 overflow-visible rounded-lg border-slate-200 bg-white shadow-sm">
+      <Card className="relative z-30 overflow-visible rounded-lg border-border bg-white">
         <CardContent className="p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-[1fr_220px] sm:items-end">
             <div className="min-w-0">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <h3 className="text-sm font-semibold text-slate-900">
                     Find Customer
                   </h3>
                   <p className="mt-0.5 text-xs text-slate-500">
@@ -1805,7 +1805,7 @@ export function DashboardCustomerSearchCard() {
                 </div>
 
                 {selectedCustomer && (
-                  <span className="hidden rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 sm:inline-flex">
+                  <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
                     Customer Selected
                   </span>
                 )}
@@ -1823,9 +1823,8 @@ export function DashboardCustomerSearchCard() {
                   }}
                   placeholder="Search customer by name, phone or town..."
                   className={cn(
-                    "h-13 w-full rounded-lg border-slate-200 bg-slate-50 pl-11 pr-11 text-base font-semibold text-slate-900 shadow-none outline-none transition",
+                    "h-12 w-full rounded-lg bg-white pl-11 pr-11 text-base font-semibold text-slate-900",
                     "placeholder:text-sm placeholder:font-medium placeholder:text-slate-400",
-                    "focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50",
                   )}
                 />
 
@@ -1841,7 +1840,7 @@ export function DashboardCustomerSearchCard() {
                 )}
 
                 {showCustomerList && (
-                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-lg border border-border bg-white shadow-xl">
                     {isCustomersLoading ? (
                       <div className="flex items-center gap-3 px-4 py-4 text-sm font-medium text-slate-500">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1849,7 +1848,7 @@ export function DashboardCustomerSearchCard() {
                       </div>
                     ) : customerList.length === 0 ? (
                       <div className="px-4 py-6 text-center">
-                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
                           <UserRound className="h-4 w-4" />
                         </div>
                         <p className="mt-3 text-sm font-bold text-slate-800">
@@ -1866,12 +1865,12 @@ export function DashboardCustomerSearchCard() {
                             key={customer.id}
                             type="button"
                             onClick={() => handleSelectCustomer(customer)}
-                            className="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50"
+                            className="group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-slate-50"
                           >
                             <CustomerInitial name={customer.fullName} />
 
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-black text-slate-900">
+                              <p className="truncate text-sm font-semibold text-slate-900">
                                 {customer.fullName}
                               </p>
 
@@ -1907,7 +1906,7 @@ export function DashboardCustomerSearchCard() {
             <Button
               type="button"
               className={cn(
-                "h-13 w-full rounded-lg px-6 text-sm font-bold shadow-sm",
+                "h-12 w-full rounded-lg px-6 text-sm font-semibold shadow-sm",
                 "disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100",
               )}
               disabled={!selectedCustomer}
@@ -1921,17 +1920,15 @@ export function DashboardCustomerSearchCard() {
       </Card>
 
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="flex max-h-[92vh] gap-0 flex-col overflow-hidden rounded-lg border-slate-200 p-0 sm:max-w-5xl">
-          {/* Fixed Header */}
-          <DialogHeader className="shrink-0 border-b border-gray-300 px-5 py-4 bg-background">
-            <DialogTitle className="text-base font-black text-slate-900">
+        <DialogContent className="flex max-h-[92vh] gap-0 flex-col overflow-hidden rounded-lg border-border p-0 sm:max-w-5xl">
+          <DialogHeader className="shrink-0 border-b border-border bg-white px-5 py-4">
+            <DialogTitle className="text-base font-semibold text-slate-900">
               Customer Order Workspace
             </DialogTitle>
           </DialogHeader>
 
           {!selectedCustomer ? null : (
             <>
-              {/* Scrollable Content Only */}
               <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
                 <div className="space-y-5">
                   {isCustomerDetailsLoading && (

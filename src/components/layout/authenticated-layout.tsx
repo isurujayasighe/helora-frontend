@@ -1,19 +1,17 @@
 import * as React from "react";
 import { Link, Outlet, useMatches } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { SidebarProvider } from "@/components/ui/sidebar"; // Ensure SidebarTrigger is imported
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { EnterpriseSidebar } from "./app-sidebar";
-import { Header } from "@/components/layout/header";
+import { Header, HeaderQuickSearch } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 
-// --- Icons ---
 import { Bell, Building2, Package, FileText, UserRound, LayoutDashboard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "./profile-dropdown";
 import { useTenantStore } from "@/store/tenantstore";
 
-// Types
 type RouteStaticData = {
   title?: string;
   actions?: React.ReactNode;
@@ -33,30 +31,29 @@ export function AuthenticatedLayout() {
       <div
         id="content"
         className={cn(
-          // Layout & Positioning
           "ml-auto w-full max-w-full flex h-svh flex-col",
-          // Transition Logic for Sidebar
           "peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]",
           "peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon))]",
-          "transition-[width] duration-200 ease-linear",
-          // Background Color (Subtle gray to make white cards pop)
+          "transition-[width] duration-200 ease-linear"
         )}
       >
-        {/* ================= HEADER ================= */}
         <Header fixed>
-          <div className="flex w-full items-center md:px-4 lg:px-4 xl:px-4">
-            {/* Left */}
-            <div className="flex items-start gap-2 rounded-md py-1.5">
+          <div className="flex w-full items-center gap-3 md:px-4 lg:px-4 xl:px-4">
+            <div className="flex min-w-0 items-center gap-2 rounded-md py-1.5">
                 {tenant?.logo ? (
                   <img
                     src={tenant.logo}
                     alt={`${tenant.companyName ?? "Organization"} logo`}
-                    className="max-h-9 w-auto object-bottom sm:max-h-12 md:max-h-10"
+                    className="max-h-8 w-auto object-contain md:max-h-9"
                   />
                 ) : (
-                  <Building2 className="h-4 w-4" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground">
+                    <Building2 className="h-4 w-4" />
+                  </div>
                 )}
               </div>
+
+            <HeaderQuickSearch />
 
             <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-3 py-2 md:hidden">
                <Link
@@ -87,13 +84,12 @@ export function AuthenticatedLayout() {
               </Link>
             </div>
 
-            {/* Right */}
             <div className="ml-auto flex items-center gap-2">
               <div className="hidden items-center gap-1 md:flex">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary"
+                  className="h-9 w-9 rounded-lg text-muted-foreground hover:text-primary"
                   title="Notifications"
                 >
                   <Bell className="h-4 w-4" />
@@ -103,11 +99,8 @@ export function AuthenticatedLayout() {
               <ProfileDropdown />
             </div>
           </div>
-
-          {/* Mobile quick navigation */}
         </Header>
 
-        {/* ================= PAGE CONTENT ================= */}
         <Main fixed={isFixedLayout}>
           <Outlet />
         </Main>

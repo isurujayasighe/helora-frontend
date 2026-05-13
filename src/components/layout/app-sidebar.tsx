@@ -34,6 +34,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -74,113 +75,133 @@ type SidebarItem = {
   children?: SidebarChildItem[];
 };
 
-const SIDEBAR_ITEMS: SidebarItem[] = [
+type SidebarGroupSection = {
+  label: string;
+  items: SidebarItem[];
+};
+
+const SIDEBAR_GROUPS: SidebarGroupSection[] = [
   {
-    title: "Dashboard",
-    url: "/app/dashboard",
-    icon: Gauge,
-  },
-  {
-    title: "Customers",
-    url: "/app/customers",
-    icon: Users,
-  },
-  {
-    title: "Orders",
-    icon: ReceiptText,
-    children: [
+    label: "Workspace",
+    items: [
       {
-        title: "Create Order",
-        url: "/app/create-order-page",
-        icon: ClipboardList,
+        title: "Dashboard",
+        url: "/app/dashboard",
+        icon: Gauge,
       },
       {
-        title: "All Orders",
-        url: "/app/orders",
-        icon: PackageCheck,
+        title: "Customers",
+        url: "/app/customers",
+        icon: Users,
       },
       {
-        title: "Group Orders",
-        url: "/app/group-orders",
-        icon: Blocks,
+        title: "Orders",
+        icon: ReceiptText,
+        children: [
+          {
+            title: "Create Order",
+            url: "/app/create-order-page",
+            icon: ClipboardList,
+          },
+          {
+            title: "All Orders",
+            url: "/app/orders",
+            icon: PackageCheck,
+          },
+          {
+            title: "Group Orders",
+            url: "/app/group-orders",
+            icon: Blocks,
+          },
+        ],
       },
     ],
   },
   {
-    title: "Production",
-    icon: Scissors,
-    children: [
+    label: "Operations",
+    items: [
       {
-        title: "Blocks",
-        url: "/app/blocks",
-        icon: Shirt,
+        title: "Production",
+        icon: Scissors,
+        children: [
+          {
+            title: "Blocks",
+            url: "/app/blocks",
+            icon: Shirt,
+          },
+          {
+            title: "Measurements",
+            url: "/app/measurements",
+            icon: Ruler,
+          },
+          {
+            title: "Categories",
+            url: "/app/category",
+            icon: Tags,
+          },
+          {
+            title: "Garment Sets",
+            url: "/app/package-templates",
+            icon: PackagePlus,
+          },
+        ],
       },
       {
-        title: "Measurements",
-        url: "/app/measurements",
-        icon: Ruler,
+        title: "Payments",
+        url: "/app/payments",
+        icon: CreditCard,
       },
       {
-        title: "Categories",
-        url: "/app/category",
-        icon: Tags,
+        title: "Staff",
+        icon: UserRoundCheck,
+        children: [
+          {
+            title: "Employees",
+            url: "/app/employees",
+            icon: UserRound,
+          },
+          {
+            title: "Attendance",
+            url: "/app/attendance",
+            icon: CalendarCheck2,
+          },
+        ],
       },
       {
-        title: "Garment Sets",
-        url: "/app/package-templates",
-        icon: PackagePlus,
+        title: "WhatsApp",
+        url: "/app/whatsapp",
+        icon: MessageCircle,
+      },
+      {
+        title: "Reports",
+        url: "/app/reports",
+        icon: BarChart3,
       },
     ],
   },
   {
-    title: "Payments",
-    url: "/app/payments",
-    icon: CreditCard,
-  },
-  {
-    title: "Staff",
-    icon: UserRoundCheck,
-    children: [
+    label: "Admin",
+    items: [
       {
-        title: "Employees",
-        url: "/app/employees",
-        icon: UserRound,
-      },
-      {
-        title: "Attendance",
-        url: "/app/attendance",
-        icon: CalendarCheck2,
-      },
-    ],
-  },
-  {
-    title: "WhatsApp",
-    url: "/app/whatsapp",
-    icon: MessageCircle,
-  },
-  {
-    title: "Reports",
-    url: "/app/reports",
-    icon: BarChart3,
-  },
-  {
-    title: "Administration",
-    icon: ShieldCheck,
-    children: [
-      {
-        title: "Users",
-        url: "/app/users",
-        icon: UserCog,
-      },
-      {
-        title: "Roles & Access",
-        url: "/app/role-permission",
+        title: "Administration",
         icon: ShieldCheck,
-      },
-      {
-        title: "Settings",
-        url: "/app/settings",
-        icon: Settings,
+        children: [
+          {
+            title: "Users",
+            url: "/app/users",
+            icon: UserCog,
+          },
+          {
+            title: "Roles & Access",
+            url: "/app/role-permission",
+            icon: ShieldCheck,
+          },
+          {
+            title: "Settings",
+            url: "/app/settings",
+            icon: Settings,
+          },
+        ],
       },
     ],
   },
@@ -242,30 +263,35 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
       collapsible="icon"
       side="left"
       variant="sidebar"
-      className="border-r border-slate-800 bg-slate-950 text-slate-300"
+      className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
       {...props}
     >
-      <SidebarHeader className="border-b border-slate-800 px-4 py-2">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-2">
         <BrandHeader />
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
-        <SidebarGroup className="mt-4 p-0">
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">
-              {SIDEBAR_ITEMS.map((item) => (
-                <EnterpriseSidebarItem
-                  key={item.title}
-                  item={item}
-                  pathname={pathname}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="px-3 py-3">
+        {SIDEBAR_GROUPS.map((group) => (
+          <SidebarGroup key={group.label} className="p-0 pb-3">
+            <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                {group.items.map((item) => (
+                  <EnterpriseSidebarItem
+                    key={item.title}
+                    item={item}
+                    pathname={pathname}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-slate-800 p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-3">
         <UserFooter
           userName={userName}
           userEmail={userEmail}
@@ -281,15 +307,15 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
 function BrandHeader() {
   return (
     <div className="flex h-12 items-center gap-3 group-data-[collapsible=icon]:justify-center">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm">
         <Scissors className="h-5 w-5" />
       </div>
 
       <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-        <p className="truncate text-base font-bold leading-5 text-white">
+        <p className="truncate text-sm font-bold leading-5 text-[#344054]">
           Helora ERP
         </p>
-        <p className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+        <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
           Garment operations
         </p>
       </div>
@@ -323,19 +349,18 @@ function EnterpriseSidebarItem({
           tooltip={!isMobile && state === "collapsed" ? item.title : undefined}
           isActive={active}
           className={cn(
-            "relative h-11 rounded-lg px-3 text-sm font-semibold transition-all",
-            "before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:content-['']",
+            "relative h-10 rounded-lg px-3 text-sm font-medium transition-all",
             "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
-              ? "bg-white/10 text-white before:bg-indigo-500"
-              : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200"
+              ? "bg-[#eef4ff] text-[#175cd3] shadow-[inset_0_0_0_1px_rgb(23_92_211/0.12)]"
+              : "text-muted-foreground hover:bg-[#f8fbff] hover:text-[#344054]"
           )}
         >
           <Link to={item.url!} className="flex min-w-0 items-center gap-3">
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-white" : "text-slate-500"
+                active ? "text-[#175cd3]" : "text-muted-foreground"
               )}
             />
 
@@ -363,18 +388,17 @@ function EnterpriseSidebarItem({
             }
             isActive={active}
             className={cn(
-              "relative h-11 rounded-lg px-3 text-sm font-semibold transition-all",
-              "before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:content-['']",
+              "relative h-10 rounded-lg px-3 text-sm font-medium transition-all",
               "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
-                ? "bg-white/10 text-white before:bg-indigo-500"
-                : "text-slate-500 before:bg-transparent hover:bg-white/5 hover:text-slate-200"
+                ? "bg-[#eef4ff] text-[#175cd3] shadow-[inset_0_0_0_1px_rgb(23_92_211/0.12)]"
+                : "text-muted-foreground hover:bg-[#f8fbff] hover:text-[#344054]"
             )}
           >
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-white" : "text-slate-500"
+                active ? "text-[#175cd3]" : "text-muted-foreground"
               )}
             />
 
@@ -389,7 +413,7 @@ function EnterpriseSidebarItem({
         <CollapsibleContent className="w-full group-data-[collapsible=icon]:hidden">
           <div
             className={cn(
-              "relative ml-5 mt-1 space-y-1 border-l border-slate-800 py-1 pl-4"
+              "relative ml-5 mt-1 space-y-1 border-l border-sidebar-border py-1 pl-3"
             )}
           >
             {item.children?.map((child) => (
@@ -420,21 +444,11 @@ function ChildSidebarLink({
     <Link
       to={child.url}
       className={cn(
-        "relative flex h-10 min-w-0 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-all",
-
-        /**
-         * Small horizontal connector from left vertical line to child nav.
-         */
-        "before:absolute before:-left-4 before:top-1/2 before:h-px before:w-4 before:-translate-y-1/2 before:bg-slate-800 before:content-['']",
-
-        /**
-         * Active indicator on right side.
-         */
-        "after:absolute after:right-0 after:top-1/2 after:h-6 after:w-1 after:-translate-y-1/2 after:rounded-l-full after:content-['']",
+        "relative flex h-9 min-w-0 items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-all",
 
         active
-          ? "bg-indigo-500/10 text-indigo-300 after:bg-indigo-500"
-          : "text-slate-500 after:bg-transparent hover:bg-white/5 hover:text-slate-200"
+          ? "bg-[#ecfdf3] text-[#027a48]"
+          : "text-muted-foreground hover:bg-[#f8fbff] hover:text-[#344054]"
       )}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -442,14 +456,14 @@ function ChildSidebarLink({
           <Icon
             className={cn(
               "h-4 w-4",
-              active ? "text-indigo-300" : "text-slate-500"
+              active ? "text-[#027a48]" : "text-muted-foreground"
             )}
           />
         ) : (
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full",
-              active ? "bg-indigo-300" : "bg-slate-600"
+              active ? "bg-primary" : "bg-muted-foreground"
             )}
           />
         )}
@@ -482,24 +496,24 @@ function UserFooter({
             <SidebarMenuButton
               size="lg"
               className={cn(
-                "h-12 rounded-lg px-2 text-slate-400 transition-colors hover:bg-slate-900 hover:text-white data-[state=open]:bg-slate-900 data-[state=open]:text-white",
+                "h-12 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-[#f2f4f7] hover:text-primary data-[state=open]:bg-[#f2f4f7] data-[state=open]:text-primary",
                 "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               )}
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-indigo-600 text-xs font-bold text-white">
+                <AvatarFallback className="rounded-lg bg-primary text-xs font-bold text-white">
                   {getInitials(userName, userEmail)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-                <p className="truncate text-sm font-semibold text-slate-100">
+                <p className="truncate text-sm font-semibold text-[#344054]">
                   {userName}
                 </p>
-                <p className="truncate text-xs text-slate-500">{userEmail}</p>
+                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
               </div>
 
-              <MoreHorizontal className="h-4 w-4 text-slate-500 group-data-[collapsible=icon]:hidden" />
+              <MoreHorizontal className="h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 
@@ -507,13 +521,13 @@ function UserFooter({
             side="right"
             align="end"
             sideOffset={10}
-            className="w-64 rounded-lg border-slate-200 p-1.5 shadow-lg"
+            className="w-64 rounded-lg border-border p-1.5 shadow-lg"
           >
             <DropdownMenuLabel className="px-3 py-2">
-              <p className="truncate text-sm font-semibold text-slate-900">
+              <p className="truncate text-sm font-semibold text-[#344054]">
                 {userName}
               </p>
-              <p className="truncate text-xs font-normal text-slate-500">
+              <p className="truncate text-xs font-normal text-muted-foreground">
                 {userEmail}
               </p>
             </DropdownMenuLabel>
@@ -521,12 +535,12 @@ function UserFooter({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2">
-              <User className="mr-2 h-4 w-4 text-slate-500" />
+              <User className="mr-2 h-4 w-4 text-muted-foreground" />
               Profile
             </DropdownMenuItem>
 
             <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2">
-              <Settings className="mr-2 h-4 w-4 text-slate-500" />
+              <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
               Settings
             </DropdownMenuItem>
 

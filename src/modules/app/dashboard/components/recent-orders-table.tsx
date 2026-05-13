@@ -70,43 +70,43 @@ export function RecentOrdersTableCard({
   return (
     <Card
       className={cn(
-        "rounded-xl border p-0 border-slate-200 bg-white shadow-none",
+        "rounded-lg border-border bg-white p-0",
         className
       )}
     >
-      <CardHeader className="px-6 pb-4 pt-5">
+      <CardHeader className="border-b border-border px-5 py-4">
         <div className="flex items-center justify-between gap-4">
-          <CardTitle className="text-xl font-bold tracking-tight text-slate-950">
+          <CardTitle className="text-base font-semibold text-slate-950">
             Recent Orders
           </CardTitle>
 
-          <div className="text-sm text-slate-500">
+          <div className="text-xs font-medium text-slate-500">
             Page {currentPage} of {totalPages}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="px-6 pb-6 pt-0">
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <CardContent className="p-4">
+        <div className="overflow-hidden rounded-lg border border-border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50 hover:bg-slate-50">
-                <TableHead className="h-11 px-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <TableRow>
+                <TableHead className="h-11">
                   Order No
                 </TableHead>
-                <TableHead className="h-11 px-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <TableHead className="h-11">
                   Customer
                 </TableHead>
-                <TableHead className="h-11 px-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <TableHead className="h-11">
                   Item
                 </TableHead>
-                <TableHead className="h-11 px-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <TableHead className="h-11">
                   Qty
                 </TableHead>
-                <TableHead className="h-11 px-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <TableHead className="h-11">
                   Promised Date
                 </TableHead>
-                <TableHead className="h-11 px-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <TableHead className="h-11">
                   Status
                 </TableHead>
               </TableRow>
@@ -124,23 +124,23 @@ export function RecentOrdersTableCard({
                 </TableRow>
               ) : (
                 orders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-slate-50/50">
-                    <TableCell className="px-4 py-3 text-sm font-semibold text-slate-800">
+                  <TableRow key={order.id}>
+                    <TableCell className="font-semibold text-slate-900">
                       #{order.orderNo}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-slate-600">
+                    <TableCell className="text-slate-600">
                       {order.customerName}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-slate-600">
+                    <TableCell className="text-slate-600">
                       {order.itemName}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-slate-600">
+                    <TableCell className="text-slate-600">
                       {order.quantity}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-slate-600">
+                    <TableCell className="text-slate-600">
                       {formatDate(order.promisedDate)}
                     </TableCell>
-                    <TableCell className="px-4 py-3">
+                    <TableCell>
                       <Badge
                         variant="outline"
                         className={cn(
