@@ -258,54 +258,62 @@ export default function BlocksPage() {
               />
             </div>
 
-            {/* Filters */}
-            <Card className="rounded-lg border-slate-200 shadow-sm">
+            {/* Table */}
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100 px-4 py-3">
-                <CardTitle className="text-base font-black text-slate-950">
-                  Search & Filters
-                </CardTitle>
-                <CardDescription className="text-sm font-medium text-slate-500">
-                  Search by block number, size, description, or customer related
-                  details.
-                </CardDescription>
-              </CardHeader>
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CardTitle className="text-base font-black text-slate-950">
+                        Block List
+                      </CardTitle>
 
-              <CardContent className="p-4">
-                <div className="grid gap-3 lg:grid-cols-[1fr_240px_180px_auto]">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-                    <Input
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Search blocks..."
-                      className="h-10 rounded-lg border-slate-200 bg-white pl-9"
-                    />
+                      <Badge
+                        variant="outline"
+                        className="rounded-lg px-3 py-1 font-bold text-slate-600"
+                      >
+                        {pagination.totalItems} blocks
+                      </Badge>
+                    </div>
+                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+                      Search and filter reusable blocks.
+                    </CardDescription>
                   </div>
 
-                  <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
+                  <div className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_220px_160px_auto] xl:w-[780px]">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
-                    <SelectContent>
-                      <SelectItem value="all">All categories</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                      {isCategoriesLoading && (
-                        <SelectItem value="loading" disabled>
-                          Loading categories...
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                      <Input
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Search blocks..."
+                        className="h-10 rounded-lg border-slate-200 bg-white pl-9"
+                      />
+                    </div>
 
-                  <div className="flex gap-2">
+                    <Select value={categoryId} onValueChange={setCategoryId}>
+                      <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                        {isCategoriesLoading && (
+                          <SelectItem value="loading" disabled>
+                            Loading categories...
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+
                     <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger className="h-10 min-w-36 rounded-lg border-slate-200 bg-white">
+                      <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
 
@@ -329,30 +337,6 @@ export default function BlocksPage() {
                       </Button>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Table */}
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base font-black text-slate-950">
-                      Block List
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
-                      View customer blocks, default fit, category, status, and
-                      order usage.
-                    </CardDescription>
-                  </div>
-
-                  <Badge
-                    variant="outline"
-                    className="hidden rounded-lg px-3 py-1 font-bold text-slate-600 sm:inline-flex"
-                  >
-                    {pagination.totalItems} blocks
-                  </Badge>
                 </div>
               </CardHeader>
 
