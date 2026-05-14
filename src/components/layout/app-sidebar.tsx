@@ -278,14 +278,14 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
       className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
       {...props}
     >
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-2">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-2">
         <BrandHeader />
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-3">
+      <SidebarContent className="px-2 py-3">
         {SIDEBAR_GROUPS.map((group) => (
           <SidebarGroup key={group.label} className="p-0 pb-3">
-            <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel className="px-2 text-[11px] font-medium uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -303,7 +303,7 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <UserFooter
           userName={userName}
           userEmail={userEmail}
@@ -319,15 +319,15 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
 function BrandHeader() {
   return (
     <div className="flex h-12 items-center gap-3 group-data-[collapsible=icon]:justify-center">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-white shadow-none">
         <Scissors className="h-5 w-5" />
       </div>
 
       <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-        <p className="truncate text-sm font-bold leading-5 text-[#344054]">
+        <p className="truncate text-sm font-semibold leading-5 text-[#364152]">
           Helora ERP
         </p>
-        <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
+        <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
           Garment operations
         </p>
       </div>
@@ -361,18 +361,18 @@ function EnterpriseSidebarItem({
           tooltip={!isMobile && state === "collapsed" ? item.title : undefined}
           isActive={active}
           className={cn(
-            "relative h-10 rounded-lg px-3 text-sm font-medium transition-all",
+            "relative h-9 rounded-md px-2.5 text-sm font-medium transition-colors",
             "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
-              ? "bg-[#eef4ff] text-[#175cd3] shadow-[inset_0_0_0_1px_rgb(23_92_211/0.12)]"
-              : "text-muted-foreground hover:bg-[#f8fbff] hover:text-[#344054]"
+              ? "bg-[#eef2f6] text-[#080726] shadow-none"
+              : "text-muted-foreground hover:bg-[#f8fafc] hover:text-[#364152]"
           )}
         >
           <Link to={item.url!} className="flex min-w-0 items-center gap-3">
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-[#175cd3]" : "text-muted-foreground"
+                active ? "text-[#080726]" : "text-muted-foreground"
               )}
             />
 
@@ -400,17 +400,17 @@ function EnterpriseSidebarItem({
             }
             isActive={active}
             className={cn(
-              "relative h-10 rounded-lg px-3 text-sm font-medium transition-all",
+              "relative h-9 rounded-md px-2.5 text-sm font-medium transition-colors",
               "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
-                ? "bg-[#eef4ff] text-[#175cd3] shadow-[inset_0_0_0_1px_rgb(23_92_211/0.12)]"
-                : "text-muted-foreground hover:bg-[#f8fbff] hover:text-[#344054]"
+                ? "bg-[#eef2f6] text-[#080726] shadow-none"
+                : "text-muted-foreground hover:bg-[#f8fafc] hover:text-[#364152]"
             )}
           >
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-[#175cd3]" : "text-muted-foreground"
+                active ? "text-[#080726]" : "text-muted-foreground"
               )}
             />
 
@@ -425,7 +425,7 @@ function EnterpriseSidebarItem({
         <CollapsibleContent className="w-full group-data-[collapsible=icon]:hidden">
           <div
             className={cn(
-              "relative ml-5 mt-1 space-y-1 border-l border-sidebar-border py-1 pl-3"
+              "relative ml-5 mt-1 space-y-0.5 border-l border-sidebar-border py-1 pl-2"
             )}
           >
             {item.children?.map((child) => (
@@ -456,11 +456,11 @@ function ChildSidebarLink({
     <Link
       to={child.url}
       className={cn(
-        "relative flex h-9 min-w-0 items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-all",
+        "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-sm font-normal transition-colors",
 
         active
-          ? "bg-[#ecfdf3] text-[#027a48]"
-          : "text-muted-foreground hover:bg-[#f8fbff] hover:text-[#344054]"
+          ? "bg-[#f8fafc] text-[#080726]"
+          : "text-muted-foreground hover:bg-[#f8fafc] hover:text-[#364152]"
       )}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -508,18 +508,18 @@ function UserFooter({
             <SidebarMenuButton
               size="lg"
               className={cn(
-                "h-12 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-[#f2f4f7] hover:text-primary data-[state=open]:bg-[#f2f4f7] data-[state=open]:text-primary",
+              "h-11 rounded-md px-2 text-muted-foreground transition-colors hover:bg-[#f2f4f7] hover:text-primary data-[state=open]:bg-[#f2f4f7] data-[state=open]:text-primary",
                 "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               )}
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-primary text-xs font-bold text-white">
+              <Avatar className="h-8 w-8 rounded-md">
+                <AvatarFallback className="rounded-md bg-primary text-xs font-semibold text-white">
                   {getInitials(userName, userEmail)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-                <p className="truncate text-sm font-semibold text-[#344054]">
+                <p className="truncate text-sm font-medium text-[#364152]">
                   {userName}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
@@ -533,10 +533,10 @@ function UserFooter({
             side="right"
             align="end"
             sideOffset={10}
-            className="w-64 rounded-lg border-border p-1.5 shadow-lg"
+            className="w-64 rounded-md border-border p-1.5 shadow-md"
           >
             <DropdownMenuLabel className="px-3 py-2">
-              <p className="truncate text-sm font-semibold text-[#344054]">
+              <p className="truncate text-sm font-semibold text-[#364152]">
                 {userName}
               </p>
               <p className="truncate text-xs font-normal text-muted-foreground">
@@ -546,12 +546,12 @@ function UserFooter({
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2">
+            <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2">
               <User className="mr-2 h-4 w-4 text-muted-foreground" />
               Profile
             </DropdownMenuItem>
 
-            <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2">
+            <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2">
               <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
               Settings
             </DropdownMenuItem>
@@ -560,7 +560,7 @@ function UserFooter({
 
             <DropdownMenuItem
               onClick={onLogout}
-              className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
+              className="cursor-pointer rounded-md px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Log out

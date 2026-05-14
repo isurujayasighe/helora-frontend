@@ -31,14 +31,14 @@ export const Header = ({
   return (
     <header
       className={cn(
-        'bg-white/95 backdrop-blur-xl flex h-14 items-center border-b border-border px-4 py-0 sm:gap-4 transition-shadow duration-300 dark:bg-secondary-900/75 dark:border-secondary-700/50',
+        'bg-white flex h-14 items-center border-b border-border px-4 py-0 sm:gap-4 transition-shadow duration-150 dark:bg-secondary-900/75 dark:border-secondary-700/50',
         fixed && 'header-fixed peer/header fixed z-50 w-[inherit] ',
         offset > 10 && fixed ? 'shadow-sm' : 'shadow-0',
         className
       )}
       {...props}
     >
-      <SidebarTrigger variant='ghost' className='scale-125 text-muted-foreground hover:text-primary sm:scale-100' />
+      <SidebarTrigger variant='ghost' className='text-muted-foreground hover:text-primary' />
       
       {children}
     </header>
@@ -54,9 +54,9 @@ export function HeaderQuickSearch() {
       <input
         aria-label="Quick search"
         placeholder="Search customers, orders, blocks..."
-        className="h-10 w-full rounded-lg border border-input bg-[#f9fafb] pl-10 pr-14 text-sm font-medium text-foreground shadow-xs outline-none transition focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10"
+        className="h-9 w-full rounded-md border border-input bg-[#f8fafc] pl-10 pr-14 text-sm font-normal text-foreground shadow-none outline-none transition-colors focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10"
       />
-      <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-white px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground lg:block">
+      <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-white px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground lg:block">
         Ctrl K
       </kbd>
     </div>

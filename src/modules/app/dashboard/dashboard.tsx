@@ -10,8 +10,6 @@ import {
   Users,
 } from "lucide-react";
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
-import { AnimatePresence, motion } from "framer-motion";
-import { fadeUp } from "@/components/motions/MotionFade";
 import { cn } from "@/lib/utils";
 import { UpcomingPromisedOrders } from "./components/promissed-orders";
 import { RecentOrdersTableCard } from "./components/recent-orders-table";
@@ -136,18 +134,10 @@ export default function Dashboard() {
   return (
     <PermissionGate action="read" subject="dashboard">
       <div className="flex h-full w-full flex-col overflow-hidden bg-background">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="helora-dashboard"
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className={cn("flex h-full flex-col gap-5 p-4 md:p-6")}
-          >
+          <div className={cn("flex h-full flex-col gap-4 p-4 md:p-5")}>
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-white">
                   <Shirt className="h-5 w-5" />
                 </div>
 
@@ -172,7 +162,7 @@ export default function Dashboard() {
                 </Button>
 
                 <Button
-                  className="h-10 rounded-lg shadow-sm"
+                  className="h-10 rounded-md"
                   onClick={() => setIsCreateOrderOpen(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -216,8 +206,7 @@ export default function Dashboard() {
                 onPageChange={setRecentOrdersPage}
               />
             </div>
-          </motion.div>
-        </AnimatePresence>
+          </div>
 
         <CreateOrderDialog
           open={isCreateOrderOpen}
@@ -250,7 +239,7 @@ function DashboardStatCard({
   return (
     <Card
       className={cn(
-        "rounded-lg border-border bg-white shadow-sm",
+        "rounded-md border-border bg-white",
         danger && "border-red-200"
       )}
     >
@@ -258,7 +247,7 @@ function DashboardStatCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-slate-500">{title}</p>
+              <p className="text-sm font-normal text-slate-500">{title}</p>
 
               <Badge
                 variant="secondary"
@@ -289,7 +278,7 @@ function DashboardStatCard({
 
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-700",
               danger && "bg-red-50 text-red-600"
             )}
           >

@@ -8,32 +8,32 @@
   /* =========================
      Core surfaces
      ========================= */
-  --background: #f7f9fc;
-  --foreground: #344054;
+  --background: #fafafa;
+  --foreground: #364152;
 
   --card: #ffffff;
-  --card-foreground: #344054;
+  --card-foreground: #364152;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: #344054;
+  --popover: #ffffff;
+  --popover-foreground: #364152;
 
   /* =========================
      Brand
      ========================= */
-  --primary: #080726;
+  --primary: #0f0b7d;
   --primary-foreground: oklch(1 0 0);
 
-  --secondary: #eef4ff;
-  --secondary-foreground: #1849a9;
+  --secondary: #eef2f6;
+  --secondary-foreground: #364152;
 
   /* =========================
      Muted & accent
      ========================= */
-  --muted: #f3f4f6;
-  --muted-foreground: #667085;
+  --muted: #eef2f6;
+  --muted-foreground: #697586;
 
-  --accent: #ecfdf3;
-  --accent-foreground: #027a48;
+  --accent: #f8fafc;
+  --accent-foreground: #175cd3;
 
   /* =========================
      Destructive
@@ -44,7 +44,7 @@
   /* =========================
      Borders & inputs
      ========================= */
-  --border: #e1e7ef;
+  --border: #d9e1ea;
   --input: #d0d5dd;
   --ring: #080726;
 
@@ -54,7 +54,7 @@
   --chart-1: #175cd3;
   --chart-2: #079455;
   --chart-3: #dc6803;
-  --chart-4: #7a5af8;
+  --chart-4: #b54708;
   --chart-5: #d92d20;
 
   
@@ -62,15 +62,15 @@
   /* =========================
      Sidebar
      ========================= */
-  --sidebar: #ffffff;
+  --sidebar: oklch(0.985 0 0);
   
-  --sidebar-foreground: #475467; 
+  --sidebar-foreground: #4b5565; 
 
   --sidebar-primary: #080726; 
   --sidebar-primary-foreground: #ffffff;
 
-  --sidebar-accent: #eef4ff; 
-  --sidebar-accent-foreground: #175cd3;
+  --sidebar-accent: #f4f6f8; 
+  --sidebar-accent-foreground: #080726;
 
   --sidebar-border: #eaecf0;
 
@@ -104,9 +104,9 @@
   --font-sans: Inter, system-ui, ui-sans-serif, sans-serif;
 
   /* =========================
-     Radius & spacingx`
+     Radius & spacing
      ========================= */
-  --radius: 0.5rem;
+  --radius: 0.375rem;
   --spacing: 0.25rem;
 
   /* =========================
@@ -115,29 +115,24 @@
   --shadow-sm: 
     0 1px 2px 0 rgb(16 24 40 / 0.05);
 
-  /* Clean, crisp elevation for standard buttons/inputs */
   --shadow: 
-    0 1px 2px 0 rgb(16 24 40 / 0.05), 
-    0 1px 3px 0 rgb(16 24 40 / 0.06);
+    0 1px 2px 0 rgb(16 24 40 / 0.04);
 
-  /* Mid-level elevation for small cards or dropdowns */
   --shadow-md: 
-    0 8px 18px -14px rgb(16 24 40 / 0.18), 
-    0 2px 4px -2px rgb(16 24 40 / 0.05);
+    0 8px 18px -16px rgb(16 24 40 / 0.16), 
+    0 1px 2px -1px rgb(16 24 40 / 0.05);
 
-  /* Premium feel for main dashboard cards */
   --shadow-lg: 
-    0 20px 36px -28px rgb(16 24 40 / 0.25), 
-    0 8px 16px -14px rgb(16 24 40 / 0.12);
+    0 18px 32px -28px rgb(16 24 40 / 0.2), 
+    0 4px 10px -14px rgb(16 24 40 / 0.12);
 
   /* Deep immersion for modals and flyouts */
   --shadow-xl: 
     0 20px 25px -5px oklch(0 0 0 / 0.08), 
     0 8px 10px -6px oklch(0 0 0 / 0.02);
 
-  /* The "Floating" effect for global overlays */
   --shadow-2xl: 
-    0 30px 60px -12px oklch(0 0 0 / 0.15),
+    0 24px 48px -18px oklch(0 0 0 / 0.16),
     0 0 1px 0 oklch(0 0 0 / 0.1);
 }
 
@@ -332,6 +327,7 @@ body {
   }
   body {
     @apply bg-background text-foreground min-h-svh w-full;
+    font-size: 14px;
     font-feature-settings:
       "cv02",
       "cv03",
@@ -366,10 +362,10 @@ body {
     background-color: rgb(247 249 252 / 0.9);
   }
   .bg-slate-50 {
-    background-color: #f8fbff;
+    background-color: #f8fafc;
   }
   .bg-slate-100 {
-    background-color: #f1f5fb;
+    background-color: #eef2f6;
   }
   .bg-slate-900 {
     background-color: #080726;
@@ -388,7 +384,7 @@ body {
   }
   .text-slate-950,
   .text-slate-900 {
-    color: #344054;
+    color: #364152;
   }
   .text-slate-800,
   .text-slate-700,
@@ -406,7 +402,25 @@ body {
   .border-slate-100,
   .border-slate-200,
   .border-slate-300 {
-    border-color: #e1e7ef;
+    border-color: #d9e1ea;
+  }
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-xl {
+    border-radius: 0.5rem;
+  }
+  .font-black {
+    font-weight: 650;
+  }
+  .font-bold {
+    font-weight: 600;
+  }
+  .tracking-tight,
+  .tracking-tighter,
+  .tracking-wide,
+  .tracking-wider,
+  .tracking-widest {
+    letter-spacing: 0;
   }
   .shadow-sm {
     box-shadow: var(--shadow-sm);

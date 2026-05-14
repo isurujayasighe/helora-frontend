@@ -1,6 +1,5 @@
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { useCan } from "@/auth/rbac/useCan";
-import { fadeUp } from "@/components/motions/MotionFade";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,7 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronDown,
@@ -224,29 +222,21 @@ export default function HeloraUsersPage() {
 
   return (
     <PermissionGate action="read" subject="settings-users">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="helora-users"
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex h-full flex-col gap-4 p-3 md:p-5"
-          >
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+          <div className="flex h-full flex-col gap-4 p-3 md:p-5">
             {/* Header */}
-            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-900 text-white">
                     <Users className="h-5 w-5" />
                   </div>
 
                   <div>
-                    <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
+                    <h1 className="text-xl font-semibold tracking-tight text-slate-950 md:text-2xl">
                       Users
                     </h1>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-normal text-slate-500">
                       Manage Helora ERP users, roles, and shop access.
                     </p>
                   </div>
@@ -259,7 +249,7 @@ export default function HeloraUsersPage() {
                   size="icon"
                   onClick={() => refetch()}
                   disabled={isLoading || isRefetching}
-                  className="h-9 rounded-xl bg-white font-bold"
+                  className="h-9 rounded-md bg-white"
                 >
                   <RefreshCw
                     className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
@@ -269,7 +259,7 @@ export default function HeloraUsersPage() {
                 <Button
                   onClick={openCreateSheet}
                   disabled={!canCreateUser}
-                  className="h-9 rounded-lg font-bold shadow-sm"
+                  className="h-9 rounded-md"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Create User
@@ -309,7 +299,7 @@ export default function HeloraUsersPage() {
             </div>
 
             {/* Toolbar */}
-            <Card className="rounded-3xl border-slate-200 shadow-sm">
+            <Card className="rounded-md border-slate-200">
               <CardContent className="p-3 md:p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="relative w-full lg:max-w-md">
@@ -324,7 +314,7 @@ export default function HeloraUsersPage() {
                         }));
                       }}
                       placeholder="Search by name, email, phone or role..."
-                      className="h-10 rounded-2xl border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
+                      className="h-9 rounded-md border-slate-200 bg-slate-50 pl-9 font-normal shadow-none focus-visible:bg-white"
                     />
                   </div>
 
@@ -333,7 +323,7 @@ export default function HeloraUsersPage() {
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
-                          className="h-10 rounded-2xl bg-white font-bold"
+                          className="h-9 rounded-md bg-white"
                         >
                           <ListFilter className="mr-2 h-4 w-4" />
                           Status
@@ -373,7 +363,7 @@ export default function HeloraUsersPage() {
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
-                          className="h-10 rounded-2xl bg-white font-bold"
+                          className="h-9 rounded-md bg-white"
                         >
                           <ShieldCheck className="mr-2 h-4 w-4" />
                           Role
@@ -428,7 +418,7 @@ export default function HeloraUsersPage() {
                       <Button
                         variant="ghost"
                         onClick={resetFilters}
-                        className="h-10 rounded-2xl font-bold text-slate-500 hover:text-slate-900"
+                        className="h-9 rounded-md text-slate-500 hover:text-slate-900"
                       >
                         Clear
                       </Button>
@@ -439,7 +429,7 @@ export default function HeloraUsersPage() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-2xl bg-white"
+                          className="h-9 w-9 rounded-md bg-white"
                         >
                           <MoreVerticalIcon className="h-4 w-4" />
                         </Button>
@@ -462,17 +452,17 @@ export default function HeloraUsersPage() {
               <CardHeader className="border-b border-slate-100 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <CardTitle className="text-base font-bold text-slate-950">
+                    <CardTitle className="text-base font-semibold text-slate-950">
                       User Directory
                     </CardTitle>
-                    <p className="mt-1 text-sm font-medium text-slate-500">
+                    <p className="mt-1 text-sm font-normal text-slate-500">
                       View users, check access, and manage Helora ERP accounts.
                     </p>
                   </div>
 
                   <Badge
                     variant="outline"
-                    className="hidden rounded-xl px-3 py-1 font-bold text-slate-600 sm:inline-flex"
+                    className="hidden rounded px-3 py-1 font-medium text-slate-600 sm:inline-flex"
                   >
                     {totalUsers} users
                   </Badge>
@@ -499,7 +489,7 @@ export default function HeloraUsersPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-lg"
+                    className="h-9 rounded-md"
                     disabled={!canGoPrevious || isLoading || isRefetching}
                     onClick={() =>
                       setPagination((prev) => ({
@@ -512,7 +502,7 @@ export default function HeloraUsersPage() {
                     Previous
                   </Button>
 
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
+                  <div className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
                     {usersPagination.page} / {safeTotalPages}
                   </div>
 
@@ -520,7 +510,7 @@ export default function HeloraUsersPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-lg"
+                    className="h-9 rounded-md"
                     disabled={!canGoNext || isLoading || isRefetching}
                     onClick={() =>
                       setPagination((prev) => ({
@@ -538,8 +528,7 @@ export default function HeloraUsersPage() {
                 </div>
               </div>
             </Card>
-          </motion.div>
-        </AnimatePresence>
+          </div>
 
         <CreateUserDialog
           open={action === "create"}
@@ -580,12 +569,12 @@ function UserStatCard({
   icon: React.ElementType;
 }) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+    <Card className="rounded-md border-slate-200 bg-white">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-slate-500">{title}</p>
-            <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+            <p className="text-sm font-normal text-slate-500">{title}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
               {value}
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-400">
@@ -593,7 +582,7 @@ function UserStatCard({
             </p>
           </div>
 
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-100 text-slate-700">
             <Icon className="h-5 w-5" />
           </div>
         </div>

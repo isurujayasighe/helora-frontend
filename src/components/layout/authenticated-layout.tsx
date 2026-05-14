@@ -34,7 +34,7 @@ export function AuthenticatedLayout() {
           "ml-auto w-full max-w-full flex h-svh flex-col",
           "peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]",
           "peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon))]",
-          "transition-[width] duration-200 ease-linear"
+                "transition-[width] duration-150 ease-linear"
         )}
       >
         <Header fixed>
@@ -47,7 +47,7 @@ export function AuthenticatedLayout() {
                     className="max-h-8 w-auto object-contain md:max-h-9"
                   />
                 ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted-foreground">
                     <Building2 className="h-4 w-4" />
                   </div>
                 )}
@@ -58,27 +58,27 @@ export function AuthenticatedLayout() {
             <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-3 py-2 md:hidden">
                <Link
                 to="/app/dashboard"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 <LayoutDashboard className="h-4 w-4" />
               </Link>
               <Link
                 to="/app/orders"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 <Package className="h-4 w-4" />
               </Link>
 
               <Link
                 to="/app/orders"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 <FileText className="h-4 w-4" />
               </Link>
 
               <Link
                 to="/app/account"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 <UserRound className="h-4 w-4" />
               </Link>
@@ -89,7 +89,7 @@ export function AuthenticatedLayout() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 rounded-lg text-muted-foreground hover:text-primary"
+                  className="h-9 w-9 rounded-md text-muted-foreground hover:text-primary"
                   title="Notifications"
                 >
                   <Bell className="h-4 w-4" />
