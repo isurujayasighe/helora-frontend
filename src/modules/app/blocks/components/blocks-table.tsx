@@ -1,5 +1,11 @@
-import { CalendarDays, Eye, Pencil, UserRound } from "lucide-react";
+import { CalendarDays, Eye, MoreVertical, Pencil, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Block } from "@/types/blocks";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +58,7 @@ export function BlocksTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-hidden  bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-230 text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -72,16 +78,13 @@ export function BlocksTable({
               <tr key={block.id} className="hover:bg-slate-50/70">
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900">
+                    <button
+                      type="button"
+                      className="font-normal text-slate-900 underline-offset-4 hover:text-primary hover:underline"
+                      onClick={() => onViewBlock(block.id)}
+                    >
                       {block.blockNumber}
-                    </span>
-
-                    {block.customerBlocks?.some((item) => item.isDefault) && (
-                      <span
-                        title="Default block"
-                        className="inline-flex h-2.5 w-2.5 rounded-full bg-blue-600 ring-4 ring-blue-100"
-                      />
-                    )}
+                    </button>
                   </div>
 
                   {block.description && (
@@ -121,30 +124,31 @@ export function BlocksTable({
                   </span>
                 </td>
 
-                <td className="px-4 py-4">
-                  <div className="flex justify-end gap-1.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1.5 px-2.5"
-                      onClick={() => onViewBlock(block.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                      View
-                    </Button>
+                <td className="px-4 py-4 text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-md text-slate-500 hover:text-slate-900"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1.5 px-2.5 text-slate-700 hover:bg-blue-50 hover:text-blue-700"
-                      onClick={() => onEditBlock(block.id)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </Button>
-                  </div>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem onClick={() => onViewBlock(block.id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View details
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem onClick={() => onEditBlock(block.id)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit block items
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}

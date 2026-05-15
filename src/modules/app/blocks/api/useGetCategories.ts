@@ -27,7 +27,7 @@ const getCategories = async (): Promise<ListCategoriesApiResponse> => {
 };
 
 export const categoriesQueryKeys = {
-  all: ["categories"] as const,
+  all: ["blocks", "categories"] as const,
   list: () => [...categoriesQueryKeys.all, "list"] as const,
 };
 

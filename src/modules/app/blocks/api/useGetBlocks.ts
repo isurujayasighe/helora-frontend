@@ -30,6 +30,7 @@ export type GetBlocksParams = {
   status?: string;
   includeCounts?: boolean;
   includeTotal?: boolean;
+  enabled?: boolean;
 };
 
 const getBlocks = async (
@@ -56,13 +57,15 @@ const getBlocks = async (
 
 export const blocksQueryKeys = {
   all: ["blocks"] as const,
-  list: (params: GetBlocksParams) => [...blocksQueryKeys.all, params] as const,
+  list: ({ enabled: _enabled, ...params }: GetBlocksParams) =>
+    [...blocksQueryKeys.all, params] as const,
 };
 
 export const useGetBlocks = (params: GetBlocksParams) => {
   return useQuery({
     queryKey: blocksQueryKeys.list(params),
     queryFn: () => getBlocks(params),
+    enabled: params.enabled ?? true,
     placeholderData: (previousData) => previousData,
   });
 };

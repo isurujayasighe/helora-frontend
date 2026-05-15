@@ -9,9 +9,12 @@ import {
   CheckCircle2,
   Loader2,
   PackagePlus,
+  Plus,
   Ruler,
   Save,
+  Trash2,
   UserRound,
+  Users,
 } from "lucide-react";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,7 +64,7 @@ import type { CustomerLookupItem } from "@/api/useGetCustomerLookup";
 /* ------------------------------------------------------------------ */
 
 const createBlockSchema = z.object({
-  customerId: z.string().min(1, "Select a customer first"),
+  customerId: z.string().optional(),
   customerName: z.string().optional(),
   phoneNumber: z.string().optional(),
   customerTown: z.string().optional(),
@@ -87,6 +90,17 @@ const createBlockSchema = z.object({
 
 type CreateBlockFormInput = z.input<typeof createBlockSchema>;
 type CreateBlockFormValues = z.output<typeof createBlockSchema>;
+
+type CustomerAssignment = {
+  customerId: string;
+  customerName: string;
+  phoneNumber?: string;
+  town?: string;
+  hospitalName?: string;
+  measurementId?: string;
+  measurementNumber?: string;
+  isDefault: boolean;
+};
 
 type CreateBlockDialogProps = {
   open: boolean;
@@ -203,6 +217,10 @@ export function CreateBlockDialog({
 }: CreateBlockDialogProps) {
   const [selectedCustomer, setSelectedCustomer] =
     React.useState<CustomerLookupItem | null>(null);
+  const [customerAssignments, setCustomerAssignments] = React.useState<
+    CustomerAssignment[]
+  >([]);
+  const [lookupResetKey, setLookupResetKey] = React.useState(0);
 
   const createBlockMutation = useCreateBlock();
 
@@ -264,14 +282,93 @@ export function CreateBlockDialog({
     setValue,
   ]);
 
+  const categoryItems = React.useMemo(() => {
+    const value = categories as unknown;
+
+    if (Array.isArray(value)) return value;
+
+    if (
+      value &&
+      typeof value === "object" &&
+      Array.isArray((value as { data?: unknown }).data)
+    ) {
+      return (value as { data: typeof categories }).data;
+    }
+
+    return [];
+  }, [categories]);
+
   const activeCategories = React.useMemo(() => {
-    return categories
+    return categoryItems
       .filter((category) => category.isActive)
       .map((category) => ({
         id: category.id,
         name: category.name,
       }));
-  }, [categories]);
+  }, [categoryItems]);
+
+  const clearDraftCustomer = React.useCallback(() => {
+    setSelectedCustomer(null);
+    setLookupResetKey((key) => key + 1);
+
+    setValue("customerId", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("customerName", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("phoneNumber", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("customerTown", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("customerAddress", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("customerNotes", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("hospitalName", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("measurementId", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("isDefault", true, {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+  }, [setValue]);
+
+  const previousCategoryIdRef = React.useRef("");
+
+  React.useEffect(() => {
+    if (!open) {
+      previousCategoryIdRef.current = "";
+      return;
+    }
+
+    const previousCategoryId = previousCategoryIdRef.current;
+
+    if (previousCategoryId && previousCategoryId !== categoryId) {
+      setCustomerAssignments([]);
+      setValue("measurementId", "", {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+    }
+
+    previousCategoryIdRef.current = categoryId ?? "";
+  }, [categoryId, open, setValue]);
 
   const handleClose = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
@@ -279,10 +376,109 @@ export function CreateBlockDialog({
     if (!nextOpen) {
       reset(defaultValues);
       setSelectedCustomer(null);
+      setCustomerAssignments([]);
+      setLookupResetKey((key) => key + 1);
     }
   };
 
+  const getDraftAssignment = React.useCallback(
+    (
+      values: CreateBlockFormValues | CreateBlockFormInput,
+    ): CustomerAssignment | null => {
+      if (!values.customerId) return null;
+
+      return {
+        customerId: values.customerId,
+        customerName:
+          values.customerName?.trim() ||
+          selectedCustomer?.fullName ||
+          "Selected customer",
+        phoneNumber:
+          values.phoneNumber?.trim() ||
+          selectedCustomer?.phoneNumber ||
+          undefined,
+        town:
+          values.customerTown?.trim() || selectedCustomer?.town || undefined,
+        hospitalName:
+          values.hospitalName?.trim() ||
+          selectedCustomer?.hospitalName ||
+          undefined,
+        measurementId: toOptionalString(values.measurementId),
+        measurementNumber: latestMeasurement?.measurementNumber,
+        isDefault: values.isDefault ?? true,
+      };
+    },
+    [latestMeasurement?.measurementNumber, selectedCustomer],
+  );
+
+  const handleAddCustomerAssignment = () => {
+    const values = form.getValues();
+    const draftAssignment = getDraftAssignment(values);
+
+    if (!draftAssignment) {
+      form.setError("customerId", {
+        message: "Select a customer before adding.",
+      });
+      return;
+    }
+
+    if (!categoryId) {
+      form.setError("categoryId", {
+        message: "Select a category before adding customers.",
+      });
+      return;
+    }
+
+    setCustomerAssignments((current) => {
+      const withoutCurrentCustomer = current.filter(
+        (assignment) => assignment.customerId !== draftAssignment.customerId,
+      );
+
+      return [...withoutCurrentCustomer, draftAssignment];
+    });
+
+    clearDraftCustomer();
+  };
+
+  const handleRemoveCustomerAssignment = (customerIdToRemove: string) => {
+    setCustomerAssignments((current) =>
+      current.filter(
+        (assignment) => assignment.customerId !== customerIdToRemove,
+      ),
+    );
+  };
+
+  const handleToggleCustomerDefault = (
+    customerIdToUpdate: string,
+    isDefault: boolean,
+  ) => {
+    setCustomerAssignments((current) =>
+      current.map((assignment) =>
+        assignment.customerId === customerIdToUpdate
+          ? { ...assignment, isDefault }
+          : assignment,
+      ),
+    );
+  };
+
   const handleSubmit: SubmitHandler<CreateBlockFormValues> = async (values) => {
+    const draftAssignment = getDraftAssignment(values);
+    const assignments = draftAssignment
+      ? [
+          ...customerAssignments.filter(
+            (assignment) => assignment.customerId !== draftAssignment.customerId,
+          ),
+          draftAssignment,
+        ]
+      : customerAssignments;
+
+    if (!assignments.length) {
+      form.setError("customerId", {
+        message: "Add at least one customer to this block.",
+      });
+      return;
+    }
+
     const payload: CreateBlockPayload = {
       categoryId: values.categoryId,
       blockNumber: values.blockNumber.trim(),
@@ -295,13 +491,11 @@ export function CreateBlockDialog({
       status: values.status,
       remarks: toOptionalString(values.remarks),
       legacyId: toOptionalNumber(values.legacyId),
-      customers: [
-        {
-          customerId: values.customerId,
-          measurementId: toOptionalString(values.measurementId),
-          isDefault: values.isDefault,
-        },
-      ],
+      customers: assignments.map((assignment) => ({
+        customerId: assignment.customerId,
+        measurementId: toOptionalString(assignment.measurementId),
+        isDefault: assignment.isDefault,
+      })),
     };
 
     try {
@@ -318,7 +512,16 @@ export function CreateBlockDialog({
   const isMeasurementLoading =
     isLatestMeasurementLoading || isLatestMeasurementFetching;
 
-  const canSubmit = Boolean(customerId) && Boolean(categoryId) && !isSubmitting;
+  const canAddCustomer =
+    Boolean(customerId) &&
+    Boolean(categoryId) &&
+    !isMeasurementLoading &&
+    !isSubmitting;
+  const canSubmit =
+    Boolean(categoryId) &&
+    Boolean(customerAssignments.length || customerId) &&
+    !isMeasurementLoading &&
+    !isSubmitting;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -336,8 +539,9 @@ export function CreateBlockDialog({
                 </DialogTitle>
 
                 <DialogDescription className="mt-1 text-sm text-slate-500">
-                  Select the customer first, choose the category, then the
-                  latest matching measurement will be linked automatically.
+                  Assign the reusable block to one or more customers. The
+                  latest matching measurement is linked for each customer when
+                  available.
                 </DialogDescription>
               </div>
             </div>
@@ -346,12 +550,18 @@ export function CreateBlockDialog({
               variant="outline"
               className={cn(
                 "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-                customerId
+                customerAssignments.length || customerId
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                   : "border-amber-200 bg-amber-50 text-amber-700",
               )}
             >
-              {customerId ? "Customer selected" : "Customer required"}
+              {customerAssignments.length
+                ? `${customerAssignments.length} customer${
+                    customerAssignments.length === 1 ? "" : "s"
+                  } assigned`
+                : customerId
+                  ? "Customer selected"
+                  : "Customer required"}
             </Badge>
           </div>
         </DialogHeader>
@@ -363,13 +573,14 @@ export function CreateBlockDialog({
           >
             <div className="grid min-h-0 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(280px,340px)_1fr]">
               <SectionCard
-                title="Customer"
-                description="Find the customer before creating the block. The latest measurement will be found after selecting the category."
-                icon={UserRound}
+                title="Customer Assignments"
+                description="Add every customer who can use this block. Helora will link the latest matching measurement when available."
+                icon={Users}
                 className="lg:sticky lg:top-0 lg:self-start"
               >
                 <div className="space-y-4">
                   <CustomerPhoneLookupField
+                    key={lookupResetKey}
                     control={form.control}
                     setValue={form.setValue}
                     names={{
@@ -436,7 +647,7 @@ export function CreateBlockDialog({
                     </div>
                   ) : (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-medium text-amber-800">
-                      Select a customer before filling block details.
+                      Select a customer, then add them to the assignment list.
                     </div>
                   )}
 
@@ -449,12 +660,103 @@ export function CreateBlockDialog({
                       </FormItem>
                     )}
                   />
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full rounded-lg bg-white"
+                    disabled={!canAddCustomer}
+                    onClick={handleAddCustomerAssignment}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add customer to block
+                  </Button>
+
+                  <div className="rounded-lg border border-slate-200 bg-white">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase text-slate-500">
+                        Assigned customers
+                      </p>
+                      <Badge variant="outline" className="rounded-md">
+                        {customerAssignments.length}
+                      </Badge>
+                    </div>
+
+                    {customerAssignments.length ? (
+                      <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
+                        {customerAssignments.map((assignment) => (
+                          <div
+                            key={assignment.customerId}
+                            className="space-y-3 px-3 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-slate-900">
+                                  {assignment.customerName}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-slate-500">
+                                  {assignment.phoneNumber || "-"}
+                                  {assignment.town
+                                    ? ` - ${assignment.town}`
+                                    : ""}
+                                  {assignment.hospitalName
+                                    ? ` - ${assignment.hospitalName}`
+                                    : ""}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-slate-500">
+                                  {assignment.measurementNumber
+                                    ? `Measurement ${assignment.measurementNumber}`
+                                    : assignment.measurementId
+                                      ? "Measurement linked"
+                                      : "No measurement linked"}
+                                </p>
+                              </div>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-slate-400 hover:text-red-600"
+                                onClick={() =>
+                                  handleRemoveCustomerAssignment(
+                                    assignment.customerId,
+                                  )
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            <div className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
+                              <span className="text-xs text-slate-600">
+                                Default block for this customer
+                              </span>
+                              <Switch
+                                checked={assignment.isDefault}
+                                onCheckedChange={(checked) =>
+                                  handleToggleCustomerDefault(
+                                    assignment.customerId,
+                                    checked,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-5 text-center text-sm text-slate-500">
+                        <UserRound className="mx-auto mb-2 h-5 w-5 text-slate-400" />
+                        No customers added yet.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </SectionCard>
 
               <SectionCard
                 title="Block Details"
-                description="Create the reusable cutting block for the selected customer and garment category."
+                description="Create the reusable cutting block and assign it to the selected customers."
                 icon={Ruler}
               >
                 {isCategoriesError && (
@@ -464,12 +766,7 @@ export function CreateBlockDialog({
                   </div>
                 )}
 
-                <div
-                  className={cn(
-                    "grid gap-4 md:grid-cols-12",
-                    !customerId && "pointer-events-none opacity-60",
-                  )}
-                >
+                <div className="grid gap-4 md:grid-cols-12">
                   <FormField
                     control={control}
                     name="categoryId"

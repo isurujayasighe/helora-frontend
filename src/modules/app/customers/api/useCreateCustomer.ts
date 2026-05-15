@@ -19,6 +19,15 @@ export type CreateCustomerPayload = {
     description?: string;
     remarks?: string;
   };
+  legacyBlocks?: Array<{
+    categoryId: string;
+    blockNumber: string;
+    readyMadeSize?: string;
+    sizeLabel?: string;
+    fitNotes?: string;
+    description?: string;
+    remarks?: string;
+  }>;
 };
 
 type CreateCustomerApiResponse = {

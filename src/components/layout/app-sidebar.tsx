@@ -21,11 +21,11 @@ import {
   Users,
   UserRound,
   UserRoundCheck,
-  ChevronDown,
   MoreHorizontal,
   User,
   LogOut,
   Mail,
+  ChevronRight,
 } from "lucide-react";
 
 
@@ -361,7 +361,7 @@ function EnterpriseSidebarItem({
           tooltip={!isMobile && state === "collapsed" ? item.title : undefined}
           isActive={active}
           className={cn(
-            "relative h-9 rounded-md px-2.5 text-sm font-medium transition-colors",
+            "relative h-9 rounded-md px-2.5 text-xs font transition-colors",
             "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
               ? "bg-[#eef2f6] text-[#080726] shadow-none"
@@ -400,7 +400,7 @@ function EnterpriseSidebarItem({
             }
             isActive={active}
             className={cn(
-              "relative h-9 rounded-md px-2.5 text-sm font-medium transition-colors",
+              "relative h-9 rounded-md px-2.5 text-xs  transition-colors",
               "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
                 ? "bg-[#eef2f6] text-[#080726] shadow-none"
@@ -418,7 +418,7 @@ function EnterpriseSidebarItem({
               {item.title}
             </span>
 
-            <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
+            <ChevronRight className="ml-auto  transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
@@ -456,7 +456,7 @@ function ChildSidebarLink({
     <Link
       to={child.url}
       className={cn(
-        "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-sm font-normal transition-colors",
+        "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-xs font-normal transition-colors",
 
         active
           ? "bg-[#f8fafc] text-[#080726]"

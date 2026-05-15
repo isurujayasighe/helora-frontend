@@ -6,6 +6,7 @@ import { blockDetailsQueryKeys } from "./useGetBlockById";
 
 export type UpdateBlockCustomerPayload = {
   customerId: string;
+  measurementId?: string;
   isDefault?: boolean;
 };
 

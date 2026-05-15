@@ -41,9 +41,14 @@ export type BlockDetailsNextVersion = {
 export type BlockDetailsCustomerAssignment = {
   customerId: string;
   blockId: string;
+  measurementId: string | null;
   isDefault: boolean;
   assignedAt: string;
   assignedById: string | null;
+  measurement?: {
+    id: string;
+    measurementNumber: string;
+  } | null;
   customer: BlockDetailsCustomer;
 };
 
@@ -98,6 +103,8 @@ export type BlockDetails = {
   orderItems: BlockDetailsOrderItem[];
   _count: {
     orderItems: number;
+    measurements?: number;
+    customerBlocks?: number;
   };
 };
 

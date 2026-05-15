@@ -56,5 +56,7 @@ export type Block = {
   customerBlocks: CustomerBlockAssignment[];
   _count: {
     orderItems: number;
+    measurements?: number;
+    customerBlocks?: number;
   };
 };

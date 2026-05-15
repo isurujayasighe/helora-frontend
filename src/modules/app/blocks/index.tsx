@@ -41,6 +41,7 @@ import { useGetCategories } from "./api/useGetCategories";
 import { BlocksTable } from "./components/blocks-table";
 import { BlockDetailsDialog } from "./components/block-details-dialog";
 import { CreateBlockDialog } from "./components/create-block-dialog";
+import { EditBlockCustomersDialog } from "./components/edit-block-customers-dialog";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -68,10 +69,10 @@ export default function BlocksPage() {
 
   const [addBlockOpen, setAddBlockOpen] = useState(false);
 
-  const [_selectedEditBlockId, setSelectedEditBlockId] = useState<string | null>(
+  const [selectedEditBlockId, setSelectedEditBlockId] = useState<string | null>(
     null,
   );
-  const [_editBlockOpen, setEditBlockOpen] = useState(false);
+  const [editBlockOpen, setEditBlockOpen] = useState(false);
   const { data: categoriesResponse, isLoading: isCategoriesLoading } =
     useGetCategories();
 
@@ -160,7 +161,7 @@ export default function BlocksPage() {
 
   return (
     <PermissionGate action="read" subject="blocks">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
         <AnimatePresence mode="wait">
           <motion.div
             key="helora-blocks-page"
@@ -171,7 +172,7 @@ export default function BlocksPage() {
             className="flex h-full flex-col gap-4 p-3 md:p-5"
           >
             {/* Header */}
-            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
                   <Grid2x2 className="h-5 w-5" />
@@ -280,7 +281,7 @@ export default function BlocksPage() {
                     </CardDescription>
                   </div>
 
-                  <div className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_220px_160px_auto] xl:w-[780px]">
+                  <div className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_220px_160px_auto] xl:w-195">
                     <div className="relative">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -420,6 +421,21 @@ export default function BlocksPage() {
             if (!open) {
               setSelectedBlockId(null);
             }
+          }}
+        />
+
+        <EditBlockCustomersDialog
+          blockId={selectedEditBlockId}
+          open={editBlockOpen}
+          onOpenChange={(open) => {
+            setEditBlockOpen(open);
+
+            if (!open) {
+              setSelectedEditBlockId(null);
+            }
+          }}
+          onUpdated={async () => {
+            await refetch();
           }}
         />
       </div>

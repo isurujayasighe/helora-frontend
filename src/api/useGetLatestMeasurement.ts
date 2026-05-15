@@ -157,6 +157,25 @@ type UseGetMeasurementByIdParams = {
   enabled?: boolean;
 };
 
+type PaginatedResponse<T> = {
+  items?: T[];
+  data?: T[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+};
+
+type GetLatestMeasurementParams = {
+  customerId?: string;
+  blockId?: string;
+  categoryId?: string;
+};
+
 export const measurementKeys = {
   all: ["measurements"] as const,
 
@@ -169,9 +188,31 @@ export const measurementKeys = {
   customerList: (customerId?: string) =>
     [...measurementKeys.all, "customer-list", customerId] as const,
 
+  blockList: (blockId?: string) =>
+    [...measurementKeys.all, "block-list", blockId] as const,
+
   detail: (measurementId?: string) =>
     [...measurementKeys.all, "detail", measurementId] as const,
 };
+
+export async function getLatestMeasurement({
+  customerId,
+  blockId,
+  categoryId,
+}: GetLatestMeasurementParams) {
+  const response = await covalentHubClient.get<ApiResponse<Measurement | null>>(
+    "/measurements/latest",
+    {
+      params: {
+        customerId,
+        blockId,
+        categoryId,
+      },
+    },
+  );
+
+  return response.data.data;
+}
 
 export function useGetLatestMeasurement({
   customerId,
@@ -187,20 +228,46 @@ export function useGetLatestMeasurement({
     }),
 
     queryFn: async () => {
-      const response = await covalentHubClient.get<
-        ApiResponse<Measurement | null>
-      >("/measurements/latest", {
-        params: {
+      return getLatestMeasurement({
           customerId,
           blockId,
           categoryId,
-        },
       });
-
-      return response.data.data;
     },
 
     enabled: enabled && Boolean(customerId),
+  });
+}
+
+export function useGetBlockMeasurements({
+  blockId,
+  enabled = true,
+}: {
+  blockId?: string | null;
+  enabled?: boolean;
+}) {
+  return useQuery({
+    queryKey: measurementKeys.blockList(blockId ?? undefined),
+    queryFn: async () => {
+      const response = await covalentHubClient.get<
+        ApiResponse<PaginatedResponse<Measurement> | Measurement[]>
+      >("/measurements", {
+        params: {
+          blockId,
+          page: 1,
+          pageSize: 50,
+        },
+      });
+
+      const payload = response.data.data;
+
+      if (Array.isArray(payload)) {
+        return payload;
+      }
+
+      return payload.items ?? payload.data ?? [];
+    },
+    enabled: enabled && Boolean(blockId),
   });
 }
 

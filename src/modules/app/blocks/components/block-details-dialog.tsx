@@ -3,10 +3,20 @@
 import {
   Blocks,
   History,
+  Link2,
+  Loader2,
   PackageCheck,
+  Ruler,
   UserRound,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
+import {
+  getLatestMeasurement,
+  useGetBlockMeasurements,
+} from "@/api/useGetLatestMeasurement";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +24,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getApiErrorMessage } from "@/errors/api-error-response";
 import { cn } from "@/lib/utils";
 import { useGetBlockById } from "../api/useGetBlockById";
+import { useLinkMeasurementToBlock } from "../api/useLinkMeasurementToBlock";
 
 type BlockDetailsDialogProps = {
   blockId: string | null;
@@ -77,7 +89,55 @@ export function BlockDetailsDialog({
   onOpenChange,
 }: BlockDetailsDialogProps) {
   const { data, isLoading, isFetching } = useGetBlockById(blockId, open);
+  const linkMeasurementToBlock = useLinkMeasurementToBlock();
+  const [activeTab, setActiveTab] = useState("customers");
+  const [linkingCustomerId, setLinkingCustomerId] = useState<string | null>(
+    null,
+  );
   const block = data?.data;
+  const {
+    data: measurements = [],
+    isLoading: isMeasurementsLoading,
+    isFetching: isMeasurementsFetching,
+  } = useGetBlockMeasurements({
+    blockId,
+    enabled: open && activeTab === "measurements",
+  });
+
+  const handleLinkLatestMeasurement = async (customerId: string) => {
+    if (!blockId || !block?.categoryId) return;
+
+    setLinkingCustomerId(customerId);
+
+    try {
+      const measurement = await getLatestMeasurement({
+        customerId,
+        categoryId: block.categoryId,
+      });
+
+      if (!measurement) {
+        toast.error("No matching measurement found for this customer.");
+        return;
+      }
+
+      await linkMeasurementToBlock.mutateAsync({
+        blockId,
+        payload: {
+          measurementId: measurement.id,
+          makeDefaultForCustomer: true,
+          updateOrderItems: false,
+        },
+      });
+
+      toast.success("Measurement linked to block");
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Unable to link measurement to block."),
+      );
+    } finally {
+      setLinkingCustomerId(null);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,7 +249,11 @@ export function BlockDetailsDialog({
               </section>
 
               <section className="border-t border-slate-200 bg-white px-5 pb-5">
-                <Tabs defaultValue="customers" className="w-full">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="w-full"
+                >
                   <TabsList className="h-10 justify-start gap-3 rounded-none border-b border-slate-200 bg-transparent p-0">
                     <TabsTrigger
                       value="customers"
@@ -197,6 +261,14 @@ export function BlockDetailsDialog({
                     >
                       <UserRound className="mr-1.5 h-3.5 w-3.5" />
                       Assigned Customers
+                    </TabsTrigger>
+
+                    <TabsTrigger
+                      value="measurements"
+                      className="h-10 rounded-none border-b-2 border-transparent px-0 text-xs font-semibold data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
+                    >
+                      <Ruler className="mr-1.5 h-3.5 w-3.5" />
+                      Measurements
                     </TabsTrigger>
 
                     <TabsTrigger
@@ -219,6 +291,17 @@ export function BlockDetailsDialog({
                   <TabsContent value="customers" className="mt-4">
                     <AssignedCustomersTable
                       customerBlocks={block.customerBlocks ?? []}
+                      linkingCustomerId={linkingCustomerId}
+                      onLinkLatestMeasurement={handleLinkLatestMeasurement}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="measurements" className="mt-4">
+                    <MeasurementsTable
+                      measurements={measurements}
+                      isLoading={
+                        isMeasurementsLoading || isMeasurementsFetching
+                      }
                     />
                   </TabsContent>
 
@@ -293,10 +376,13 @@ function TextPanel({ title, value }: { title: string; value: string }) {
 
 function AssignedCustomersTable({
   customerBlocks,
+  linkingCustomerId,
+  onLinkLatestMeasurement,
 }: {
   customerBlocks: Array<{
     customerId: string;
     blockId: string;
+    measurementId: string | null;
     isDefault: boolean;
     assignedAt: string;
     customer: {
@@ -304,7 +390,13 @@ function AssignedCustomersTable({
       phoneNumber: string | null;
       town: string | null;
     };
+    measurement?: {
+      id: string;
+      measurementNumber: string;
+    } | null;
   }>;
+  linkingCustomerId: string | null;
+  onLinkLatestMeasurement: (customerId: string) => void;
 }) {
   if (!customerBlocks.length) {
     return <EmptyMessage message="No customers assigned to this block." />;
@@ -318,7 +410,9 @@ function AssignedCustomersTable({
             <th className="px-3 py-2 font-semibold">Customer</th>
             <th className="px-3 py-2 font-semibold">Phone</th>
             <th className="px-3 py-2 font-semibold">Town</th>
+            <th className="px-3 py-2 font-semibold">Measurement</th>
             <th className="px-3 py-2 font-semibold">Assigned</th>
+            <th className="px-3 py-2 text-right font-semibold">Action</th>
           </tr>
         </thead>
 
@@ -345,7 +439,130 @@ function AssignedCustomersTable({
                 {item.customer.town || "-"}
               </td>
               <td className="px-3 py-2.5 text-slate-700">
+                {item.measurement?.measurementNumber ? (
+                  <span className="font-medium text-slate-900">
+                    {item.measurement.measurementNumber}
+                  </span>
+                ) : item.measurementId ? (
+                  "Linked"
+                ) : (
+                  <span className="text-slate-400">Not linked</span>
+                )}
+              </td>
+              <td className="px-3 py-2.5 text-slate-700">
                 {formatDate(item.assignedAt)}
+              </td>
+              <td className="px-3 py-2.5 text-right">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 bg-white"
+                  disabled={linkingCustomerId === item.customerId}
+                  onClick={() => onLinkLatestMeasurement(item.customerId)}
+                >
+                  {linkingCustomerId === item.customerId ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {item.measurementId ? "Relink" : "Link latest"}
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MeasurementsTable({
+  measurements,
+  isLoading,
+}: {
+  measurements: Array<{
+    id: string;
+    measurementNumber: string | null;
+    verificationStatus: string;
+    isActive: boolean;
+    versionNo: number;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+    customer?: {
+      fullName: string;
+      phoneNumber: string | null;
+      town: string | null;
+    };
+  }>;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex h-40 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-500">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading measurements...
+      </div>
+    );
+  }
+
+  if (!measurements.length) {
+    return <EmptyMessage message="No measurements are linked to this block." />;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200">
+      <table className="w-full min-w-180 text-left text-sm">
+        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Measurement</th>
+            <th className="px-3 py-2 font-semibold">Customer</th>
+            <th className="px-3 py-2 font-semibold">Status</th>
+            <th className="px-3 py-2 font-semibold">Version</th>
+            <th className="px-3 py-2 font-semibold">Created</th>
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-slate-100 bg-white">
+          {measurements.map((measurement) => (
+            <tr key={measurement.id}>
+              <td className="px-3 py-2.5">
+                <p className="font-medium text-slate-900">
+                  {measurement.measurementNumber || measurement.id}
+                </p>
+                {measurement.notes && (
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                    {measurement.notes}
+                  </p>
+                )}
+              </td>
+              <td className="px-3 py-2.5">
+                <p className="font-medium text-slate-900">
+                  {measurement.customer?.fullName || "-"}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {measurement.customer?.phoneNumber || "-"}
+                  {measurement.customer?.town
+                    ? ` - ${measurement.customer.town}`
+                    : ""}
+                </p>
+              </td>
+              <td className="px-3 py-2.5">
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1",
+                    statusClassName(measurement.verificationStatus),
+                  )}
+                >
+                  {measurement.verificationStatus.replaceAll("_", " ")}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 text-slate-700">
+                V{measurement.versionNo}
+              </td>
+              <td className="px-3 py-2.5 text-slate-700">
+                {formatDate(measurement.createdAt)}
               </td>
             </tr>
           ))}
