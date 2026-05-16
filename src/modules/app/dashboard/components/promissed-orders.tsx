@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 type UpcomingPromisedOrder = {
   id: string;
@@ -13,6 +14,7 @@ type UpcomingPromisedOrder = {
 
 interface UpcomingPromisedOrdersProps {
   orders: UpcomingPromisedOrder[];
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -54,6 +56,7 @@ function PromisedOrderListItem({ order }: { order: UpcomingPromisedOrder }) {
 
 export function UpcomingPromisedOrders({
   orders,
+  isLoading,
   className,
 }: UpcomingPromisedOrdersProps) {
   return (
@@ -66,9 +69,20 @@ export function UpcomingPromisedOrders({
 
       <CardContent className="p-4">
         <div className="space-y-3">
-          {orders.map((order) => (
-            <PromisedOrderListItem key={order.id} order={order} />
-          ))}
+          {isLoading ? (
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-slate-50 px-4 py-6 text-sm font-medium text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading promised orders...
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">
+              No promised orders due in the next 7 days.
+            </div>
+          ) : (
+            orders.map((order) => (
+              <PromisedOrderListItem key={order.id} order={order} />
+            ))
+          )}
         </div>
       </CardContent>
     </Card>

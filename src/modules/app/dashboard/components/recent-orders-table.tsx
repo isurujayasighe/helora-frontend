@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 type RecentOrder = {
   id: string;
@@ -25,13 +26,14 @@ type RecentOrder = {
   itemName: string;
   quantity: number;
   promisedDate: string;
-  status: "Pending" | "In Progress" | "Completed" | "Overdue";
+  status: string;
 };
 
 interface RecentOrdersTableCardProps {
   orders: RecentOrder[];
   currentPage: number;
   totalPages: number;
+  isLoading?: boolean;
   className?: string;
   onPageChange?: (page: number) => void;
 }
@@ -47,8 +49,13 @@ function formatDate(dateString: string) {
 
 function getStatusBadgeVariant(status: RecentOrder["status"]) {
   switch (status) {
+    case "Delivered":
     case "Completed":
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "Confirmed":
+    case "Cutting":
+    case "Sewing":
+    case "Ready":
     case "In Progress":
       return "bg-blue-50 text-blue-700 border-blue-200";
     case "Pending":
@@ -64,6 +71,7 @@ export function RecentOrdersTableCard({
   orders,
   currentPage,
   totalPages,
+  isLoading,
   className,
   onPageChange,
 }: RecentOrdersTableCardProps) {
@@ -113,7 +121,19 @@ export function RecentOrdersTableCard({
             </TableHeader>
 
             <TableBody>
-              {orders.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="h-24 text-center text-sm text-slate-500"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading recent orders...
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ) : orders.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}

@@ -53,7 +53,7 @@ export function DashboardBlockLookupCard() {
 
   const { data: blocks = [], isLoading: isBlocksLoading } = useBlockLookup({
     search: trimmedSearch,
-    limit: 8,
+    limit: 20,
   });
 
   const showBlockList = trimmedSearch.length > 0 && !selectedBlock;

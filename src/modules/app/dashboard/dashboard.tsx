@@ -20,6 +20,59 @@ import { DashboardCustomerSearchCard } from "./components/dashboard-customer-sea
 import { DashboardBlockLookupCard } from "./components/dashboard-block-lookup";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useGetOrders } from "@/modules/app/orders/api/useGetOrders";
+import type { Order } from "@/types/orders";
+
+function formatDateParam(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getOrderQuantity(order: Order) {
+  if (typeof order.totalQty === "number") return order.totalQty;
+
+  return order.items.reduce(
+    (total, item) => total + Number(item.quantity || 0),
+    0,
+  );
+}
+
+function getOrderTitle(order: Order) {
+  const firstItem = order.items[0];
+
+  return (
+    firstItem?.itemDescription ||
+    firstItem?.category?.name ||
+    order.customer?.fullName ||
+    order.orderNumber
+  );
+}
+
+function formatOrderStatus(status: string, promisedDate?: string | null) {
+  const isOverdue =
+    promisedDate &&
+    !["DELIVERED", "CANCELLED"].includes(status) &&
+    new Date(promisedDate).getTime() < new Date().setHours(0, 0, 0, 0);
+
+  if (isOverdue) return "Overdue";
+
+  const labels: Record<string, string> = {
+    PENDING: "Pending",
+    CONFIRMED: "Confirmed",
+    CUTTING: "Cutting",
+    SEWING: "Sewing",
+    READY: "Ready",
+    DELIVERED: "Delivered",
+    CANCELLED: "Cancelled",
+    IN_PROGRESS: "In Progress",
+    COMPLETED: "Completed",
+  };
+
+  return labels[status] ?? status;
+}
 
 export default function Dashboard() {
   const [recentOrdersPage, setRecentOrdersPage] = useState(1);
@@ -27,75 +80,74 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
 
-  const upcomingOrders = [
-    {
-      id: "1",
-      title: "Men's Oxford Blazers",
-      units: 8,
-      orderNo: "ORD-3012",
-      date: "2026-10-26",
-    },
-    {
-      id: "2",
-      title: "Silk Evening Gown",
-      units: 1,
-      orderNo: "ORD-3021",
-      date: "2026-10-27",
-    },
-    {
-      id: "3",
-      title: "Cotton Polo Batch",
-      units: 45,
-      orderNo: "ORD-2999",
-      date: "2026-10-28",
-    },
-    {
-      id: "4",
-      title: "Uniform Embroidery",
-      units: 120,
-      orderNo: "ORD-3005",
-      date: "2026-10-29",
-    },
-  ];
+  const today = useMemo(() => new Date(), []);
+  const sevenDaysFromToday = useMemo(() => {
+    const date = new Date(today);
+    date.setDate(date.getDate() + 7);
+    return date;
+  }, [today]);
 
-  const recentOrders = [
-    {
-      id: "1",
-      orderNo: "ORD-3012",
-      customerName: "St. Anne Hospital",
-      itemName: "Men's Oxford Blazers",
-      quantity: 8,
-      promisedDate: "2026-10-26",
-      status: "Pending" as const,
-    },
-    {
-      id: "2",
-      orderNo: "ORD-3021",
-      customerName: "Royal Academy",
-      itemName: "Silk Evening Gown",
-      quantity: 1,
-      promisedDate: "2026-10-27",
-      status: "In Progress" as const,
-    },
-    {
-      id: "3",
-      orderNo: "ORD-2999",
-      customerName: "Greenwood College",
-      itemName: "Cotton Polo Batch",
-      quantity: 45,
-      promisedDate: "2026-10-28",
-      status: "Completed" as const,
-    },
-    {
-      id: "4",
-      orderNo: "ORD-3005",
-      customerName: "City Medical Unit",
-      itemName: "Uniform Embroidery",
-      quantity: 120,
-      promisedDate: "2026-10-29",
-      status: "Overdue" as const,
-    },
-  ];
+  const {
+    data: upcomingOrdersResponse,
+    isLoading: isUpcomingOrdersLoading,
+    isFetching: isUpcomingOrdersFetching,
+  } = useGetOrders({
+    page: 1,
+    pageSize: 7,
+    promisedDateFrom: formatDateParam(today),
+    promisedDateTo: formatDateParam(sevenDaysFromToday),
+    activeOnly: true,
+    sortBy: "promisedDate",
+    sortDirection: "asc",
+  });
+
+  const {
+    data: recentOrdersResponse,
+    isLoading: isRecentOrdersLoading,
+    isFetching: isRecentOrdersFetching,
+  } = useGetOrders({
+    page: recentOrdersPage,
+    pageSize: 5,
+    sortBy: "createdAt",
+    sortDirection: "desc",
+  });
+
+  const upcomingOrders = useMemo(
+    () =>
+      (upcomingOrdersResponse?.data.items ?? [])
+        .filter((order) => Boolean(order.promisedDate))
+        .map((order) => ({
+          id: order.id,
+          title: getOrderTitle(order),
+          units: getOrderQuantity(order),
+          orderNo: order.orderNumber,
+          date: order.promisedDate ?? order.orderDate,
+        })),
+    [upcomingOrdersResponse],
+  );
+
+  const recentOrders = useMemo(
+    () =>
+      (recentOrdersResponse?.data.items ?? []).map((order) => ({
+        id: order.id,
+        orderNo: order.orderNumber,
+        customerName: order.customer?.fullName ?? "-",
+        itemName: getOrderTitle(order),
+        quantity: getOrderQuantity(order),
+        promisedDate: order.promisedDate ?? order.orderDate,
+        status: formatOrderStatus(order.status, order.promisedDate),
+      })),
+    [recentOrdersResponse],
+  );
+
+  const recentOrdersPagination = recentOrdersResponse?.data.pagination ?? {
+    page: recentOrdersPage,
+    pageSize: 5,
+    totalItems: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   const dashboardStats = useMemo(
     () => [
@@ -201,12 +253,16 @@ export default function Dashboard() {
             </div>
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-              <UpcomingPromisedOrders orders={upcomingOrders} />
+              <UpcomingPromisedOrders
+                orders={upcomingOrders}
+                isLoading={isUpcomingOrdersLoading || isUpcomingOrdersFetching}
+              />
 
               <RecentOrdersTableCard
                 orders={recentOrders}
-                currentPage={recentOrdersPage}
-                totalPages={5}
+                currentPage={recentOrdersPagination.page}
+                totalPages={recentOrdersPagination.totalPages}
+                isLoading={isRecentOrdersLoading || isRecentOrdersFetching}
                 onPageChange={setRecentOrdersPage}
               />
             </div>

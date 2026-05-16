@@ -28,6 +28,11 @@ export type GetOrdersParams = {
   status?: string;
   orderDate?: string;
   promisedDate?: string;
+  promisedDateFrom?: string;
+  promisedDateTo?: string;
+  activeOnly?: boolean;
+  sortBy?: "createdAt" | "orderDate" | "promisedDate";
+  sortDirection?: "asc" | "desc";
   customerId?: string;
 };
 
@@ -42,6 +47,11 @@ const getOrders = async (
       status: params.status || undefined,
       orderDate: params.orderDate || undefined,
       promisedDate: params.promisedDate || undefined,
+      promisedDateFrom: params.promisedDateFrom || undefined,
+      promisedDateTo: params.promisedDateTo || undefined,
+      activeOnly: params.activeOnly || undefined,
+      sortBy: params.sortBy || undefined,
+      sortDirection: params.sortDirection || undefined,
       customerId: params.customerId || undefined,
     },
   });

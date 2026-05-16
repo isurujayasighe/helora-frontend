@@ -1,8 +1,13 @@
 export type OrderStatus =
   | "PENDING"
+  | "CONFIRMED"
+  | "CUTTING"
+  | "SEWING"
+  | "READY"
+  | "DELIVERED"
+  | "CANCELLED"
   | "IN_PROGRESS"
-  | "COMPLETED"
-  | "CANCELLED";
+  | "COMPLETED";
 
 export interface OrderCustomer {
   id: string;
@@ -67,8 +72,9 @@ export interface Order {
   customerId: string;
   orderNumber: string;
   orderDate: string;
-  promisedDate: string;
+  promisedDate: string | null;
   status: OrderStatus;
+  totalQty?: number;
   notes?: string | null;
   totalAmount: string | number;
   advanceAmount: string | number;
