@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   CalendarClock,
   Grid2x2,
+  Loader2,
   Plus,
   Shirt,
   TriangleAlert,
@@ -20,6 +21,13 @@ import { DashboardCustomerSearchCard } from "./components/dashboard-customer-sea
 import { DashboardBlockLookupCard } from "./components/dashboard-block-lookup";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useGetOrders } from "@/modules/app/orders/api/useGetOrders";
 import type { Order } from "@/types/orders";
 
@@ -29,6 +37,26 @@ function formatDateParam(date: Date) {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(value?: string | null) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat("en-LK", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatCurrency(value: string | number) {
+  const amount = Number(value || 0);
+
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 function getOrderQuantity(order: Order) {
@@ -76,7 +104,11 @@ function formatOrderStatus(status: string, promisedDate?: string | null) {
 
 export default function Dashboard() {
   const [recentOrdersPage, setRecentOrdersPage] = useState(1);
+  const [overdueOrdersPage, setOverdueOrdersPage] = useState(1);
+  const [pendingOrdersPage, setPendingOrdersPage] = useState(1);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
+  const [isOverdueSheetOpen, setIsOverdueSheetOpen] = useState(false);
+  const [isPendingSheetOpen, setIsPendingSheetOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -84,6 +116,11 @@ export default function Dashboard() {
   const sevenDaysFromToday = useMemo(() => {
     const date = new Date(today);
     date.setDate(date.getDate() + 7);
+    return date;
+  }, [today]);
+  const yesterday = useMemo(() => {
+    const date = new Date(today);
+    date.setDate(date.getDate() - 1);
     return date;
   }, [today]);
 
@@ -108,6 +145,31 @@ export default function Dashboard() {
   } = useGetOrders({
     page: recentOrdersPage,
     pageSize: 5,
+    sortBy: "createdAt",
+    sortDirection: "desc",
+  });
+
+  const {
+    data: overdueOrdersResponse,
+    isLoading: isOverdueOrdersLoading,
+    isFetching: isOverdueOrdersFetching,
+  } = useGetOrders({
+    page: overdueOrdersPage,
+    pageSize: 10,
+    promisedDateTo: formatDateParam(yesterday),
+    activeOnly: true,
+    sortBy: "promisedDate",
+    sortDirection: "asc",
+  });
+
+  const {
+    data: pendingOrdersResponse,
+    isLoading: isPendingOrdersLoading,
+    isFetching: isPendingOrdersFetching,
+  } = useGetOrders({
+    page: pendingOrdersPage,
+    pageSize: 10,
+    activeOnly: true,
     sortBy: "createdAt",
     sortDirection: "desc",
   });
@@ -149,6 +211,28 @@ export default function Dashboard() {
     hasPreviousPage: false,
   };
 
+  const overdueOrders = overdueOrdersResponse?.data.items ?? [];
+  const overdueOrdersPagination = overdueOrdersResponse?.data.pagination ?? {
+    page: overdueOrdersPage,
+    pageSize: 10,
+    totalItems: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
+  const isOverdueLoading = isOverdueOrdersLoading || isOverdueOrdersFetching;
+
+  const pendingOrders = pendingOrdersResponse?.data.items ?? [];
+  const pendingOrdersPagination = pendingOrdersResponse?.data.pagination ?? {
+    page: pendingOrdersPage,
+    pageSize: 10,
+    totalItems: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
+  const isPendingLoading = isPendingOrdersLoading || isPendingOrdersFetching;
+
   const dashboardStats = useMemo(
     () => [
       {
@@ -167,21 +251,32 @@ export default function Dashboard() {
       },
       {
         title: "Pending Orders",
-        value: "156",
+        value: isPendingOrdersLoading
+          ? "..."
+          : pendingOrdersPagination.totalItems.toString(),
         description: "Orders waiting or in progress",
-        badge: "8 New",
+        badge: pendingOrdersPagination.totalItems > 0 ? "Open" : "Clear",
         icon: CalendarClock,
+        onClick: () => setIsPendingSheetOpen(true),
       },
       {
         title: "Overdue Orders",
-        value: "23",
+        value: isOverdueOrdersLoading
+          ? "..."
+          : overdueOrdersPagination.totalItems.toString(),
         description: "Promised date already passed",
-        badge: "Urgent",
+        badge: overdueOrdersPagination.totalItems > 0 ? "Urgent" : "Clear",
         icon: TriangleAlert,
         danger: true,
+        onClick: () => setIsOverdueSheetOpen(true),
       },
     ],
-    []
+    [
+      isOverdueOrdersLoading,
+      isPendingOrdersLoading,
+      overdueOrdersPagination.totalItems,
+      pendingOrdersPagination.totalItems,
+    ]
   );
 
   return (
@@ -243,6 +338,7 @@ export default function Dashboard() {
                   badge={stat.badge}
                   icon={stat.icon}
                   danger={stat.danger}
+                  onClick={stat.onClick}
                 />
               ))}
             </div>
@@ -276,6 +372,54 @@ export default function Dashboard() {
             // await createOrderMutation.mutateAsync(payload);
           }}
         />
+
+        <OverdueOrdersSheet
+          open={isOverdueSheetOpen}
+          onOpenChange={setIsOverdueSheetOpen}
+          orders={overdueOrders}
+          isLoading={isOverdueLoading}
+          currentPage={overdueOrdersPagination.page}
+          totalPages={overdueOrdersPagination.totalPages}
+          totalItems={overdueOrdersPagination.totalItems}
+          onPageChange={setOverdueOrdersPage}
+          onViewAll={() => {
+            setIsOverdueSheetOpen(false);
+            navigate({ to: "/app/orders" });
+          }}
+          onViewOrder={(orderId) => {
+            setIsOverdueSheetOpen(false);
+            navigate({
+              to: "/app/orders",
+              search: {
+                viewOrderId: orderId,
+              },
+            });
+          }}
+        />
+
+        <PendingOrdersSheet
+          open={isPendingSheetOpen}
+          onOpenChange={setIsPendingSheetOpen}
+          orders={pendingOrders}
+          isLoading={isPendingLoading}
+          currentPage={pendingOrdersPagination.page}
+          totalPages={pendingOrdersPagination.totalPages}
+          totalItems={pendingOrdersPagination.totalItems}
+          onPageChange={setPendingOrdersPage}
+          onViewAll={() => {
+            setIsPendingSheetOpen(false);
+            navigate({ to: "/app/orders" });
+          }}
+          onViewOrder={(orderId) => {
+            setIsPendingSheetOpen(false);
+            navigate({
+              to: "/app/orders",
+              search: {
+                viewOrderId: orderId,
+              },
+            });
+          }}
+        />
       </div>
     </PermissionGate>
   );
@@ -288,6 +432,7 @@ function DashboardStatCard({
   badge,
   icon: Icon,
   danger,
+  onClick,
 }: {
   title: string;
   value: string;
@@ -295,11 +440,24 @@ function DashboardStatCard({
   badge: string;
   icon: React.ElementType;
   danger?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
-        "rounded-md border-border bg-white",
+        "rounded-md border-border bg-white transition-colors",
+        onClick && "cursor-pointer hover:border-red-200 hover:bg-red-50/30",
         danger && "border-red-200"
       )}
     >
@@ -347,5 +505,367 @@ function DashboardStatCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function OverdueOrdersSheet({
+  open,
+  onOpenChange,
+  orders,
+  isLoading,
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+  onViewAll,
+  onViewOrder,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  orders: Order[];
+  isLoading: boolean;
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onViewAll: () => void;
+  onViewOrder: (orderId: string) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-hidden p-0 sm:max-w-3xl">
+        <SheetHeader className="border-b border-slate-200 px-5 py-4">
+          <div className="flex items-start justify-between gap-4 pr-10">
+            <div>
+              <SheetTitle className="text-lg font-semibold text-slate-950">
+                Overdue Orders
+              </SheetTitle>
+              <SheetDescription>
+                Orders with promised dates before today and not yet delivered.
+              </SheetDescription>
+            </div>
+
+            <Badge
+              variant="outline"
+              className="rounded-full border-red-200 bg-red-50 text-red-700"
+            >
+              {totalItems} overdue
+            </Badge>
+          </div>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {isLoading ? (
+            <div className="flex h-48 items-center justify-center text-sm text-slate-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading overdue orders...
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-center">
+              <TriangleAlert className="h-8 w-8 text-slate-400" />
+              <p className="mt-3 text-sm font-medium text-slate-800">
+                No overdue orders
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Promised deliveries are currently clear.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-950">
+                          #{order.orderNumber}
+                        </p>
+                        <Badge className="rounded-full bg-red-50 text-red-700 hover:bg-red-50">
+                          {formatOrderStatus(order.status, order.promisedDate)}
+                        </Badge>
+                      </div>
+
+                      <p className="mt-1 text-sm text-slate-600">
+                        {order.customer?.fullName ?? "-"}
+                      </p>
+                      <p className="mt-1 truncate text-sm text-slate-500">
+                        {getOrderTitle(order)}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-left sm:text-right">
+                      <p className="text-sm font-semibold text-slate-950">
+                        {formatCurrency(order.totalAmount)}
+                      </p>
+                      <p className="mt-1 text-xs text-red-600">
+                        Promised {formatDisplayDate(order.promisedDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 sm:grid-cols-3">
+                    <div>
+                      <span className="font-medium text-slate-700">Qty:</span>{" "}
+                      {getOrderQuantity(order)}
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Order date:
+                      </span>{" "}
+                      {formatDisplayDate(order.orderDate)}
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Balance:
+                      </span>{" "}
+                      {formatCurrency(order.balanceAmount)}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onViewOrder(order.id)}
+                      className="rounded-lg"
+                    >
+                      View details
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            Page {currentPage} of {Math.max(totalPages, 1)}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1 || isLoading}
+              onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+              className="rounded-lg"
+            >
+              Previous
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages || isLoading}
+              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+              className="rounded-lg"
+            >
+              Next
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={onViewAll}
+              className="rounded-lg"
+            >
+              View all
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function PendingOrdersSheet({
+  open,
+  onOpenChange,
+  orders,
+  isLoading,
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+  onViewAll,
+  onViewOrder,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  orders: Order[];
+  isLoading: boolean;
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onViewAll: () => void;
+  onViewOrder: (orderId: string) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-hidden p-0 sm:max-w-3xl">
+        <SheetHeader className="border-b border-slate-200 px-5 py-4">
+          <div className="flex items-start justify-between gap-4 pr-10">
+            <div>
+              <SheetTitle className="text-lg font-semibold text-slate-950">
+                Pending Orders
+              </SheetTitle>
+              <SheetDescription>
+                Active orders that are not delivered or cancelled yet.
+              </SheetDescription>
+            </div>
+
+            <Badge
+              variant="outline"
+              className="rounded-full border-blue-200 bg-blue-50 text-blue-700"
+            >
+              {totalItems} open
+            </Badge>
+          </div>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {isLoading ? (
+            <div className="flex h-48 items-center justify-center text-sm text-slate-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading pending orders...
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-center">
+              <CalendarClock className="h-8 w-8 text-slate-400" />
+              <p className="mt-3 text-sm font-medium text-slate-800">
+                No pending orders
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                All orders are currently completed or cancelled.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-950">
+                          #{order.orderNumber}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "rounded-full",
+                            order.status === "PENDING"
+                              ? "border-amber-200 bg-amber-50 text-amber-700"
+                              : "border-blue-200 bg-blue-50 text-blue-700",
+                          )}
+                        >
+                          {formatOrderStatus(order.status, order.promisedDate)}
+                        </Badge>
+                      </div>
+
+                      <p className="mt-1 text-sm text-slate-600">
+                        {order.customer?.fullName ?? "-"}
+                      </p>
+                      <p className="mt-1 truncate text-sm text-slate-500">
+                        {getOrderTitle(order)}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-left sm:text-right">
+                      <p className="text-sm font-semibold text-slate-950">
+                        {formatCurrency(order.totalAmount)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Promised {formatDisplayDate(order.promisedDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 sm:grid-cols-3">
+                    <div>
+                      <span className="font-medium text-slate-700">Qty:</span>{" "}
+                      {getOrderQuantity(order)}
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Order date:
+                      </span>{" "}
+                      {formatDisplayDate(order.orderDate)}
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Balance:
+                      </span>{" "}
+                      {formatCurrency(order.balanceAmount)}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onViewOrder(order.id)}
+                      className="rounded-lg"
+                    >
+                      View details
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            Page {currentPage} of {Math.max(totalPages, 1)}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1 || isLoading}
+              onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+              className="rounded-lg"
+            >
+              Previous
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages || isLoading}
+              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+              className="rounded-lg"
+            >
+              Next
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={onViewAll}
+              className="rounded-lg"
+            >
+              View all
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

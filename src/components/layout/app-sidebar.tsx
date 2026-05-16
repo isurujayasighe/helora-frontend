@@ -327,7 +327,7 @@ function BrandHeader() {
         <p className="truncate text-sm font-semibold leading-5 text-[#364152]">
           Helora ERP
         </p>
-        <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+        <p className="mt-0.5 truncate text-sm font-normal text-muted-foreground">
           Garment operations
         </p>
       </div>
@@ -361,7 +361,7 @@ function EnterpriseSidebarItem({
           tooltip={!isMobile && state === "collapsed" ? item.title : undefined}
           isActive={active}
           className={cn(
-            "relative h-9 rounded-md px-2.5 text-xs font transition-colors",
+            "relative h-9 rounded-md px-2.5 text-sm font transition-colors",
             "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
               ? "bg-[#eef2f6] text-[#080726] shadow-none"
@@ -400,7 +400,7 @@ function EnterpriseSidebarItem({
             }
             isActive={active}
             className={cn(
-              "relative h-9 rounded-md px-2.5 text-xs  transition-colors",
+              "relative h-9 rounded-md px-2.5 text-sm  transition-colors",
               "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
                 ? "bg-[#eef2f6] text-[#080726] shadow-none"
@@ -456,7 +456,7 @@ function ChildSidebarLink({
     <Link
       to={child.url}
       className={cn(
-        "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-xs font-normal transition-colors",
+        "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-sm font-normal transition-colors",
 
         active
           ? "bg-[#f8fafc] text-[#080726]"
@@ -539,7 +539,7 @@ function UserFooter({
               <p className="truncate text-sm font-semibold text-[#364152]">
                 {userName}
               </p>
-              <p className="truncate text-xs font-normal text-muted-foreground">
+              <p className="truncate text-sm font-normal text-muted-foreground">
                 {userEmail}
               </p>
             </DropdownMenuLabel>

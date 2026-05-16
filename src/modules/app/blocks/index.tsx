@@ -106,7 +106,7 @@ export default function BlocksPage() {
     categoryId: categoryId === "all" ? undefined : categoryId,
     status: status === "all" ? undefined : status,
     includeCounts: false,
-    includeTotal: true,
+    includeTotal: false,
   });
 
   const blocksList = blocksResponse?.data.items ?? [];
@@ -118,6 +118,7 @@ export default function BlocksPage() {
     totalPages: 1,
     hasNextPage: false,
     hasPreviousPage: false,
+    isTotalExact: false,
   };
 
   const stats = useMemo(() => {
@@ -126,11 +127,10 @@ export default function BlocksPage() {
     ).length;
 
     return {
-      totalBlocks: pagination.totalItems,
+      totalBlocks: blocksList.length,
       activeBlocks,
-      loadedBlocks: blocksList.length,
     };
-  }, [blocksList, pagination.totalItems]);
+  }, [blocksList]);
 
   const handleViewBlock = (blockId: string) => {
     navigate({
@@ -172,6 +172,14 @@ export default function BlocksPage() {
   const canGoPrevious = pagination.hasPreviousPage || currentPage > 1;
   const canGoNext =
     pagination.hasNextPage || currentPage < safeTotalPages;
+  const totalBlocksLabel =
+    pagination.isTotalExact === false && pagination.hasNextPage
+      ? `${pagination.totalItems}+`
+      : `${pagination.totalItems}`;
+  const footerSummary =
+    pagination.isTotalExact === false
+      ? `Showing ${blocksList.length} blocks on page ${currentPage}`
+      : `Showing ${blocksList.length} of ${pagination.totalItems} blocks`;
 
   return (
     <PermissionGate action="read" subject="blocks">
@@ -245,9 +253,9 @@ export default function BlocksPage() {
             {/* Stats */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <BlockStatCard
-                title="Visible Blocks"
+                title="Loaded Blocks"
                 value={stats.totalBlocks}
-                description="Loaded on this page"
+                description="Current page"
                 icon={Blocks}
               />
 
@@ -259,9 +267,9 @@ export default function BlocksPage() {
               />
 
               <BlockStatCard
-                title="Loaded Results"
-                value={stats.loadedBlocks}
-                description="Visible in table"
+                title="Page Size"
+                value={PAGE_SIZE}
+                description="Records requested"
                 icon={PackageCheck}
               />
 
@@ -287,7 +295,7 @@ export default function BlocksPage() {
                         variant="outline"
                         className="rounded-lg px-3 py-1 font-bold text-slate-600"
                       >
-                        {pagination.totalItems} blocks
+                        {totalBlocksLabel} blocks
                       </Badge>
                     </div>
                     <CardDescription className="mt-1 text-sm font-medium text-slate-500">
@@ -377,7 +385,7 @@ export default function BlocksPage() {
 
               <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-slate-500">
-                  Showing {blocksList.length} of {pagination.totalItems} blocks
+                  {footerSummary}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -457,7 +465,7 @@ export default function BlocksPage() {
 
 type BlockStatCardProps = {
   title: string;
-  value: number;
+  value: number | string;
   description: string;
   icon: React.ElementType;
 };

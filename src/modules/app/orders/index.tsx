@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useGetOrders } from "./api/useGetOrders";
+import { useGetOrderById } from "./api/useGetOrderById";
 import { OrdersTable } from "./components/order-details-table";
 import { OrderDetailsDialog } from "@/components/layout/order-details-dialog";
 import type { Order } from "@/types/orders";
@@ -71,9 +72,6 @@ export default function OrdersPage() {
   const [orderDate, setOrderDate] = useState("");
   const [promisedDate, setPromisedDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   /**
    * Backward compatibility:
@@ -127,6 +125,20 @@ export default function OrdersPage() {
   });
 
   const ordersList = ordersResponse?.data.items ?? [];
+  const selectedOrderFromList = useMemo(
+    () =>
+      orderSearch.viewOrderId
+        ? ordersList.find((order) => order.id === orderSearch.viewOrderId) ??
+          null
+        : null,
+    [orderSearch.viewOrderId, ordersList],
+  );
+
+  const { data: orderDetailsResponse } = useGetOrderById(
+    selectedOrderFromList ? null : orderSearch.viewOrderId,
+  );
+  const selectedOrder =
+    selectedOrderFromList ?? orderDetailsResponse?.data ?? null;
 
   const pagination = ordersResponse?.data.pagination ?? {
     page: currentPage,
@@ -179,8 +191,22 @@ export default function OrdersPage() {
   };
 
   const handleViewDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setIsDetailsOpen(true);
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        viewOrderId: order.id,
+      }),
+    });
+  };
+
+  const handleCloseOrderDetails = () => {
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        viewOrderId: undefined,
+      }),
+      replace: true,
+    });
   };
 
   const handleClearFilters = () => {
@@ -381,8 +407,12 @@ export default function OrdersPage() {
         </AnimatePresence>
 
         <OrderDetailsDialog
-          open={isDetailsOpen}
-          onOpenChange={setIsDetailsOpen}
+          open={Boolean(orderSearch.viewOrderId)}
+          onOpenChange={(open) => {
+            if (!open) {
+              handleCloseOrderDetails();
+            }
+          }}
           order={selectedOrder}
         />
       </div>

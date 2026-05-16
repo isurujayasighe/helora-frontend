@@ -13,6 +13,7 @@ const ordersSearchSchema = z.object({
   measurementId: z.string().optional(),
   blockId: z.string().optional(),
   categoryId: z.string().optional(),
+  viewOrderId: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/app/orders/")({

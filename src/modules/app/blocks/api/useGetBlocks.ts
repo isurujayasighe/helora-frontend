@@ -9,6 +9,7 @@ export interface BlocksPagination {
   totalPages: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
+  isTotalExact?: boolean;
 }
 
 export interface PaginatedBlocksData {

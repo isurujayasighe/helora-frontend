@@ -17,11 +17,11 @@ export type BlockCustomer = {
 
 export type BlockCategory = {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   name: string;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
+  description?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type CustomerBlockAssignment = {
@@ -35,23 +35,23 @@ export type CustomerBlockAssignment = {
 
 export type Block = {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   categoryId: string;
   blockNumber: string;
   readyMadeSize: string | null;
-  sizeLabel: string | null;
-  fitNotes: string | null;
-  versionNo: number;
-  previousBlockId: string | null;
+  sizeLabel?: string | null;
+  fitNotes?: string | null;
+  versionNo?: number;
+  previousBlockId?: string | null;
   description: string | null;
   status: BlockStatus;
   lastUsedAt: string | null;
-  remarks: string | null;
-  legacyId: number | null;
-  createdById: string;
-  updatedById: string;
+  remarks?: string | null;
+  legacyId?: number | null;
+  createdById?: string;
+  updatedById?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   category: BlockCategory;
   customerBlocks?: CustomerBlockAssignment[];
   _count: {
