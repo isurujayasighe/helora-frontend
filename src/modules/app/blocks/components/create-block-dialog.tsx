@@ -625,7 +625,7 @@ export function CreateBlockDialog({
   const canSubmit =
     Boolean(selectedPackageTemplateId) &&
     Boolean(blockEntries.length) &&
-    Boolean(customerAssignments.length || customerId) &&
+    Boolean(customerAssignments.length) &&
     !isSubmitting;
 
   return (

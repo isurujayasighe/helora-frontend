@@ -1,7 +1,6 @@
 // @/auth/store/authStore.ts
 import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
-import apiClient from "@/services/clients/login.client";
 
 type AuthStatus = "idle" | "authenticated" | "unauthenticated";
 
@@ -29,13 +28,11 @@ export const useAuthStore = create<AuthState>()(
   devtools(
     persist(
       (set) => ({
-        status: "unauthenticated",
+        status: "idle",
         accessToken: null,
         user: null,
 
         setAuth: ({ accessToken, user }) => {
-          apiClient.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-
           set(
             {
               status: "authenticated",
@@ -48,9 +45,6 @@ export const useAuthStore = create<AuthState>()(
         },
 
         setAccessToken: (accessToken) => {
-          apiClient.defaults.headers.common["Authorization"] =
-            `Bearer ${accessToken}`;
-
           set(
             {
               status: "authenticated",
@@ -62,8 +56,6 @@ export const useAuthStore = create<AuthState>()(
         },
 
         logout: () => {
-          delete apiClient.defaults.headers.common["Authorization"];
-
           set(
             {
               status: "unauthenticated",
@@ -83,13 +75,16 @@ export const useAuthStore = create<AuthState>()(
         partialize: (state) => ({
           accessToken: state.accessToken,
           user: state.user,
-          status: state.status,
         }),
-        onRehydrateStorage: () => (state) => {
-          if (state?.accessToken) {
-            apiClient.defaults.headers.common["Authorization"] =
-              `Bearer ${state.accessToken}`;
-          }
+        merge: (persistedState, currentState) => {
+          const persisted = persistedState as Partial<AuthState> | undefined;
+
+          return {
+            ...currentState,
+            accessToken: persisted?.accessToken ?? null,
+            user: persisted?.user ?? null,
+            status: "idle",
+          };
         },
       }
     ),

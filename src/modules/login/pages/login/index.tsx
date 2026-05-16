@@ -39,7 +39,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const user = useAuthStore((state) => state.user);
-  const { mutateAsync: login, isSuccess } = useAuthLogin();
+  const status = useAuthStore((state) => state.status);
+  const { mutateAsync: login } = useAuthLogin();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,13 +53,22 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isSuccess && user) {
-      navigate({
-        to: "/app/dashboard",
-        replace: true,
-      });
+    if (status !== "authenticated" || !user) return;
+
+    const returnUrl = new URLSearchParams(window.location.search).get(
+      "returnUrl"
+    );
+
+    if (returnUrl?.startsWith("/") && !returnUrl.startsWith("//")) {
+      window.location.replace(returnUrl);
+      return;
     }
-  }, [isSuccess, user, navigate]);
+
+    navigate({
+      to: "/app/dashboard",
+      replace: true,
+    });
+  }, [status, user, navigate]);
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -69,6 +79,7 @@ export default function LoginPage() {
       });
     } catch (error) {
       console.error("Login failed", error);
+    } finally {
       setIsLoading(false);
     }
   }

@@ -2,6 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/auth/store/authStore";
 import { appConfig } from "@/config/runtime-config";
 import { refreshSession } from "@/auth/api/refresh-session";
+import { redirectToLogin } from "@/auth/redirect-to-login";
 
 interface FailedRequest {
   resolve: (token: string) => void;
@@ -82,6 +83,7 @@ covalentHubClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().logout();
+        redirectToLogin();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

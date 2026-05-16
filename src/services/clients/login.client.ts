@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '../../auth/store/authStore';
 import { appConfig } from '@/config/runtime-config';
 import { refreshSession } from '@/auth/api/refresh-session';
+import { redirectToLogin } from '@/auth/redirect-to-login';
 
 // --- 1. Helper: Extract URL Context (Keep this logic) ---
 export function getTenantInfo() {
@@ -72,12 +73,19 @@ apiClient.interceptors.request.use((config) => {
 
 // --- 4. Response Interceptor (Silent Refresh) ---
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = String(originalRequest?.url ?? "");
 
     // Only retry on 401 Unauthorized
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !requestUrl.includes("/auth/login") &&
+      !requestUrl.includes("/auth/refresh")
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -100,6 +108,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed -> Logout user
         useAuthStore.getState().logout();
+        redirectToLogin();
         return Promise.reject(refreshError);
       }
     }

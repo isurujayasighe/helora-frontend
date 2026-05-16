@@ -8,6 +8,15 @@ interface LoginData {
   accessToken: string;
   user: AuthUser;
 }
+
+interface LoginApiResponse {
+  success?: boolean;
+  message?: string;
+  data?: LoginData;
+  accessToken?: string;
+  user?: AuthUser;
+}
+
 interface LoginPayload {
   email: string;
   password: string;
@@ -16,12 +25,22 @@ interface LoginPayload {
 const postAuthLogin = async (
   payload: LoginPayload
 ): Promise<LoginData> => {
-  const response = await apiClient.post<LoginData>(
+  const response = await apiClient.post<LoginApiResponse>(
     "/auth/login",
     payload
   );
 
-  return response.data;
+  const responseBody = response.data;
+  const loginData = responseBody.data ?? responseBody;
+
+  if (!loginData.accessToken || !loginData.user) {
+    throw new Error("Login response did not include an access token.");
+  }
+
+  return {
+    accessToken: loginData.accessToken,
+    user: loginData.user,
+  };
 };
 
 export const useAuthLogin = (
