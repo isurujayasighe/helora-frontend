@@ -5,8 +5,6 @@
 import * as React from "react";
 import { z } from "zod";
 import {
-  BadgeCheck,
-  CheckCircle2,
   Loader2,
   PackagePlus,
   Plus,
@@ -50,12 +48,16 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { cn } from "@/lib/utils";
-import { useGetCategories } from "@/api/useGetCategories";
-import { useGetLatestMeasurement } from "@/api/useGetLatestMeasurement";
+import { getLatestMeasurement } from "@/api/useGetLatestMeasurement";
 import {
   useCreateBlock,
   type CreateBlockPayload,
 } from "@/modules/app/blocks/api/useCreateBlock";
+import {
+  usePackageTemplatesQuery,
+  type PackageTemplate,
+  type PackageTemplateItem,
+} from "@/modules/app/package-templates/api/package-template-api";
 import { CustomerPhoneLookupField } from "@/components/layout/components/customer-phone-lookup-field";
 import type { CustomerLookupItem } from "@/api/useGetCustomerLookup";
 
@@ -72,10 +74,10 @@ const createBlockSchema = z.object({
   customerNotes: z.string().optional(),
   hospitalName: z.string().optional(),
 
-  categoryId: z.string().min(1, "Category is required"),
+  categoryId: z.string().optional(),
   measurementId: z.string().optional(),
 
-  blockNumber: z.string().min(1, "Block number is required"),
+  blockNumber: z.string().optional(),
   readyMadeSize: z.string().optional(),
   sizeLabel: z.string().optional(),
   fitNotes: z.string().optional(),
@@ -185,9 +187,6 @@ function SectionCard({
 const fieldClassName =
   "h-10 rounded-lg border-slate-200 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/10";
 
-const readOnlyFieldClassName =
-  "h-10 rounded-lg border-slate-200 bg-slate-50 pr-10 shadow-none";
-
 const textAreaClassName =
   "min-h-24 resize-none rounded-lg border-slate-200 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/10";
 
@@ -206,6 +205,102 @@ function toOptionalNumber(value?: number | null) {
   return numberValue;
 }
 
+function PackageTemplateCategoryPicker({
+  template,
+  items,
+  blockNumbers,
+  onBlockNumberChange,
+}: {
+  template: PackageTemplate | null;
+  items: PackageTemplateItem[];
+  blockNumbers: Record<string, string>;
+  onBlockNumberChange: (categoryId: string, blockNumber: string) => void;
+}) {
+  if (!template) {
+    return (
+      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center">
+        <PackagePlus className="mx-auto h-6 w-6 text-slate-400" />
+        <p className="mt-2 text-sm font-semibold text-slate-900">
+          Select a garment set first
+        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          The categories from that set will appear here for block creation.
+        </p>
+      </div>
+    );
+  }
+
+  if (!items.length) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        This garment set does not have garment categories configured.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="flex flex-col gap-1 border-b border-slate-100 px-3 py-2">
+        <p className="text-sm font-semibold text-slate-900">{template.name}</p>
+        <p className="text-xs text-slate-500">
+          Enter block numbers only for the categories you want to create now.
+        </p>
+      </div>
+
+      <div className="grid gap-3 p-3 sm:grid-cols-2">
+        {items.map((item) => {
+          const categoryId = item.categoryId ?? "";
+          const blockNumber = blockNumbers[categoryId] ?? "";
+          const hasBlockNumber = Boolean(blockNumber.trim());
+
+          if (!categoryId) return null;
+
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "rounded-lg border bg-white p-3 transition",
+                hasBlockNumber
+                  ? "border-blue-200 bg-blue-50 ring-1 ring-blue-200"
+                  : "border-slate-200",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    {item.category?.name ?? item.itemDescription}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                    {item.itemDescription}
+                  </p>
+                </div>
+
+                {hasBlockNumber && (
+                  <Badge className="shrink-0 rounded-md bg-blue-600 text-white hover:bg-blue-600">
+                    Ready
+                  </Badge>
+                )}
+              </div>
+
+              <Input
+                value={blockNumber}
+                onChange={(event) =>
+                  onBlockNumberChange(
+                    categoryId,
+                    event.target.value.toUpperCase(),
+                  )
+                }
+                placeholder="Block no optional"
+                className={cn(fieldClassName, "mt-3")}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -221,14 +316,18 @@ export function CreateBlockDialog({
     CustomerAssignment[]
   >([]);
   const [lookupResetKey, setLookupResetKey] = React.useState(0);
+  const [selectedPackageTemplateId, setSelectedPackageTemplateId] =
+    React.useState("");
+  const [categoryBlockNumbers, setCategoryBlockNumbers] = React.useState<
+    Record<string, string>
+  >({});
 
   const createBlockMutation = useCreateBlock();
-
   const {
-    data: categories = [],
-    isLoading: isCategoriesLoading,
-    isError: isCategoriesError,
-  } = useGetCategories();
+    data: packageTemplates = [],
+    isLoading: isPackageTemplatesLoading,
+    isError: isPackageTemplatesError,
+  } = usePackageTemplatesQuery({ isActive: true });
 
   const form = useForm<CreateBlockFormInput, unknown, CreateBlockFormValues>({
     resolver: zodResolver(createBlockSchema),
@@ -242,70 +341,38 @@ export function CreateBlockDialog({
     name: "customerId",
   });
 
-  const categoryId = useWatch({
-    control,
-    name: "categoryId",
-  });
+  const selectedPackageTemplate = React.useMemo(() => {
+    return (
+      packageTemplates.find(
+        (template) => template.id === selectedPackageTemplateId,
+      ) ?? null
+    );
+  }, [packageTemplates, selectedPackageTemplateId]);
 
-  const measurementId = useWatch({
-    control,
-    name: "measurementId",
-  });
+  const packageTemplateCategories = React.useMemo(() => {
+    if (!selectedPackageTemplate) return [];
 
-  const {
-    data: latestMeasurement,
-    isLoading: isLatestMeasurementLoading,
-    isFetching: isLatestMeasurementFetching,
-    isError: isLatestMeasurementError,
-  } = useGetLatestMeasurement({
-    customerId,
-    categoryId,
-    enabled: Boolean(open && customerId && categoryId),
-  });
+    const seenCategoryIds = new Set<string>();
 
-  React.useEffect(() => {
-    if (!open) return;
-    if (!customerId || !categoryId) return;
-    if (isLatestMeasurementLoading || isLatestMeasurementFetching) return;
+    return selectedPackageTemplate.items.filter((item) => {
+      if (item.itemType !== "GARMENT") return false;
+      if (!item.categoryId || !item.category) return false;
+      if (seenCategoryIds.has(item.categoryId)) return false;
 
-    setValue("measurementId", latestMeasurement?.id ?? "", {
-      shouldDirty: true,
-      shouldValidate: false,
+      seenCategoryIds.add(item.categoryId);
+      return true;
     });
-  }, [
-    open,
-    customerId,
-    categoryId,
-    latestMeasurement?.id,
-    isLatestMeasurementLoading,
-    isLatestMeasurementFetching,
-    setValue,
-  ]);
+  }, [selectedPackageTemplate]);
 
-  const categoryItems = React.useMemo(() => {
-    const value = categories as unknown;
-
-    if (Array.isArray(value)) return value;
-
-    if (
-      value &&
-      typeof value === "object" &&
-      Array.isArray((value as { data?: unknown }).data)
-    ) {
-      return (value as { data: typeof categories }).data;
-    }
-
-    return [];
-  }, [categories]);
-
-  const activeCategories = React.useMemo(() => {
-    return categoryItems
-      .filter((category) => category.isActive)
-      .map((category) => ({
-        id: category.id,
-        name: category.name,
-      }));
-  }, [categoryItems]);
+  const blockEntries = React.useMemo(() => {
+    return packageTemplateCategories
+      .map((item) => ({
+        item,
+        categoryId: item.categoryId ?? "",
+        blockNumber: categoryBlockNumbers[item.categoryId ?? ""]?.trim() ?? "",
+      }))
+      .filter((entry) => entry.categoryId && entry.blockNumber);
+  }, [categoryBlockNumbers, packageTemplateCategories]);
 
   const clearDraftCustomer = React.useCallback(() => {
     setSelectedCustomer(null);
@@ -349,26 +416,46 @@ export function CreateBlockDialog({
     });
   }, [setValue]);
 
-  const previousCategoryIdRef = React.useRef("");
+  const handlePackageTemplateChange = (templateId: string) => {
+    setSelectedPackageTemplateId(templateId);
+    setCustomerAssignments([]);
+    setCategoryBlockNumbers({});
+    setValue("categoryId", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("blockNumber", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("measurementId", "", {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+  };
 
-  React.useEffect(() => {
-    if (!open) {
-      previousCategoryIdRef.current = "";
-      return;
-    }
+  const handleCategoryBlockNumberChange = (
+    categoryId: string,
+    blockNumber: string,
+  ) => {
+    setCategoryBlockNumbers((current) => ({
+      ...current,
+      [categoryId]: blockNumber,
+    }));
 
-    const previousCategoryId = previousCategoryIdRef.current;
+    const firstBlockEntry =
+      blockEntries[0] ??
+      packageTemplateCategories.find((item) => item.categoryId === categoryId);
 
-    if (previousCategoryId && previousCategoryId !== categoryId) {
-      setCustomerAssignments([]);
-      setValue("measurementId", "", {
-        shouldDirty: true,
-        shouldValidate: false,
-      });
-    }
-
-    previousCategoryIdRef.current = categoryId ?? "";
-  }, [categoryId, open, setValue]);
+    setValue("categoryId", firstBlockEntry?.categoryId ?? categoryId, {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    setValue("blockNumber", blockNumber, {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+  };
 
   const handleClose = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
@@ -377,6 +464,8 @@ export function CreateBlockDialog({
       reset(defaultValues);
       setSelectedCustomer(null);
       setCustomerAssignments([]);
+      setSelectedPackageTemplateId("");
+      setCategoryBlockNumbers({});
       setLookupResetKey((key) => key + 1);
     }
   };
@@ -403,12 +492,12 @@ export function CreateBlockDialog({
           values.hospitalName?.trim() ||
           selectedCustomer?.hospitalName ||
           undefined,
-        measurementId: toOptionalString(values.measurementId),
-        measurementNumber: latestMeasurement?.measurementNumber,
+        measurementId: undefined,
+        measurementNumber: undefined,
         isDefault: values.isDefault ?? true,
       };
     },
-    [latestMeasurement?.measurementNumber, selectedCustomer],
+    [selectedCustomer],
   );
 
   const handleAddCustomerAssignment = () => {
@@ -418,13 +507,6 @@ export function CreateBlockDialog({
     if (!draftAssignment) {
       form.setError("customerId", {
         message: "Select a customer before adding.",
-      });
-      return;
-    }
-
-    if (!categoryId) {
-      form.setError("categoryId", {
-        message: "Select a category before adding customers.",
       });
       return;
     }
@@ -479,27 +561,53 @@ export function CreateBlockDialog({
       return;
     }
 
-    const payload: CreateBlockPayload = {
-      categoryId: values.categoryId,
-      blockNumber: values.blockNumber.trim(),
-      readyMadeSize: toOptionalString(values.readyMadeSize),
-      sizeLabel: toOptionalString(values.sizeLabel),
-      fitNotes: toOptionalString(values.fitNotes),
-      versionNo: Number(values.versionNo || 1),
-      previousBlockId: toOptionalString(values.previousBlockId),
-      description: toOptionalString(values.description),
-      status: values.status,
-      remarks: toOptionalString(values.remarks),
-      legacyId: toOptionalNumber(values.legacyId),
-      customers: assignments.map((assignment) => ({
-        customerId: assignment.customerId,
-        measurementId: toOptionalString(assignment.measurementId),
-        isDefault: assignment.isDefault,
-      })),
-    };
+    if (!blockEntries.length) {
+      form.setError("categoryId", {
+        message: "Enter a block number for at least one category.",
+      });
+      return;
+    }
 
     try {
-      await createBlockMutation.mutateAsync(payload);
+      for (const entry of blockEntries) {
+        const customers = await Promise.all(
+          assignments.map(async (assignment) => {
+            const measurement = await getLatestMeasurement({
+              customerId: assignment.customerId,
+              categoryId: entry.categoryId,
+            }).catch(() => null);
+
+            return {
+              customerId: assignment.customerId,
+              measurementId: measurement?.id,
+              isDefault: assignment.isDefault,
+            };
+          }),
+        );
+
+        const payload: CreateBlockPayload = {
+          categoryId: entry.categoryId,
+          blockNumber: entry.blockNumber,
+          readyMadeSize: toOptionalString(values.readyMadeSize),
+          sizeLabel: toOptionalString(values.sizeLabel),
+          fitNotes: toOptionalString(values.fitNotes),
+          versionNo: Number(values.versionNo || 1),
+          previousBlockId: toOptionalString(values.previousBlockId),
+          description:
+            toOptionalString(values.description) ||
+            toOptionalString(entry.item.itemDescription),
+          status: values.status,
+          remarks: toOptionalString(values.remarks),
+          legacyId: toOptionalNumber(values.legacyId),
+          customers: customers.map((customer) => ({
+            customerId: customer.customerId,
+            measurementId: customer.measurementId,
+            isDefault: customer.isDefault,
+          })),
+        };
+
+        await createBlockMutation.mutateAsync(payload);
+      }
 
       onCreated?.();
       handleClose(false);
@@ -509,24 +617,21 @@ export function CreateBlockDialog({
   };
 
   const isSubmitting = createBlockMutation.isPending;
-  const isMeasurementLoading =
-    isLatestMeasurementLoading || isLatestMeasurementFetching;
 
   const canAddCustomer =
     Boolean(customerId) &&
-    Boolean(categoryId) &&
-    !isMeasurementLoading &&
+    Boolean(selectedPackageTemplateId) &&
     !isSubmitting;
   const canSubmit =
-    Boolean(categoryId) &&
+    Boolean(selectedPackageTemplateId) &&
+    Boolean(blockEntries.length) &&
     Boolean(customerAssignments.length || customerId) &&
-    !isMeasurementLoading &&
     !isSubmitting;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-lg border-slate-200 bg-slate-50 p-0 sm:max-w-5xl">
-        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
+      <DialogContent className="flex h-[92vh] max-h-[92vh] flex-col gap-0 overflow-hidden rounded-lg border-slate-200 bg-slate-50 p-0 sm:max-w-5xl">
+        <DialogHeader className="shrink-0 border-b border-slate-200 bg-white px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
@@ -569,14 +674,14 @@ export function CreateBlockDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="flex min-h-0 flex-1 flex-col"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
           >
-            <div className="grid min-h-0 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(280px,340px)_1fr]">
+            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[1fr_minmax(280px,340px)] lg:overflow-hidden">
               <SectionCard
                 title="Customer Assignments"
                 description="Add every customer who can use this block. Helora will link the latest matching measurement when available."
                 icon={Users}
-                className="lg:sticky lg:top-0 lg:self-start"
+                className="lg:col-start-2 lg:row-start-1 lg:min-h-0 lg:overflow-y-auto"
               >
                 <div className="space-y-4">
                   <CustomerPhoneLookupField
@@ -704,11 +809,8 @@ export function CreateBlockDialog({
                                     : ""}
                                 </p>
                                 <p className="mt-1 truncate text-xs text-slate-500">
-                                  {assignment.measurementNumber
-                                    ? `Measurement ${assignment.measurementNumber}`
-                                    : assignment.measurementId
-                                      ? "Measurement linked"
-                                      : "No measurement linked"}
+                                  Latest matching measurements are linked when
+                                  the blocks are saved.
                                 </p>
                               </div>
 
@@ -756,158 +858,75 @@ export function CreateBlockDialog({
 
               <SectionCard
                 title="Block Details"
-                description="Create the reusable cutting block and assign it to the selected customers."
+                description="Select the garment set first, choose the category, then assign the block number."
                 icon={Ruler}
+                className="lg:col-start-1 lg:row-start-1 lg:min-h-0 lg:overflow-y-auto"
               >
-                {isCategoriesError && (
+                {isPackageTemplatesError && (
                   <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    Categories could not be loaded. Please refresh and try
+                    Garment sets could not be loaded. Please refresh and try
                     again.
                   </div>
                 )}
 
                 <div className="grid gap-4 md:grid-cols-12">
+                  <div className="md:col-span-12">
+                    <FormLabel>Garment Set</FormLabel>
+                    <Select
+                      value={selectedPackageTemplateId || undefined}
+                      disabled={isPackageTemplatesLoading}
+                      onValueChange={handlePackageTemplateChange}
+                    >
+                      <SelectTrigger className={cn(fieldClassName, "mt-2")}>
+                        <SelectValue
+                          placeholder={
+                            isPackageTemplatesLoading
+                              ? "Loading garment sets..."
+                              : "Select garment set"
+                          }
+                        />
+                      </SelectTrigger>
+
+                      <SelectContent
+                        position="popper"
+                        sideOffset={6}
+                        className="z-80 max-h-72 rounded-lg"
+                      >
+                        {packageTemplates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="md:col-span-12">
+                    <PackageTemplateCategoryPicker
+                      template={selectedPackageTemplate}
+                      items={packageTemplateCategories}
+                      blockNumbers={categoryBlockNumbers}
+                      onBlockNumberChange={handleCategoryBlockNumberChange}
+                    />
+                  </div>
+
                   <FormField
                     control={control}
                     name="categoryId"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-6">
-                        <FormLabel>Category</FormLabel>
-
-                        <Select
-                          value={field.value || undefined}
-                          disabled={isCategoriesLoading}
-                          onValueChange={(value) => {
-                            field.onChange(value);
-
-                            setValue("measurementId", "", {
-                              shouldDirty: true,
-                              shouldValidate: false,
-                            });
-                          }}
-                        >
-                          <FormControl>
-                            <SelectTrigger className={fieldClassName}>
-                              <SelectValue
-                                placeholder={
-                                  isCategoriesLoading
-                                    ? "Loading categories..."
-                                    : "Select category"
-                                }
-                              />
-                            </SelectTrigger>
-                          </FormControl>
-
-                          <SelectContent
-                            position="popper"
-                            sideOffset={6}
-                            className="z-80 max-h-72 rounded-lg"
-                          >
-                            {activeCategories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
+                    render={() => (
+                      <FormItem className="md:col-span-12">
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={control}
-                    name="measurementId"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-6">
-                        <FormLabel>Latest Measurement</FormLabel>
-
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              className={readOnlyFieldClassName}
-                              placeholder={
-                                customerId && categoryId
-                                  ? "Auto-filling latest measurement..."
-                                  : "Select customer and category first"
-                              }
-                              readOnly
-                              {...field}
-                            />
-
-                            {isMeasurementLoading && (
-                              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
-                            )}
-
-                            {!isMeasurementLoading && measurementId && (
-                              <CheckCircle2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
-                            )}
-                          </div>
-                        </FormControl>
-
-                        {customerId && categoryId && isMeasurementLoading && (
-                          <p className="text-xs leading-5 text-slate-500">
-                            Finding latest measurement for this customer and
-                            category...
-                          </p>
-                        )}
-
-                        {customerId &&
-                          categoryId &&
-                          !isMeasurementLoading &&
-                          latestMeasurement && (
-                            <p className="text-xs leading-5 text-emerald-700">
-                              Latest measurement selected:{" "}
-                              <span className="font-semibold">
-                                {latestMeasurement.measurementNumber}
-                              </span>
-                            </p>
-                          )}
-
-                        {customerId &&
-                          categoryId &&
-                          !isMeasurementLoading &&
-                          !latestMeasurement &&
-                          !isLatestMeasurementError && (
-                            <p className="text-xs leading-5 text-amber-700">
-                              No latest measurement found for this customer and
-                              category. You can still create the block without a
-                              measurement link.
-                            </p>
-                          )}
-
-                        {isLatestMeasurementError && (
-                          <p className="text-xs leading-5 text-red-700">
-                            Unable to load latest measurement. Please try again.
-                          </p>
-                        )}
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="blockNumber"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-4">
-                        <FormLabel>Block Number</FormLabel>
-                        <FormControl>
-                          <Input
-                            className={fieldClassName}
-                            placeholder="UNI-1001"
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value.toUpperCase())
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="md:col-span-12 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-blue-800">
+                    {blockEntries.length
+                      ? `${blockEntries.length} block ${
+                          blockEntries.length === 1 ? "number" : "numbers"
+                        } ready to create. Latest matching measurements will be linked per customer and category during save.`
+                      : "Add a block number to any category above. Categories without a number will be skipped."}
+                  </div>
 
                   <FormField
                     control={control}
@@ -1134,30 +1153,9 @@ export function CreateBlockDialog({
                 </div>
               </SectionCard>
 
-              {measurementId && latestMeasurement && (
-                <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 lg:col-start-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
-                    <BadgeCheck className="h-4 w-4" />
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-bold text-blue-950">
-                      Measurement will be linked
-                    </p>
-
-                    <p className="mt-1 text-xs text-blue-700">
-                      {latestMeasurement.measurementNumber}
-                    </p>
-
-                    <p className="mt-1 break-all text-xs text-blue-700">
-                      {measurementId}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
-            <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4">
+            <DialogFooter className="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
               <Button
                 type="button"
                 variant="outline"
