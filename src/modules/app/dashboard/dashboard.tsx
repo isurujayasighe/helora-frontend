@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { CreateOrderDialog } from "@/components/layout/create-order-dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { DashboardCustomerSearchCard } from "./components/dashboard-customer-search";
+import { DashboardBlockLookupCard } from "./components/dashboard-block-lookup";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -180,8 +181,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <DashboardCustomerSearchCard />
-
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {dashboardStats.map((stat) => (
                 <DashboardStatCard
@@ -194,6 +193,11 @@ export default function Dashboard() {
                   danger={stat.danger}
                 />
               ))}
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-2">
+              <DashboardCustomerSearchCard />
+              <DashboardBlockLookupCard />
             </div>
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">

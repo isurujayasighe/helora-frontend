@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Blocks,
@@ -58,14 +59,18 @@ const blockStatusOptions = [
 ];
 
 export default function BlocksPage() {
+  const navigate = useNavigate({
+    from: "/app/blocks/",
+  });
+  const blockSearch = useSearch({
+    from: "/_authenticated/app/blocks/",
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [status, setStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
 
   const [addBlockOpen, setAddBlockOpen] = useState(false);
 
@@ -133,8 +138,22 @@ export default function BlocksPage() {
   }, [blocksList, pagination.totalItems]);
 
   const handleViewBlock = (blockId: string) => {
-    setSelectedBlockId(blockId);
-    setBlockDetailsOpen(true);
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        viewBlockId: blockId,
+      }),
+    });
+  };
+
+  const handleCloseBlockDetails = () => {
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        viewBlockId: undefined,
+      }),
+      replace: true,
+    });
   };
 
   const handleClearFilters = () => {
@@ -413,13 +432,11 @@ export default function BlocksPage() {
         />
 
         <BlockDetailsDialog
-          blockId={selectedBlockId}
-          open={blockDetailsOpen}
+          blockId={blockSearch.viewBlockId ?? null}
+          open={Boolean(blockSearch.viewBlockId)}
           onOpenChange={(open) => {
-            setBlockDetailsOpen(open);
-
             if (!open) {
-              setSelectedBlockId(null);
+              handleCloseBlockDetails();
             }
           }}
         />
