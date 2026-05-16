@@ -18,6 +18,7 @@ import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-p
 import { Route as authActivateAccountRouteImport } from './routes/(auth)/activate-account'
 import { Route as AuthenticatedAppWhatsappRouteRouteImport } from './routes/_authenticated/app/whatsapp/route'
 import { Route as AuthenticatedAppUsersRouteRouteImport } from './routes/_authenticated/app/users/route'
+import { Route as AuthenticatedAppPricingRouteRouteImport } from './routes/_authenticated/app/pricing/route'
 import { Route as AuthenticatedAppPackageTemplatesRouteRouteImport } from './routes/_authenticated/app/package-templates/route'
 import { Route as AuthenticatedAppMeasurementsRouteRouteImport } from './routes/_authenticated/app/measurements/route'
 import { Route as AuthenticatedAppEmailsRouteRouteImport } from './routes/_authenticated/app/emails/route'
@@ -84,6 +85,12 @@ const AuthenticatedAppUsersRouteRoute =
   AuthenticatedAppUsersRouteRouteImport.update({
     id: '/app/users',
     path: '/app/users',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppPricingRouteRoute =
+  AuthenticatedAppPricingRouteRouteImport.update({
+    id: '/app/pricing',
+    path: '/app/pricing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppPackageTemplatesRouteRoute =
@@ -224,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/app/emails': typeof AuthenticatedAppEmailsRouteRoute
   '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
   '/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
+  '/app/pricing': typeof AuthenticatedAppPricingRouteRoute
   '/app/users': typeof AuthenticatedAppUsersRouteRoute
   '/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -255,6 +263,7 @@ export interface FileRoutesByTo {
   '/app/emails': typeof AuthenticatedAppEmailsRouteRoute
   '/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
   '/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
+  '/app/pricing': typeof AuthenticatedAppPricingRouteRoute
   '/app/users': typeof AuthenticatedAppUsersRouteRoute
   '/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -288,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/app/emails': typeof AuthenticatedAppEmailsRouteRoute
   '/_authenticated/app/measurements': typeof AuthenticatedAppMeasurementsRouteRoute
   '/_authenticated/app/package-templates': typeof AuthenticatedAppPackageTemplatesRouteRoute
+  '/_authenticated/app/pricing': typeof AuthenticatedAppPricingRouteRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRouteRoute
   '/_authenticated/app/whatsapp': typeof AuthenticatedAppWhatsappRouteRoute
   '/_authenticated/app/group-orders/$groupOrderId': typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/app/emails'
     | '/app/measurements'
     | '/app/package-templates'
+    | '/app/pricing'
     | '/app/users'
     | '/app/whatsapp'
     | '/app/group-orders/$groupOrderId'
@@ -352,6 +363,7 @@ export interface FileRouteTypes {
     | '/app/emails'
     | '/app/measurements'
     | '/app/package-templates'
+    | '/app/pricing'
     | '/app/users'
     | '/app/whatsapp'
     | '/app/group-orders/$groupOrderId'
@@ -384,6 +396,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/emails'
     | '/_authenticated/app/measurements'
     | '/_authenticated/app/package-templates'
+    | '/_authenticated/app/pricing'
     | '/_authenticated/app/users'
     | '/_authenticated/app/whatsapp'
     | '/_authenticated/app/group-orders/$groupOrderId'
@@ -478,6 +491,13 @@ declare module '@tanstack/react-router' {
       path: '/app/users'
       fullPath: '/app/users'
       preLoaderRoute: typeof AuthenticatedAppUsersRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/pricing': {
+      id: '/_authenticated/app/pricing'
+      path: '/app/pricing'
+      fullPath: '/app/pricing'
+      preLoaderRoute: typeof AuthenticatedAppPricingRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/package-templates': {
@@ -635,6 +655,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppEmailsRouteRoute: typeof AuthenticatedAppEmailsRouteRoute
   AuthenticatedAppMeasurementsRouteRoute: typeof AuthenticatedAppMeasurementsRouteRoute
   AuthenticatedAppPackageTemplatesRouteRoute: typeof AuthenticatedAppPackageTemplatesRouteRoute
+  AuthenticatedAppPricingRouteRoute: typeof AuthenticatedAppPricingRouteRoute
   AuthenticatedAppUsersRouteRoute: typeof AuthenticatedAppUsersRouteRoute
   AuthenticatedAppWhatsappRouteRoute: typeof AuthenticatedAppWhatsappRouteRoute
   AuthenticatedAppGroupOrdersGroupOrderIdRoute: typeof AuthenticatedAppGroupOrdersGroupOrderIdRoute
@@ -663,6 +684,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAppMeasurementsRouteRoute,
   AuthenticatedAppPackageTemplatesRouteRoute:
     AuthenticatedAppPackageTemplatesRouteRoute,
+  AuthenticatedAppPricingRouteRoute: AuthenticatedAppPricingRouteRoute,
   AuthenticatedAppUsersRouteRoute: AuthenticatedAppUsersRouteRoute,
   AuthenticatedAppWhatsappRouteRoute: AuthenticatedAppWhatsappRouteRoute,
   AuthenticatedAppGroupOrdersGroupOrderIdRoute:

@@ -26,6 +26,7 @@ import {
   LogOut,
   Mail,
   ChevronRight,
+  BadgeDollarSign,
 } from "lucide-react";
 
 
@@ -144,6 +145,11 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
             title: "Garment Sets",
             url: "/app/package-templates",
             icon: PackagePlus,
+          },
+          {
+            title: "Pricing",
+            url: "/app/pricing",
+            icon: BadgeDollarSign,
           },
         ],
       },
