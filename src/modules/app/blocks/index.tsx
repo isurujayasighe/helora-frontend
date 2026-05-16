@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Star,
 } from "lucide-react";
 
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
@@ -126,14 +125,10 @@ export default function BlocksPage() {
       (block: any) => block.status === "ACTIVE",
     ).length;
 
-    const defaultBlocks = blocksList.filter((block: any) =>
-      block.customerBlocks?.some((item: any) => item.isDefault),
-    ).length;
-
     return {
       totalBlocks: pagination.totalItems,
       activeBlocks,
-      defaultBlocks,
+      loadedBlocks: blocksList.length,
     };
   }, [blocksList, pagination.totalItems]);
 
@@ -264,10 +259,10 @@ export default function BlocksPage() {
               />
 
               <BlockStatCard
-                title="Default Blocks"
-                value={stats.defaultBlocks}
-                description="Assigned as default"
-                icon={Star}
+                title="Loaded Results"
+                value={stats.loadedBlocks}
+                description="Visible in table"
+                icon={PackageCheck}
               />
 
               <BlockStatCard

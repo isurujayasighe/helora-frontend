@@ -53,7 +53,7 @@ export type Block = {
   createdAt: string;
   updatedAt: string;
   category: BlockCategory;
-  customerBlocks: CustomerBlockAssignment[];
+  customerBlocks?: CustomerBlockAssignment[];
   _count: {
     orderItems: number;
     measurements?: number;
