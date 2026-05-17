@@ -147,6 +147,10 @@ export default function PricingPage() {
 
   const priceBooksQuery = usePriceBooksQuery(bookParams);
   const priceRulesQuery = usePriceRulesQuery(ruleParams);
+  const chartRulesQuery = usePriceRulesQuery({
+    method: "CHART",
+    isActive: true,
+  });
   const priceChartsQuery = usePriceChartsQuery();
   const garmentSetsQuery = useGarmentSetsQuery({ isActive: true });
   const archivePriceBook = useArchivePriceBook();
@@ -155,6 +159,7 @@ export default function PricingPage() {
 
   const priceBooks = priceBooksQuery.data ?? [];
   const priceRules = priceRulesQuery.data ?? [];
+  const chartPriceRules = chartRulesQuery.data ?? [];
   const priceCharts = priceChartsQuery.data ?? [];
   const garmentSets = garmentSetsQuery.data ?? [];
 
@@ -174,6 +179,7 @@ export default function PricingPage() {
   const refreshAll = () => {
     priceBooksQuery.refetch();
     priceRulesQuery.refetch();
+    chartRulesQuery.refetch();
     priceChartsQuery.refetch();
     garmentSetsQuery.refetch();
   };
@@ -181,6 +187,7 @@ export default function PricingPage() {
   const isRefreshing =
     priceBooksQuery.isFetching ||
     priceRulesQuery.isFetching ||
+    chartRulesQuery.isFetching ||
     priceChartsQuery.isFetching ||
     garmentSetsQuery.isFetching;
 
@@ -472,7 +479,7 @@ export default function PricingPage() {
         <PriceChartFormDialog
           open={priceChartDialogOpen}
           priceChart={editingPriceChart}
-          priceRules={priceRules.filter((rule) => rule.method === "CHART")}
+          priceRules={chartPriceRules}
           onOpenChange={(open) => {
             setPriceChartDialogOpen(open);
             if (!open) setEditingPriceChart(null);

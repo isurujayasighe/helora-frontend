@@ -89,7 +89,7 @@ export function PriceRuleFormDialog({
   const packageTemplatesQuery = usePackageTemplatesQuery({ isActive: true });
   const measurementFieldsQuery = useMeasurementFieldsQuery({
     pageIndex: 0,
-    pageSize: 200,
+    pageSize: 100,
     isActive: true,
   });
 
