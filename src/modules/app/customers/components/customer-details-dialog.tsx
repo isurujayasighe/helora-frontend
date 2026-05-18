@@ -3,6 +3,7 @@
 "use client";
 
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
   Blocks,
@@ -10,6 +11,7 @@ import {
   ClipboardList,
   MapPin,
   Phone,
+  Plus,
   Ruler,
   Shirt,
   UserRound,
@@ -17,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -34,8 +37,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { CreateBlockDialog } from "@/modules/app/blocks/components/create-block-dialog";
+import { customersQueryKeys } from "@/modules/app/customers/api/useGetCustomers";
 
 import {
+  customerDetailsQueryKeys,
   useGetCustomerById,
   type CustomerBlockAssignment,
   type CustomerDetails,
@@ -551,32 +557,75 @@ export function CustomerDetailsDialog({
   customerId,
   onOpenChange,
 }: CustomerDetailsDialogProps) {
+  const queryClient = useQueryClient();
+  const [assignBlockOpen, setAssignBlockOpen] = React.useState(false);
   const {
     data: customer,
     isLoading,
     isFetching,
     isError,
+    refetch,
   } = useGetCustomerById(customerId, open);
 
+  const initialBlockCustomer = React.useMemo(() => {
+    if (!customer) return null;
+
+    return {
+      id: customer.id,
+      fullName: customer.fullName,
+      phoneNumber: customer.phoneNumber,
+      alternatePhone: customer.alternatePhone,
+      town: customer.town,
+      hospitalName: customer.hospitalName,
+      address: customer.address,
+    };
+  }, [customer]);
+
+  const handleBlockCreated = async () => {
+    await Promise.all([
+      refetch(),
+      queryClient.invalidateQueries({
+        queryKey: customerDetailsQueryKeys.detail(customerId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: customersQueryKeys.all,
+      }),
+    ]);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg border-slate-200 bg-slate-50 p-0 gap-0 sm:max-w-5xl">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg border-slate-200 bg-slate-50 p-0 gap-0 sm:max-w-5xl">
         <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
-              <UserRound className="h-5 w-5" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                <UserRound className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0">
+                <DialogTitle className="text-lg font-black text-slate-950">
+                  Customer Details
+                </DialogTitle>
+
+                <DialogDescription className="mt-1 text-sm text-slate-500">
+                  View customer summary, recent orders, assigned blocks, and linked
+                  measurements.
+                </DialogDescription>
+              </div>
             </div>
 
-            <div className="min-w-0">
-              <DialogTitle className="text-lg font-black text-slate-950">
-                Customer Details
-              </DialogTitle>
-
-              <DialogDescription className="mt-1 text-sm text-slate-500">
-                View customer summary, recent orders, assigned blocks, and linked
-                measurements.
-              </DialogDescription>
-            </div>
+            {customer && (
+              <Button
+                type="button"
+                onClick={() => setAssignBlockOpen(true)}
+                className="h-9 w-fit shrink-0 rounded-lg bg-slate-900 font-bold hover:bg-slate-800"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Assign Block
+              </Button>
+            )}
           </div>
         </DialogHeader>
 
@@ -648,7 +697,15 @@ export function CustomerDetailsDialog({
             </div>
           )}
         </ScrollArea>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <CreateBlockDialog
+        open={assignBlockOpen}
+        onOpenChange={setAssignBlockOpen}
+        initialCustomer={initialBlockCustomer}
+        onCreated={handleBlockCreated}
+      />
+    </>
   );
 }

@@ -34,7 +34,7 @@ export type GetBlocksParams = {
   enabled?: boolean;
 };
 
-const getBlocks = async (
+export const getBlocks = async (
   params: GetBlocksParams
 ): Promise<ListBlocksApiResponse> => {
   const response = await covalentHubClient.get<ListBlocksApiResponse>(

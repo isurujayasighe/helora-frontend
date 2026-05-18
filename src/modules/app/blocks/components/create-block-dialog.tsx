@@ -14,6 +14,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import { useQueries } from "@tanstack/react-query";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -54,12 +55,17 @@ import {
   type CreateBlockPayload,
 } from "@/modules/app/blocks/api/useCreateBlock";
 import {
+  blocksQueryKeys,
+  getBlocks,
+} from "@/modules/app/blocks/api/useGetBlocks";
+import {
   usePackageTemplatesQuery,
   type PackageTemplate,
   type PackageTemplateItem,
 } from "@/modules/app/package-templates/api/package-template-api";
 import { CustomerPhoneLookupField } from "@/components/layout/components/customer-phone-lookup-field";
 import type { CustomerLookupItem } from "@/api/useGetCustomerLookup";
+import type { Block } from "@/types/blocks";
 
 /* ------------------------------------------------------------------ */
 /* Validation                                                         */
@@ -108,6 +114,7 @@ type CreateBlockDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  initialCustomer?: CustomerLookupItem | null;
 };
 
 const defaultValues: CreateBlockFormInput = {
@@ -205,15 +212,38 @@ function toOptionalNumber(value?: number | null) {
   return numberValue;
 }
 
+function normalizeBlockNumber(value: string) {
+  return value.trim().toUpperCase();
+}
+
+function mapCustomerToAssignment(
+  customer: CustomerLookupItem,
+): CustomerAssignment {
+  return {
+    customerId: customer.id,
+    customerName: customer.fullName,
+    phoneNumber: customer.phoneNumber ?? undefined,
+    town: customer.town ?? undefined,
+    hospitalName: customer.hospitalName ?? undefined,
+    measurementId: undefined,
+    measurementNumber: undefined,
+    isDefault: true,
+  };
+}
+
 function PackageTemplateCategoryPicker({
   template,
   items,
   blockNumbers,
+  duplicateBlocks,
+  isCheckingDuplicates,
   onBlockNumberChange,
 }: {
   template: PackageTemplate | null;
   items: PackageTemplateItem[];
   blockNumbers: Record<string, string>;
+  duplicateBlocks: Record<string, Block>;
+  isCheckingDuplicates: boolean;
   onBlockNumberChange: (categoryId: string, blockNumber: string) => void;
 }) {
   if (!template) {
@@ -252,6 +282,8 @@ function PackageTemplateCategoryPicker({
           const categoryId = item.categoryId ?? "";
           const blockNumber = blockNumbers[categoryId] ?? "";
           const hasBlockNumber = Boolean(blockNumber.trim());
+          const duplicateBlock = duplicateBlocks[categoryId];
+          const hasDuplicate = Boolean(duplicateBlock);
 
           if (!categoryId) return null;
 
@@ -260,7 +292,9 @@ function PackageTemplateCategoryPicker({
               key={item.id}
               className={cn(
                 "rounded-lg border bg-white p-3 transition",
-                hasBlockNumber
+                hasDuplicate
+                  ? "border-red-200 bg-red-50 ring-1 ring-red-200"
+                  : hasBlockNumber
                   ? "border-blue-200 bg-blue-50 ring-1 ring-blue-200"
                   : "border-slate-200",
               )}
@@ -276,8 +310,15 @@ function PackageTemplateCategoryPicker({
                 </div>
 
                 {hasBlockNumber && (
-                  <Badge className="shrink-0 rounded-md bg-blue-600 text-white hover:bg-blue-600">
-                    Ready
+                  <Badge
+                    className={cn(
+                      "shrink-0 rounded-md text-white",
+                      hasDuplicate
+                        ? "bg-red-600 hover:bg-red-600"
+                        : "bg-blue-600 hover:bg-blue-600",
+                    )}
+                  >
+                    {hasDuplicate ? "Exists" : "Ready"}
                   </Badge>
                 )}
               </div>
@@ -287,12 +328,28 @@ function PackageTemplateCategoryPicker({
                 onChange={(event) =>
                   onBlockNumberChange(
                     categoryId,
-                    event.target.value.toUpperCase(),
+                    normalizeBlockNumber(event.target.value),
                   )
                 }
                 placeholder="Block no optional"
-                className={cn(fieldClassName, "mt-3")}
+                className={cn(
+                  fieldClassName,
+                  "mt-3",
+                  hasDuplicate &&
+                    "border-red-300 bg-white text-red-950 focus-visible:ring-red-500/20",
+                )}
               />
+
+              {hasDuplicate ? (
+                <p className="mt-2 text-xs leading-5 text-red-700">
+                  Block {duplicateBlock.blockNumber} already exists for this
+                  category. Choose another number or use the existing block.
+                </p>
+              ) : hasBlockNumber && isCheckingDuplicates ? (
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Checking existing block numbers...
+                </p>
+              ) : null}
             </div>
           );
         })}
@@ -309,6 +366,7 @@ export function CreateBlockDialog({
   open,
   onOpenChange,
   onCreated,
+  initialCustomer,
 }: CreateBlockDialogProps) {
   const [selectedCustomer, setSelectedCustomer] =
     React.useState<CustomerLookupItem | null>(null);
@@ -340,6 +398,48 @@ export function CreateBlockDialog({
     control,
     name: "customerId",
   });
+
+  React.useEffect(() => {
+    if (!open || !initialCustomer) return;
+
+    setSelectedCustomer(initialCustomer);
+    setCustomerAssignments((current) => {
+      if (
+        current.some(
+          (assignment) => assignment.customerId === initialCustomer.id,
+        )
+      ) {
+        return current;
+      }
+
+      return [mapCustomerToAssignment(initialCustomer), ...current];
+    });
+
+    setValue("customerId", initialCustomer.id, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("customerName", initialCustomer.fullName, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("phoneNumber", initialCustomer.phoneNumber ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("customerTown", initialCustomer.town ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("customerAddress", initialCustomer.address ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("hospitalName", initialCustomer.hospitalName ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [initialCustomer, open, setValue]);
 
   const selectedPackageTemplate = React.useMemo(() => {
     return (
@@ -373,6 +473,59 @@ export function CreateBlockDialog({
       }))
       .filter((entry) => entry.categoryId && entry.blockNumber);
   }, [categoryBlockNumbers, packageTemplateCategories]);
+
+  const duplicateBlockQueries = useQueries({
+    queries: blockEntries.map((entry) => {
+      const params = {
+        page: 1,
+        pageSize: 10,
+        search: entry.blockNumber,
+        categoryId: entry.categoryId,
+        includeCounts: false,
+        includeTotal: false,
+      };
+
+      return {
+        queryKey: blocksQueryKeys.list(params),
+        queryFn: () => getBlocks(params),
+        enabled:
+          open &&
+          Boolean(entry.categoryId) &&
+          Boolean(entry.blockNumber.trim()),
+        staleTime: 30_000,
+      };
+    }),
+  });
+
+  const duplicateBlocksByCategory = React.useMemo(() => {
+    const duplicates: Record<string, Block> = {};
+
+    duplicateBlockQueries.forEach((query, index) => {
+      const entry = blockEntries[index];
+
+      if (!entry || !query.data?.data?.items?.length) return;
+
+      const normalizedBlockNumber = normalizeBlockNumber(entry.blockNumber);
+      const matchingBlock = query.data.data.items.find((block) => {
+        return (
+          block.categoryId === entry.categoryId &&
+          normalizeBlockNumber(block.blockNumber) === normalizedBlockNumber
+        );
+      });
+
+      if (matchingBlock) {
+        duplicates[entry.categoryId] = matchingBlock;
+      }
+    });
+
+    return duplicates;
+  }, [blockEntries, duplicateBlockQueries]);
+
+  const duplicateBlockCount = Object.keys(duplicateBlocksByCategory).length;
+  const hasDuplicateBlockNumbers = duplicateBlockCount > 0;
+  const isCheckingDuplicateBlocks = duplicateBlockQueries.some(
+    (query) => query.isFetching,
+  );
 
   const clearDraftCustomer = React.useCallback(() => {
     setSelectedCustomer(null);
@@ -568,6 +721,21 @@ export function CreateBlockDialog({
       return;
     }
 
+    if (isCheckingDuplicateBlocks) {
+      form.setError("categoryId", {
+        message: "Please wait until block number validation is complete.",
+      });
+      return;
+    }
+
+    if (hasDuplicateBlockNumbers) {
+      form.setError("categoryId", {
+        message:
+          "One or more block numbers already exist. Change them before creating new blocks.",
+      });
+      return;
+    }
+
     try {
       for (const entry of blockEntries) {
         const customers = await Promise.all(
@@ -626,6 +794,8 @@ export function CreateBlockDialog({
     Boolean(selectedPackageTemplateId) &&
     Boolean(blockEntries.length) &&
     Boolean(customerAssignments.length) &&
+    !isCheckingDuplicateBlocks &&
+    !hasDuplicateBlockNumbers &&
     !isSubmitting;
 
   return (
@@ -906,6 +1076,8 @@ export function CreateBlockDialog({
                       template={selectedPackageTemplate}
                       items={packageTemplateCategories}
                       blockNumbers={categoryBlockNumbers}
+                      duplicateBlocks={duplicateBlocksByCategory}
+                      isCheckingDuplicates={isCheckingDuplicateBlocks}
                       onBlockNumberChange={handleCategoryBlockNumberChange}
                     />
                   </div>
@@ -920,12 +1092,29 @@ export function CreateBlockDialog({
                     )}
                   />
 
-                  <div className="md:col-span-12 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-blue-800">
-                    {blockEntries.length
-                      ? `${blockEntries.length} block ${
-                          blockEntries.length === 1 ? "number" : "numbers"
-                        } ready to create. Latest matching measurements will be linked per customer and category during save.`
-                      : "Add a block number to any category above. Categories without a number will be skipped."}
+                  <div
+                    className={cn(
+                      "md:col-span-12 rounded-lg border px-3 py-3 text-xs leading-5",
+                      hasDuplicateBlockNumbers
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : isCheckingDuplicateBlocks
+                          ? "border-amber-200 bg-amber-50 text-amber-800"
+                          : "border-blue-100 bg-blue-50 text-blue-800",
+                    )}
+                  >
+                    {hasDuplicateBlockNumbers
+                      ? `${duplicateBlockCount} block ${
+                          duplicateBlockCount === 1 ? "number" : "numbers"
+                        } already exist. Choose different numbers before saving.`
+                      : isCheckingDuplicateBlocks
+                        ? "Checking whether these block numbers already exist..."
+                        : blockEntries.length
+                          ? `${blockEntries.length} block ${
+                              blockEntries.length === 1
+                                ? "number"
+                                : "numbers"
+                            } ready to create. Latest matching measurements will be linked per customer and category during save.`
+                          : "Add a block number to any category above. Categories without a number will be skipped."}
                   </div>
 
                   <FormField

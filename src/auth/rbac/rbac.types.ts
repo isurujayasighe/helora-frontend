@@ -19,6 +19,8 @@ export type PageSubject =
   | "emails"
   | "reports"
   | "settings"
+  |"categories"
+  |"users"
   | "settings-users"
   | "settings-roles"
   | "settings-permissions"

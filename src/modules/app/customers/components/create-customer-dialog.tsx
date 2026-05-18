@@ -105,8 +105,18 @@ const defaultValues: CreateCustomerFormInput = {
 type LegacyBlockAssignment = {
   key: string;
   existingBlockId?: string;
+  isNewBlock?: boolean;
   categoryId: string;
   categoryName: string;
+  blockNumber: string;
+  readyMadeSize?: string;
+  sizeLabel?: string;
+  fitNotes?: string;
+  description?: string;
+  remarks?: string;
+};
+
+type ManualBlockDraft = {
   blockNumber: string;
   readyMadeSize?: string;
   sizeLabel?: string;
@@ -300,6 +310,40 @@ export function CreateCustomerDialog({
     setActivePackageCategory(null);
   };
 
+  const applyManualBlock = (draft: ManualBlockDraft) => {
+    if (!activePackageCategory?.categoryId) return;
+
+    const blockNumber = draft.blockNumber.trim().toUpperCase();
+    if (!blockNumber) return;
+
+    const categoryId = activePackageCategory.categoryId;
+    const assignment: LegacyBlockAssignment = {
+      key: `${categoryId}:${blockNumber.toLowerCase()}`,
+      isNewBlock: true,
+      categoryId,
+      categoryName:
+        activePackageCategory.category?.name ??
+        activePackageCategory.itemDescription,
+      blockNumber,
+      readyMadeSize: draft.readyMadeSize?.trim() || undefined,
+      sizeLabel: draft.sizeLabel?.trim() || undefined,
+      fitNotes: draft.fitNotes?.trim() || undefined,
+      description:
+        draft.description?.trim() || activePackageCategory.itemDescription,
+      remarks: draft.remarks?.trim() || undefined,
+    };
+
+    clearErrors("hasLegacyBlock");
+    setSelectedExistingBlockId(null);
+    setLegacyBlockAssignments((current) => [
+      ...current.filter((item) => item.categoryId !== categoryId),
+      assignment,
+    ]);
+    clearBlockDraftFields();
+    setBlockLookupOpen(false);
+    setActivePackageCategory(null);
+  };
+
   const onSubmit: SubmitHandler<CreateCustomerFormValues> = async (values) => {
     const legacyBlocks = values.hasLegacyBlock ? legacyBlockAssignments : [];
 
@@ -351,16 +395,6 @@ export function CreateCustomerDialog({
                 assignments.
               </p>
             </div>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="h-8 w-8 rounded-full"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 
@@ -664,6 +698,7 @@ export function CreateCustomerDialog({
         selectedBlockId={selectedExistingBlockId}
         isFetching={isBlockSuggestionsFetching}
         onSelect={applyExistingBlock}
+        onCreateNew={applyManualBlock}
       />
     </Dialog>
   );
@@ -683,6 +718,7 @@ function BlockLookupSheet({
   selectedBlockId,
   isFetching,
   onSelect,
+  onCreateNew,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -693,7 +729,27 @@ function BlockLookupSheet({
   selectedBlockId: string | null;
   isFetching: boolean;
   onSelect: (block: BlockSuggestion) => void;
+  onCreateNew: (draft: ManualBlockDraft) => void;
 }) {
+  const [readyMadeSize, setReadyMadeSize] = useState("");
+  const [sizeLabel, setSizeLabel] = useState("");
+  const [fitNotes, setFitNotes] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const normalizedSearch = search.trim().toUpperCase();
+
+  useEffect(() => {
+    if (!open) {
+      setReadyMadeSize("");
+      setSizeLabel("");
+      setFitNotes("");
+      setRemarks("");
+    }
+  }, [open]);
+
+  const exactMatchExists = suggestions.some(
+    (block) => block.blockNumber.trim().toUpperCase() === normalizedSearch,
+  );
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -744,6 +800,72 @@ function BlockLookupSheet({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/70 p-4">
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Add as new block
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  If this block number is not in the database, Helora will
+                  create it while creating the customer.
+                </p>
+              </div>
+              <Badge variant="outline" className="rounded-md">
+                Optional
+              </Badge>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Input
+                value={readyMadeSize}
+                onChange={(event) => setReadyMadeSize(event.target.value)}
+                placeholder="Ready-made size"
+                className="h-10 bg-slate-50"
+              />
+              <Input
+                value={sizeLabel}
+                onChange={(event) => setSizeLabel(event.target.value)}
+                placeholder="Size label"
+                className="h-10 bg-slate-50"
+              />
+              <Input
+                value={fitNotes}
+                onChange={(event) => setFitNotes(event.target.value)}
+                placeholder="Fit notes"
+                className="h-10 bg-slate-50 sm:col-span-2"
+              />
+              <Input
+                value={remarks}
+                onChange={(event) => setRemarks(event.target.value)}
+                placeholder="Remarks"
+                className="h-10 bg-slate-50 sm:col-span-2"
+              />
+            </div>
+
+            <Button
+              type="button"
+              className="mt-3 w-full"
+              disabled={!normalizedSearch || exactMatchExists}
+              onClick={() =>
+                onCreateNew({
+                  blockNumber: normalizedSearch,
+                  readyMadeSize,
+                  sizeLabel,
+                  fitNotes,
+                  remarks,
+                })
+              }
+            >
+              <PackagePlus className="mr-2 h-4 w-4" />
+              {exactMatchExists
+                ? "Block already exists below"
+                : normalizedSearch
+                  ? `Create new block ${normalizedSearch}`
+                  : "Enter block number to create"}
+            </Button>
+          </div>
+
           {suggestions.length ? (
             <div className="space-y-2">
               {suggestions.map((block) => (
@@ -800,7 +922,7 @@ function BlockLookupSheet({
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
                 Try another search term or add the block from the Blocks page
-                before assigning it here.
+                by using the new block panel above.
               </p>
             </div>
           )}
@@ -873,6 +995,14 @@ function BlockAssignmentsList({
                     className="rounded-md border-emerald-200 bg-emerald-50 text-emerald-700"
                   >
                     Existing
+                  </Badge>
+                )}
+                {assignment.isNewBlock && (
+                  <Badge
+                    variant="outline"
+                    className="rounded-md border-blue-200 bg-blue-50 text-blue-700"
+                  >
+                    New block
                   </Badge>
                 )}
               </div>
