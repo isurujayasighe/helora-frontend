@@ -7,13 +7,22 @@ interface CreateRolePayload {
   description?: string;
 }
 
+function buildRoleCode(roleName: string) {
+  return roleName.trim().toUpperCase().replace(/\s+/g, "_");
+}
+
 export function useCreateRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: CreateRolePayload) => {
-      // POST /admin/Role
-      const response = await covalentHubClient.post("/roles", payload);
+      const roleName = payload.roleName.trim();
+
+      const response = await covalentHubClient.post("/roles", {
+        code: buildRoleCode(roleName),
+        name: roleName,
+        description: payload.description?.trim() || undefined,
+      });
       return response.data;
     },
     onSuccess: () => {

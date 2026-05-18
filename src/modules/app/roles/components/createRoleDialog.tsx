@@ -23,7 +23,7 @@ import { useCan } from "@/auth/rbac/useCan";
 
 // --- Schema ---
 const createRoleSchema = z.object({
-  roleName: z.string().min(1, "Required").max(5, "Max 5 chars"),
+  roleName: z.string().min(1, "Required").max(120, "Max 120 chars"),
   description: z.string().optional(),
 });
 
@@ -31,7 +31,7 @@ export function CreateRoleDialog() {
   const [open, setOpen] = useState(false);
   const { mutateAsync } = useCreateRole();
 
-  const canCreate = useCan("create", "dashboard");
+  const canCreate = useCan("create", "settings");
 
   const form = useForm({
     defaultValues: {
