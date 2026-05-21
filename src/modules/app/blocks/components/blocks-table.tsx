@@ -1,4 +1,10 @@
-import { CalendarDays, Eye, MoreVertical, Pencil, UserRound } from "lucide-react";
+import {
+  Box,
+  Eye,
+  MoreVertical,
+  Pencil,
+  UserRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,13 +28,13 @@ const formatDate = (value?: string | null) => {
 const statusClassName = (status?: string) => {
   switch (status) {
     case "ACTIVE":
-      return "border-emerald-100 bg-emerald-50 text-emerald-700";
+      return "bg-teal-100 text-teal-700";
     case "INACTIVE":
-      return "border-amber-100 bg-amber-50 text-amber-700";
+      return "bg-slate-200 text-slate-600";
     case "ARCHIVED":
-      return "border-slate-100 bg-slate-50 text-slate-700";
+      return "bg-amber-100 text-amber-700";
     default:
-      return "border-slate-100 bg-slate-50 text-slate-700";
+      return "bg-slate-100 text-slate-700";
   }
 };
 
@@ -45,7 +51,7 @@ export function BlocksTable({
 }: BlocksTableProps) {
   if (blocks.length === 0) {
     return (
-      <div className="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+      <div className="flex min-h-80 flex-col items-center justify-center bg-white p-8 text-center">
         <UserRound className="h-10 w-10 text-slate-400" />
         <h3 className="mt-4 text-sm font-semibold text-slate-900">
           No blocks found
@@ -58,79 +64,97 @@ export function BlocksTable({
   }
 
   return (
-    <div className="overflow-hidden  bg-white">
+    <div className="overflow-hidden bg-white">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-230 text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <table className="w-full min-w-210 table-fixed text-left text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50/80">
             <tr>
-              <th className="px-4 py-3 font-semibold text-[10px]">Block No</th>
-              <th className="px-4 py-3 font-semibold text-[10px]">Created Date</th>
-              <th className="px-4 py-3 font-semibold text-[10px]">Category</th>
-              <th className="px-4 py-3 font-semibold text-[10px]">Last Used Date</th>
-              <th className="px-4 py-3 font-semibold text-[10px]">Ready Made Size</th>
-              <th className="px-4 py-3 font-semibold text-[10px]">Status</th>
-              <th className="px-4 py-3 text-right font-semibold text-[10px]">Action</th>
+              <th className="w-[22%] px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Block No
+              </th>
+              <th className="w-[15%] px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Created Date
+              </th>
+              <th className="w-[14%] px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Category
+              </th>
+              <th className="w-[17%] px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Last Used
+              </th>
+              <th className="w-[10%] px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Size
+              </th>
+              <th className="w-[12%] px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Status
+              </th>
+              <th className="w-[10%] px-5 py-3 text-right text-[10px] font-black uppercase tracking-[0.16em] text-slate-700">
+                Action
+              </th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-200">
             {blocks.map((block) => (
-              <tr key={block.id} className="hover:bg-slate-50/70">
-                <td className="px-4 py-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="font-normal text-slate-900 underline-offset-4 hover:text-primary hover:underline"
-                      onClick={() => onViewBlock(block.id)}
-                    >
-                      {block.blockNumber}
-                    </button>
-                  </div>
+              <tr key={block.id} className="h-14 hover:bg-slate-50/70">
+                <td className="px-5 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-slate-300">
+                      <Box className="h-3.5 w-3.5" />
+                    </div>
 
-                  {block.description && (
-                    <p className="mt-1 max-w-55 truncate text-xs text-slate-500">
-                      {block.description}
-                    </p>
-                  )}
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        className="block max-w-full truncate text-sm font-black text-slate-950 underline-offset-4 hover:text-primary hover:underline"
+                        onClick={() => onViewBlock(block.id)}
+                      >
+                        {block.blockNumber}
+                      </button>
+
+                      <p className="mt-0.5 max-w-48 truncate text-xs font-medium text-slate-500">
+                        {block.description || block.fitNotes || "Reusable block"}
+                      </p>
+                    </div>
+                  </div>
                 </td>
 
-                <td className="px-4 py-4 text-slate-700">
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                    {formatDate(block.createdAt)}
+                <td className="px-5 py-3 text-sm font-medium text-slate-700">
+                  {formatDate(block.createdAt)}
+                </td>
+
+                <td className="px-5 py-3">
+                  <span className="inline-flex max-w-full rounded-sm bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700">
+                    <span className="truncate">{block.category?.name || "-"}</span>
                   </span>
                 </td>
 
-                <td className="px-4 py-4 text-slate-700">
-                  {block.category?.name || "-"}
-                </td>
-
-                <td className="px-4 py-4 text-slate-700">
+                <td className="px-5 py-3 text-sm font-medium text-slate-700">
                   {formatDate(block.lastUsedAt)}
                 </td>
 
-                <td className="px-4 py-4 text-slate-700">
-                  {block.readyMadeSize || "-"}
+                <td className="px-5 py-3 text-sm font-black text-slate-950">
+                  {block.readyMadeSize || block.sizeLabel || "-"}
                 </td>
 
-                <td className="px-4 py-4">
+                <td className="px-5 py-3">
                   <span
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-xs font-semibold",
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase leading-none",
                       statusClassName(block.status)
                     )}
                   >
-                    {block.status}
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    {block.status?.toLowerCase()}
                   </span>
                 </td>
 
-                <td className="px-4 py-4 text-right">
+                <td className="px-5 py-3 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
                         className="h-8 w-8 rounded-md text-slate-500 hover:text-slate-900"
                       >
                         <MoreVertical className="h-4 w-4" />

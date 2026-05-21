@@ -8,32 +8,32 @@
   /* =========================
      Core surfaces
      ========================= */
-  --background: #fafafa;
-  --foreground: #364152;
+  --background: #f5f7fb;
+  --foreground: #243142;
 
   --card: #ffffff;
-  --card-foreground: #364152;
+  --card-foreground: #243142;
 
   --popover: #ffffff;
-  --popover-foreground: #364152;
+  --popover-foreground: #243142;
 
   /* =========================
      Brand
      ========================= */
-  --primary: #0f0b7d;
+  --primary: #102a56;
   --primary-foreground: oklch(1 0 0);
 
-  --secondary: #eef2f6;
-  --secondary-foreground: #364152;
+  --secondary: #e8edf5;
+  --secondary-foreground: #243142;
 
   /* =========================
      Muted & accent
      ========================= */
   --muted: #eef2f6;
-  --muted-foreground: #697586;
+  --muted-foreground: #667085;
 
-  --accent: #f8fafc;
-  --accent-foreground: #175cd3;
+  --accent: #eaf2ff;
+  --accent-foreground: #1849a9;
 
   /* =========================
      Destructive
@@ -44,14 +44,14 @@
   /* =========================
      Borders & inputs
      ========================= */
-  --border: #d9e1ea;
-  --input: #d0d5dd;
-  --ring: #080726;
+  --border: #d5deea;
+  --input: #c7d2e0;
+  --ring: #1d4ed8;
 
   /* =========================
      Charts
      ========================= */
-  --chart-1: #175cd3;
+  --chart-1: #2563eb;
   --chart-2: #079455;
   --chart-3: #dc6803;
   --chart-4: #b54708;
@@ -62,19 +62,19 @@
   /* =========================
      Sidebar
      ========================= */
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(22.663% 0.07297 278.867);
   
-  --sidebar-foreground: #4b5565; 
+  --sidebar-foreground: #d7def0; 
 
-  --sidebar-primary: #080726; 
+  --sidebar-primary: #7dd3fc; 
   --sidebar-primary-foreground: #ffffff;
 
-  --sidebar-accent: #f4f6f8; 
-  --sidebar-accent-foreground: #080726;
+  --sidebar-accent: oklch(30% 0.055 278.867); 
+  --sidebar-accent-foreground: #ffffff;
 
-  --sidebar-border: #eaecf0;
+  --sidebar-border: oklch(32% 0.05 278.867);
 
-  --sidebar-ring: #080726;
+  --sidebar-ring: #7dd3fc;
   /* =========================
      Enterprise status colors
      ========================= */
@@ -113,13 +113,14 @@
      Shadows (OKLCH-based alpha)
      ========================= */
   --shadow-sm: 
-    0 1px 2px 0 rgb(16 24 40 / 0.05);
+    0 1px 2px 0 rgb(16 24 40 / 0.06);
 
   --shadow: 
-    0 1px 2px 0 rgb(16 24 40 / 0.04);
+    0 1px 3px 0 rgb(16 24 40 / 0.06),
+    0 1px 2px -1px rgb(16 24 40 / 0.04);
 
   --shadow-md: 
-    0 8px 18px -16px rgb(16 24 40 / 0.16), 
+    0 10px 22px -18px rgb(16 24 40 / 0.2), 
     0 1px 2px -1px rgb(16 24 40 / 0.05);
 
   --shadow-lg: 
@@ -192,7 +193,7 @@
   /* =========================
      Sidebar
      ========================= */
-  --sidebar: oklch(0.16 0.02 195);
+  --sidebar: oklch(22.663% 0.07297 278.867);
   --sidebar-foreground: oklch(0.98 0.003 247);
 
   --sidebar-primary: oklch(0.72 0.045 195);
@@ -316,6 +317,10 @@ body {
   letter-spacing: 0;
 }
 
+html {
+  background: var(--background);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -328,6 +333,7 @@ body {
   body {
     @apply bg-background text-foreground min-h-svh w-full;
     font-size: 14px;
+    line-height: 1.45;
     font-feature-settings:
       "cv02",
       "cv03",
@@ -384,7 +390,7 @@ body {
   }
   .text-slate-950,
   .text-slate-900 {
-    color: #364152;
+    color: #243142;
   }
   .text-slate-800,
   .text-slate-700,

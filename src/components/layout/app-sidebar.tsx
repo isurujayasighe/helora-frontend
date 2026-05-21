@@ -284,14 +284,14 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
       className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
       {...props}
     >
-      <SidebarHeader className="border-b border-sidebar-border px-3 py-2">
+      <SidebarHeader className="border-b border-sidebar-border/80 px-3 py-2">
         <BrandHeader />
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
         {SIDEBAR_GROUPS.map((group) => (
           <SidebarGroup key={group.label} className="p-0 pb-3">
-            <SidebarGroupLabel className="px-2 text-[11px] font-medium uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel className="px-2 text-[11px] font-semibold uppercase text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -309,7 +309,7 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2">
+      <SidebarFooter className="border-t border-sidebar-border/80 p-2">
         <UserFooter
           userName={userName}
           userEmail={userEmail}
@@ -325,15 +325,15 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
 function BrandHeader() {
   return (
     <div className="flex h-12 items-center gap-3 group-data-[collapsible=icon]:justify-center">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-white shadow-none">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-300 text-[#151343] shadow-sm shadow-black/20">
         <Scissors className="h-5 w-5" />
       </div>
 
       <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-        <p className="truncate text-sm font-semibold leading-5 text-[#364152]">
+        <p className="truncate text-sm font-semibold leading-5 text-white">
           Helora ERP
         </p>
-        <p className="mt-0.5 truncate text-sm font-normal text-muted-foreground">
+        <p className="mt-0.5 truncate text-xs font-normal text-sidebar-foreground/60">
           Garment operations
         </p>
       </div>
@@ -370,15 +370,15 @@ function EnterpriseSidebarItem({
             "relative h-9 rounded-md px-2.5 text-sm font transition-colors",
             "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
-              ? "bg-[#eef2f6] text-[#080726] shadow-none"
-              : "text-muted-foreground hover:bg-[#f8fafc] hover:text-[#364152]"
+              ? "bg-sidebar-accent text-white shadow-sm shadow-black/10"
+              : "text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-white"
           )}
         >
           <Link to={item.url!} className="flex min-w-0 items-center gap-3">
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-[#080726]" : "text-muted-foreground"
+                active ? "text-sky-200" : "text-sidebar-foreground/60"
               )}
             />
 
@@ -409,14 +409,14 @@ function EnterpriseSidebarItem({
               "relative h-9 rounded-md px-2.5 text-sm  transition-colors",
               "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
-                ? "bg-[#eef2f6] text-[#080726] shadow-none"
-                : "text-muted-foreground hover:bg-[#f8fafc] hover:text-[#364152]"
+                ? "bg-sidebar-accent text-white shadow-sm shadow-black/10"
+                : "text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-white"
             )}
           >
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-[#080726]" : "text-muted-foreground"
+                active ? "text-sky-200" : "text-sidebar-foreground/60"
               )}
             />
 
@@ -424,14 +424,14 @@ function EnterpriseSidebarItem({
               {item.title}
             </span>
 
-            <ChevronRight className="ml-auto h-3.5 w-3.5 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
+            <ChevronRight className="ml-auto h-3.5 w-3.5 text-sidebar-foreground/50 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
         <CollapsibleContent className="w-full group-data-[collapsible=icon]:hidden">
           <div
             className={cn(
-              "relative ml-5 mt-1 space-y-0.5 border-l border-sidebar-border py-1 pl-2"
+              "relative ml-5 mt-1 space-y-0.5 border-l border-sidebar-border/80 py-1 pl-2"
             )}
           >
             {item.children?.map((child) => (
@@ -465,8 +465,8 @@ function ChildSidebarLink({
         "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-sm font-normal transition-colors",
 
         active
-          ? "bg-[#f8fafc] text-[#080726]"
-          : "text-muted-foreground hover:bg-[#f8fafc] hover:text-[#364152]"
+          ? "bg-sidebar-accent/80 text-white"
+          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/55 hover:text-white"
       )}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -474,14 +474,14 @@ function ChildSidebarLink({
           <Icon
             className={cn(
               "h-4 w-4",
-              active ? "text-[#027a48]" : "text-muted-foreground"
+              active ? "text-emerald-300" : "text-sidebar-foreground/50"
             )}
           />
         ) : (
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full",
-              active ? "bg-primary" : "bg-muted-foreground"
+              active ? "bg-emerald-300" : "bg-sidebar-foreground/45"
             )}
           />
         )}
@@ -514,24 +514,24 @@ function UserFooter({
             <SidebarMenuButton
               size="lg"
               className={cn(
-              "h-11 rounded-md px-2 text-muted-foreground transition-colors hover:bg-[#f2f4f7] hover:text-primary data-[state=open]:bg-[#f2f4f7] data-[state=open]:text-primary",
+              "h-11 rounded-md px-2 text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent/70 hover:text-white data-[state=open]:bg-sidebar-accent data-[state=open]:text-white",
                 "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               )}
             >
               <Avatar className="h-8 w-8 rounded-md">
-                <AvatarFallback className="rounded-md bg-primary text-xs font-semibold text-white">
+                <AvatarFallback className="rounded-md bg-sky-300 text-xs font-semibold text-[#151343]">
                   {getInitials(userName, userEmail)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-                <p className="truncate text-sm font-medium text-[#364152]">
+                <p className="truncate text-sm font-medium text-white">
                   {userName}
                 </p>
-                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+                <p className="truncate text-xs text-sidebar-foreground/58">{userEmail}</p>
               </div>
 
-              <MoreHorizontal className="h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+              <MoreHorizontal className="h-4 w-4 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 

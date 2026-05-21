@@ -282,15 +282,15 @@ export default function Dashboard() {
   return (
     <PermissionGate action="read" subject="dashboard">
       <div className="flex h-full w-full flex-col overflow-hidden bg-background">
-          <div className={cn("flex h-full flex-col gap-4 p-4 md:p-5")}>
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className={cn("flex h-full flex-col gap-4 p-4 md:p-5 xl:p-6")}>
+            <div className="flex flex-col gap-4 border-b border-border/80 pb-4 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-primary/10 bg-primary/10 text-primary">
                   <Shirt className="h-5 w-5" />
                 </div>
 
                 <div className="min-w-0">
-                  <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+                  <h1 className="text-xl font-semibold text-slate-950 md:text-2xl">
                     Dashboard
                   </h1>
                   <p className="mt-1 text-sm text-slate-500">
@@ -302,7 +302,7 @@ export default function Dashboard() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
-                  className="h-10 rounded-lg bg-white"
+                  className="h-9 bg-white"
                   onClick={() => navigate({ to: "/app/customers" })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -310,7 +310,7 @@ export default function Dashboard() {
                 </Button>
 
                 <Button
-                  className="h-10 rounded-md"
+                  className="h-9 rounded-md"
                   onClick={() => setIsCreateOrderOpen(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -319,7 +319,7 @@ export default function Dashboard() {
 
                 <Button
                   variant="outline"
-                  className="h-10 rounded-lg bg-white"
+                  className="h-9 bg-white"
                   onClick={() => navigate({ to: "/app/blocks" })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -456,8 +456,9 @@ function DashboardStatCard({
         }
       }}
       className={cn(
-        "rounded-md border-border bg-white transition-colors",
-        onClick && "cursor-pointer hover:border-red-200 hover:bg-red-50/30",
+        "rounded-md border-border/90 bg-white shadow-sm transition-colors",
+        onClick && !danger && "cursor-pointer hover:border-primary/25 hover:bg-[#f8fbff]",
+        onClick && danger && "cursor-pointer hover:border-red-200 hover:bg-red-50/30",
         danger && "border-red-200"
       )}
     >
@@ -482,7 +483,7 @@ function DashboardStatCard({
 
             <p
               className={cn(
-                "mt-2 text-2xl font-semibold tracking-tight text-slate-950",
+                "mt-2 text-2xl font-semibold text-slate-950",
                 danger && "text-red-600"
               )}
             >

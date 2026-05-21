@@ -88,6 +88,7 @@ export default function CategoryPage() {
   const pagination = data?.pagination;
   const total = pagination?.totalItems ?? 0;
   const pageCount = Math.max(1, pagination?.totalPages ?? 1);
+  const currentPage = pagination?.page ?? pageIndex + 1;
 
   const stats = useMemo(() => {
     const totalBlocks = categories.reduce(
@@ -135,7 +136,7 @@ export default function CategoryPage() {
 
     if (!confirmed) return;
 
-    await deleteCategory.mutateAsync(category.id);
+    deleteCategory.mutate(category.id);
   };
 
   const resetFilters = () => {
@@ -334,7 +335,7 @@ export default function CategoryPage() {
 
               <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3">
                 <p className="text-sm font-semibold text-slate-500">
-                  Page {pageIndex + 1} of {pageCount}
+                  Page {currentPage} of {pageCount}
                 </p>
 
                 <div className="flex gap-2">

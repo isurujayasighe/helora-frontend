@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import type {
   CategoriesResponse,
   Category,
@@ -7,6 +8,11 @@ import type {
   UpdateCategoryPayload,
 } from "../types/category.types";
 import { covalentHubClient } from "@/services/clients/covalent.client";
+import { showToastError } from "@/utils/show-toast-success";
+
+type ApiErrorResponse = {
+  message?: string;
+};
 
 export const categoryKeys = {
   all: ["categories"] as const,
@@ -19,15 +25,32 @@ export function useCategoriesQuery(params: CategoryListParams) {
   return useQuery({
     queryKey: categoryKeys.list(params),
     queryFn: async (): Promise<CategoriesResponse> => {
-      const response = await covalentHubClient.get("/api/v1/categories", {
+      const response = await covalentHubClient.get("/categories", {
         params: {
-          page: params.pageIndex + 1,
-          pageSize: params.pageSize,
           search: params.search || undefined,
         },
       });
 
-      return response.data.data ?? response.data;
+      const categories: Category[] = Array.isArray(response.data)
+        ? response.data
+        : response.data.data ?? [];
+      const totalItems = categories.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / params.pageSize));
+      const pageIndex = Math.min(Math.max(params.pageIndex, 0), totalPages - 1);
+      const start = pageIndex * params.pageSize;
+      const items = categories.slice(start, start + params.pageSize);
+
+      return {
+        items,
+        pagination: {
+          page: pageIndex + 1,
+          pageSize: params.pageSize,
+          totalItems,
+          totalPages,
+          hasNextPage: pageIndex < totalPages - 1,
+          hasPreviousPage: pageIndex > 0,
+        },
+      };
     },
   });
 }
@@ -37,7 +60,7 @@ export function useCategoryByIdQuery(categoryId?: string) {
     queryKey: categoryKeys.detail(categoryId),
     enabled: Boolean(categoryId),
     queryFn: async (): Promise<Category> => {
-      const response = await covalentHubClient.get(`/api/v1/categories/${categoryId}`);
+      const response = await covalentHubClient.get(`/categories/${categoryId}`);
       return response.data.data ?? response.data;
     },
   });
@@ -48,7 +71,7 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async (payload: CreateCategoryPayload) => {
-      const response = await covalentHubClient.post("/api/v1/categories", payload);
+      const response = await covalentHubClient.post("/categories", payload);
       return response.data.data ?? response.data;
     },
     onSuccess: () => {
@@ -69,7 +92,7 @@ export function useUpdateCategory() {
       payload: UpdateCategoryPayload;
     }) => {
       const response = await covalentHubClient.patch(
-        `/api/v1/categories/${categoryId}`,
+        `/categories/${categoryId}`,
         payload
       );
 
@@ -89,11 +112,17 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (categoryId: string) => {
-      const response = await covalentHubClient.delete(`/api/v1/categories/${categoryId}`);
+      const response = await covalentHubClient.delete(`/categories/${categoryId}`);
       return response.data.data ?? response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
+    },
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      showToastError(
+        "Delete category failed",
+        error.response?.data?.message || "Could not delete this category."
+      );
     },
   });
 }
