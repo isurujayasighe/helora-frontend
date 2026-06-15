@@ -284,7 +284,7 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
       className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
       {...props}
     >
-      <SidebarHeader className="border-b border-sidebar-border/80 px-3 py-2">
+      <SidebarHeader className="border-b border-sidebar-border/80 px-3 ">
         <BrandHeader />
       </SidebarHeader>
 
@@ -324,13 +324,13 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 function BrandHeader() {
   return (
-    <div className="flex h-12 items-center gap-3 group-data-[collapsible=icon]:justify-center">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-300 text-[#151343] shadow-sm shadow-black/20">
+    <div className="flex h-10 items-center gap-3 group-data-[collapsible=icon]:justify-center">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground shadow-sm shadow-black/20">
         <Scissors className="h-5 w-5" />
       </div>
 
       <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-        <p className="truncate text-sm font-semibold leading-5 text-white">
+        <p className="truncate text-sm font-semibold leading-5 text-sidebar-foreground">
           Helora ERP
         </p>
         <p className="mt-0.5 truncate text-xs font-normal text-sidebar-foreground/60">
@@ -370,15 +370,15 @@ function EnterpriseSidebarItem({
             "relative h-9 rounded-md px-2.5 text-sm font transition-colors",
             "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
             active
-              ? "bg-sidebar-accent text-white shadow-sm shadow-black/10"
-              : "text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-white"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-black/10"
+              : "text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
           )}
         >
           <Link to={item.url!} className="flex min-w-0 items-center gap-3">
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-sky-200" : "text-sidebar-foreground/60"
+                active ? "text-sidebar-primary" : "text-sidebar-foreground/60"
               )}
             />
 
@@ -409,14 +409,14 @@ function EnterpriseSidebarItem({
               "relative h-9 rounded-md px-2.5 text-sm  transition-colors",
               "group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0",
               active
-                ? "bg-sidebar-accent text-white shadow-sm shadow-black/10"
-                : "text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-white"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-black/10"
+                : "text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
             )}
           >
             <Icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                active ? "text-sky-200" : "text-sidebar-foreground/60"
+                active ? "text-sidebar-primary" : "text-sidebar-foreground/60"
               )}
             />
 
@@ -465,8 +465,8 @@ function ChildSidebarLink({
         "relative flex h-8 min-w-0 items-center gap-2 rounded-md px-2.5 text-sm font-normal transition-colors",
 
         active
-          ? "bg-sidebar-accent/80 text-white"
-          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/55 hover:text-white"
+          ? "bg-sidebar-accent/80 text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/55 hover:text-sidebar-accent-foreground"
       )}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -474,14 +474,14 @@ function ChildSidebarLink({
           <Icon
             className={cn(
               "h-4 w-4",
-              active ? "text-emerald-300" : "text-sidebar-foreground/50"
+              active ? "text-success" : "text-sidebar-foreground/50"
             )}
           />
         ) : (
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full",
-              active ? "bg-emerald-300" : "bg-sidebar-foreground/45"
+              active ? "bg-success" : "bg-sidebar-foreground/45"
             )}
           />
         )}
@@ -514,18 +514,18 @@ function UserFooter({
             <SidebarMenuButton
               size="lg"
               className={cn(
-              "h-11 rounded-md px-2 text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent/70 hover:text-white data-[state=open]:bg-sidebar-accent data-[state=open]:text-white",
+                "h-11 rounded-md px-2 text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
                 "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               )}
             >
               <Avatar className="h-8 w-8 rounded-md">
-                <AvatarFallback className="rounded-md bg-sky-300 text-xs font-semibold text-[#151343]">
+                <AvatarFallback className="rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
                   {getInitials(userName, userEmail)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-                <p className="truncate text-sm font-medium text-white">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {userName}
                 </p>
                 <p className="truncate text-xs text-sidebar-foreground/58">{userEmail}</p>
@@ -542,7 +542,7 @@ function UserFooter({
             className="w-64 rounded-md border-border p-1.5 shadow-md"
           >
             <DropdownMenuLabel className="px-3 py-2">
-              <p className="truncate text-sm font-semibold text-[#364152]">
+              <p className="truncate text-sm font-semibold text-popover-foreground">
                 {userName}
               </p>
               <p className="truncate text-sm font-normal text-muted-foreground">
@@ -566,7 +566,7 @@ function UserFooter({
 
             <DropdownMenuItem
               onClick={onLogout}
-              className="cursor-pointer rounded-md px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
+              className="cursor-pointer rounded-md px-3 py-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Log out

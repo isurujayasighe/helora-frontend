@@ -3,116 +3,83 @@
 import { useMemo, useState } from "react";
 import {
   CalendarClock,
+  CalendarDays,
   Grid2x2,
-  Loader2,
+  PackageCheck,
   Plus,
   Shirt,
   TriangleAlert,
   Users,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { CreateBlockDialog } from "@/modules/app/blocks/components/create-block-dialog";
+import { useGetBlocks } from "@/modules/app/blocks/api/useGetBlocks";
+import { CreateCustomerDialog } from "@/modules/app/customers/components/create-customer-dialog";
+import { useGetCustomers } from "@/modules/app/customers/api/useGetCustomers";
+import { useGetOrders } from "@/modules/app/orders/api/useGetOrders";
+
+import { DashboardOrdersSheet } from "./components/dashboard-orders-sheet";
+import { DashboardPageHeader } from "./components/dashboard-page-header";
+import { DashboardSearch } from "./components/dashboard-search";
+import { DashboardStatCard } from "./components/dashboard-stat-card";
+import { OrderPipelineCard } from "./components/order-pipeline-card";
 import { UpcomingPromisedOrders } from "./components/promissed-orders";
 import { RecentOrdersTableCard } from "./components/recent-orders-table";
-import { Button } from "@/components/ui/button";
-import { CreateOrderDialog } from "@/components/layout/create-order-dialog";
-import { useNavigate } from "@tanstack/react-router";
-import { DashboardCustomerSearchCard } from "./components/dashboard-customer-search";
-import { DashboardBlockLookupCard } from "./components/dashboard-block-lookup";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { TodaysActivityCard } from "./components/todays-activity-card";
+import { useDashboardOrderMetrics } from "./hooks/use-dashboard-order-metrics";
+import type {
+  DashboardActivityItem,
+  DashboardPipelineStage,
+  DashboardSearchScope,
+  DashboardStatItem,
+} from "./types";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { useGetOrders } from "@/modules/app/orders/api/useGetOrders";
-import type { Order } from "@/types/orders";
+  formatCompactNumber,
+  formatDateParam,
+  formatOrderStatus,
+  getOrderQuantity,
+  getOrderTitle,
+} from "./utils";
 
-function formatDateParam(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+const DASHBOARD_RECENT_PAGE_SIZE = 5;
+const DASHBOARD_UPCOMING_PAGE_SIZE = 3;
+const DASHBOARD_SHEET_PAGE_SIZE = 10;
 
-  return `${year}-${month}-${day}`;
-}
-
-function formatDisplayDate(value?: string | null) {
-  if (!value) return "-";
-
-  return new Intl.DateTimeFormat("en-LK", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function formatCurrency(value: string | number) {
-  const amount = Number(value || 0);
-
-  return new Intl.NumberFormat("en-LK", {
-    style: "currency",
-    currency: "LKR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function getOrderQuantity(order: Order) {
-  if (typeof order.totalQty === "number") return order.totalQty;
-
-  return order.items.reduce(
-    (total, item) => total + Number(item.quantity || 0),
-    0,
-  );
-}
-
-function getOrderTitle(order: Order) {
-  const firstItem = order.items[0];
-
-  return (
-    firstItem?.itemDescription ||
-    firstItem?.category?.name ||
-    order.customer?.fullName ||
-    order.orderNumber
-  );
-}
-
-function formatOrderStatus(status: string, promisedDate?: string | null) {
-  const isOverdue =
-    promisedDate &&
-    !["DELIVERED", "CANCELLED"].includes(status) &&
-    new Date(promisedDate).getTime() < new Date().setHours(0, 0, 0, 0);
-
-  if (isOverdue) return "Overdue";
-
-  const labels: Record<string, string> = {
-    PENDING: "Pending",
-    CONFIRMED: "Confirmed",
-    CUTTING: "Cutting",
-    SEWING: "Sewing",
-    READY: "Ready",
-    DELIVERED: "Delivered",
-    CANCELLED: "Cancelled",
-    IN_PROGRESS: "In Progress",
-    COMPLETED: "Completed",
+function getDefaultPagination(page: number, pageSize: number) {
+  return {
+    page,
+    pageSize,
+    totalItems: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
   };
+}
 
-  return labels[status] ?? status;
+function getPercent(value: number, total: number) {
+  if (!total) return 0;
+
+  return Math.min(100, Math.round((value / total) * 100));
 }
 
 export default function Dashboard() {
-  const [recentOrdersPage, setRecentOrdersPage] = useState(1);
+  const [quickSearch, setQuickSearch] = useState("");
+  const [searchScope, setSearchScope] =
+    useState<DashboardSearchScope>("all");
   const [overdueOrdersPage, setOverdueOrdersPage] = useState(1);
   const [pendingOrdersPage, setPendingOrdersPage] = useState(1);
-  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+  const [isCreateBlockOpen, setIsCreateBlockOpen] = useState(false);
   const [isOverdueSheetOpen, setIsOverdueSheetOpen] = useState(false);
   const [isPendingSheetOpen, setIsPendingSheetOpen] = useState(false);
 
   const navigate = useNavigate();
 
   const today = useMemo(() => new Date(), []);
+  const todayParam = useMemo(() => formatDateParam(today), [today]);
   const sevenDaysFromToday = useMemo(() => {
     const date = new Date(today);
     date.setDate(date.getDate() + 7);
@@ -125,13 +92,36 @@ export default function Dashboard() {
   }, [today]);
 
   const {
+    data: customersCountResponse,
+    isLoading: isCustomersCountLoading,
+    isFetching: isCustomersCountFetching,
+    refetch: refetchCustomersCount,
+  } = useGetCustomers({
+    page: 1,
+    pageSize: 1,
+  });
+
+  const {
+    data: activeBlocksResponse,
+    isLoading: isActiveBlocksLoading,
+    isFetching: isActiveBlocksFetching,
+    refetch: refetchActiveBlocksCount,
+  } = useGetBlocks({
+    page: 1,
+    pageSize: 1,
+    status: "ACTIVE",
+    includeCounts: false,
+    includeTotal: true,
+  });
+
+  const {
     data: upcomingOrdersResponse,
     isLoading: isUpcomingOrdersLoading,
     isFetching: isUpcomingOrdersFetching,
   } = useGetOrders({
     page: 1,
-    pageSize: 7,
-    promisedDateFrom: formatDateParam(today),
+    pageSize: DASHBOARD_UPCOMING_PAGE_SIZE,
+    promisedDateFrom: todayParam,
     promisedDateTo: formatDateParam(sevenDaysFromToday),
     activeOnly: true,
     sortBy: "promisedDate",
@@ -143,8 +133,8 @@ export default function Dashboard() {
     isLoading: isRecentOrdersLoading,
     isFetching: isRecentOrdersFetching,
   } = useGetOrders({
-    page: recentOrdersPage,
-    pageSize: 5,
+    page: 1,
+    pageSize: DASHBOARD_RECENT_PAGE_SIZE,
     sortBy: "createdAt",
     sortDirection: "desc",
   });
@@ -155,7 +145,7 @@ export default function Dashboard() {
     isFetching: isOverdueOrdersFetching,
   } = useGetOrders({
     page: overdueOrdersPage,
-    pageSize: 10,
+    pageSize: DASHBOARD_SHEET_PAGE_SIZE,
     promisedDateTo: formatDateParam(yesterday),
     activeOnly: true,
     sortBy: "promisedDate",
@@ -168,219 +158,349 @@ export default function Dashboard() {
     isFetching: isPendingOrdersFetching,
   } = useGetOrders({
     page: pendingOrdersPage,
-    pageSize: 10,
+    pageSize: DASHBOARD_SHEET_PAGE_SIZE,
     activeOnly: true,
     sortBy: "createdAt",
     sortDirection: "desc",
   });
 
-  const upcomingOrders = useMemo(
-    () =>
-      (upcomingOrdersResponse?.data.items ?? [])
-        .filter((order) => Boolean(order.promisedDate))
-        .map((order) => ({
-          id: order.id,
-          title: getOrderTitle(order),
-          units: getOrderQuantity(order),
-          orderNo: order.orderNumber,
-          date: order.promisedDate ?? order.orderDate,
-        })),
-    [upcomingOrdersResponse],
+  const orderMetrics = useDashboardOrderMetrics(todayParam);
+
+  const customersCount =
+    customersCountResponse?.data.pagination.totalItems ?? 0;
+  const activeBlocksCount =
+    activeBlocksResponse?.data.pagination.totalItems ?? 0;
+  const recentOrdersPagination =
+    recentOrdersResponse?.data.pagination ??
+    getDefaultPagination(1, DASHBOARD_RECENT_PAGE_SIZE);
+  const upcomingOrdersPagination =
+    upcomingOrdersResponse?.data.pagination ??
+    getDefaultPagination(1, DASHBOARD_UPCOMING_PAGE_SIZE);
+  const overdueOrdersPagination =
+    overdueOrdersResponse?.data.pagination ??
+    getDefaultPagination(overdueOrdersPage, DASHBOARD_SHEET_PAGE_SIZE);
+  const pendingOrdersPagination =
+    pendingOrdersResponse?.data.pagination ??
+    getDefaultPagination(pendingOrdersPage, DASHBOARD_SHEET_PAGE_SIZE);
+
+  const allOrdersCount = recentOrdersPagination.totalItems;
+  const pipelineCountTotal = Math.max(
+    allOrdersCount,
+    orderMetrics.draftOrders +
+      orderMetrics.inProgressOrders +
+      orderMetrics.readyOrders +
+      orderMetrics.deliveredOrders,
   );
 
-  const recentOrders = useMemo(
-    () =>
-      (recentOrdersResponse?.data.items ?? []).map((order) => ({
-        id: order.id,
-        orderNo: order.orderNumber,
-        customerName: order.customer?.fullName ?? "-",
-        itemName: getOrderTitle(order),
-        quantity: getOrderQuantity(order),
-        promisedDate: order.promisedDate ?? order.orderDate,
-        status: formatOrderStatus(order.status, order.promisedDate),
-      })),
-    [recentOrdersResponse],
-  );
+  const dashboardStats: DashboardStatItem[] = [
+    {
+      title: "Total Customers",
+      value: isCustomersCountLoading
+        ? "..."
+        : formatCompactNumber(customersCount),
+      description: "Customers saved in Helora",
+      badge: isCustomersCountFetching ? "Updating" : "Live",
+      icon: Users,
+      tone: "primary",
+      supportingText: "Live customer registry",
+    },
+    {
+      title: "Active Blocks",
+      value: isActiveBlocksLoading
+        ? "..."
+        : formatCompactNumber(activeBlocksCount),
+      description: "Reusable tailoring blocks",
+      badge: isActiveBlocksFetching ? "Updating" : "Stable",
+      icon: Grid2x2,
+      supportingText: "Filtered to active blocks",
+    },
+    {
+      title: "Pending Orders",
+      value: isPendingOrdersLoading
+        ? "..."
+        : formatCompactNumber(pendingOrdersPagination.totalItems),
+      description: "Orders waiting or in progress",
+      badge: pendingOrdersPagination.totalItems > 0 ? "Open" : "Clear",
+      icon: CalendarClock,
+      onClick: () => setIsPendingSheetOpen(true),
+    },
+    {
+      title: "Overdue Orders",
+      value: isOverdueOrdersLoading
+        ? "..."
+        : formatCompactNumber(overdueOrdersPagination.totalItems),
+      description: "Promised date already passed",
+      badge: overdueOrdersPagination.totalItems > 0 ? "Urgent" : "Clear",
+      icon: TriangleAlert,
+      tone: "destructive",
+      onClick: () => setIsOverdueSheetOpen(true),
+    },
+  ];
 
-  const recentOrdersPagination = recentOrdersResponse?.data.pagination ?? {
-    page: recentOrdersPage,
-    pageSize: 5,
-    totalItems: 0,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  };
+  const pipelineStages: DashboardPipelineStage[] = [
+    {
+      label: "Draft",
+      value: orderMetrics.draftOrders,
+      percent: getPercent(orderMetrics.draftOrders, pipelineCountTotal),
+    },
+    {
+      label: "In Progress",
+      value: orderMetrics.inProgressOrders,
+      percent: getPercent(orderMetrics.inProgressOrders, pipelineCountTotal),
+      tone: "primary",
+    },
+    {
+      label: "Ready",
+      value: orderMetrics.readyOrders,
+      percent: getPercent(orderMetrics.readyOrders, pipelineCountTotal),
+      tone: "primary",
+    },
+    {
+      label: "Delivered",
+      value: orderMetrics.deliveredOrders,
+      percent: getPercent(orderMetrics.deliveredOrders, pipelineCountTotal),
+    },
+  ];
+
+  const activityItems: DashboardActivityItem[] = [
+    {
+      label: "Orders created",
+      value: orderMetrics.isLoading
+        ? "..."
+        : formatCompactNumber(orderMetrics.todayOrders),
+      description: "Dated today",
+      icon: Shirt,
+      tone: "primary",
+    },
+    {
+      label: "Promised orders",
+      value:
+        isUpcomingOrdersLoading || isUpcomingOrdersFetching
+          ? "..."
+          : formatCompactNumber(upcomingOrdersPagination.totalItems),
+      description: "Due next 7 days",
+      icon: CalendarDays,
+    },
+    {
+      label: "Open orders",
+      value:
+        isPendingOrdersLoading || isPendingOrdersFetching
+          ? "..."
+          : formatCompactNumber(pendingOrdersPagination.totalItems),
+      description: "Waiting or in progress",
+      icon: PackageCheck,
+    },
+  ];
+
+  
+
+  const upcomingOrders = (upcomingOrdersResponse?.data.items ?? [])
+    .filter((order) => Boolean(order.promisedDate))
+    .map((order) => ({
+      id: order.id,
+      title: getOrderTitle(order),
+      customerName: order.customer?.fullName ?? "-",
+      units: getOrderQuantity(order),
+      orderNo: order.orderNumber,
+      date: order.promisedDate ?? order.orderDate,
+    }));
+
+  const recentOrders = (recentOrdersResponse?.data.items ?? []).map((order) => ({
+    id: order.id,
+    orderNo: order.orderNumber,
+    customerName: order.customer?.fullName ?? "-",
+    itemName: getOrderTitle(order),
+    quantity: getOrderQuantity(order),
+    promisedDate: order.promisedDate ?? order.orderDate,
+    status: formatOrderStatus(order.status, order.promisedDate),
+  }));
 
   const overdueOrders = overdueOrdersResponse?.data.items ?? [];
-  const overdueOrdersPagination = overdueOrdersResponse?.data.pagination ?? {
-    page: overdueOrdersPage,
-    pageSize: 10,
-    totalItems: 0,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  };
-  const isOverdueLoading = isOverdueOrdersLoading || isOverdueOrdersFetching;
-
   const pendingOrders = pendingOrdersResponse?.data.items ?? [];
-  const pendingOrdersPagination = pendingOrdersResponse?.data.pagination ?? {
-    page: pendingOrdersPage,
-    pageSize: 10,
-    totalItems: 0,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  };
+  const isOverdueLoading = isOverdueOrdersLoading || isOverdueOrdersFetching;
   const isPendingLoading = isPendingOrdersLoading || isPendingOrdersFetching;
+  const updatedAtLabel = `As of today, ${new Intl.DateTimeFormat("en-LK", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(today)}`;
 
-  const dashboardStats = useMemo(
-    () => [
-      {
-        title: "Total Customers",
-        value: "1,284",
-        description: "Customers saved in Helora",
-        badge: "+12%",
-        icon: Users,
+  function navigateToOrder(orderId: string) {
+    navigate({
+      to: "/app/orders",
+      search: {
+        viewOrderId: orderId,
       },
-      {
-        title: "Active Blocks",
-        value: "42",
-        description: "Reusable tailoring blocks",
-        badge: "Stable",
-        icon: Grid2x2,
-      },
-      {
-        title: "Pending Orders",
-        value: isPendingOrdersLoading
-          ? "..."
-          : pendingOrdersPagination.totalItems.toString(),
-        description: "Orders waiting or in progress",
-        badge: pendingOrdersPagination.totalItems > 0 ? "Open" : "Clear",
-        icon: CalendarClock,
-        onClick: () => setIsPendingSheetOpen(true),
-      },
-      {
-        title: "Overdue Orders",
-        value: isOverdueOrdersLoading
-          ? "..."
-          : overdueOrdersPagination.totalItems.toString(),
-        description: "Promised date already passed",
-        badge: overdueOrdersPagination.totalItems > 0 ? "Urgent" : "Clear",
-        icon: TriangleAlert,
-        danger: true,
-        onClick: () => setIsOverdueSheetOpen(true),
-      },
-    ],
-    [
-      isOverdueOrdersLoading,
-      isPendingOrdersLoading,
-      overdueOrdersPagination.totalItems,
-      pendingOrdersPagination.totalItems,
-    ]
-  );
+    });
+  }
+
+  function handleQuickSearchSubmit() {
+    const query = quickSearch.trim().toLowerCase();
+
+    if (!query && searchScope === "all") return;
+
+    if (searchScope === "customers") {
+      navigate({ to: "/app/customers" });
+      return;
+    }
+
+    if (searchScope === "blocks") {
+      navigate({ to: "/app/blocks" });
+      return;
+    }
+
+    if (searchScope === "orders") {
+      navigate({ to: "/app/orders" });
+      return;
+    }
+
+    if (query.startsWith("ord") || query.startsWith("#ord")) {
+      navigate({ to: "/app/orders" });
+      return;
+    }
+
+    if (query.startsWith("blk") || query.includes("block")) {
+      navigate({ to: "/app/blocks" });
+      return;
+    }
+
+    navigate({ to: "/app/customers" });
+  }
 
   return (
     <PermissionGate action="read" subject="dashboard">
       <div className="flex h-full w-full flex-col overflow-hidden bg-background">
-          <div className={cn("flex h-full flex-col gap-4 p-4 md:p-5 xl:p-6")}>
-            <div className="flex flex-col gap-4 border-b border-border/80 pb-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-primary/10 bg-primary/10 text-primary">
-                  <Shirt className="h-5 w-5" />
-                </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 md:p-6">
+            <DashboardPageHeader
+              title="Dashboard"
+              description="Track customers, orders, production blocks, and promised deliveries."
+              actions={
+                <>
+                  <PermissionGate action="create" subject="customers">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateCustomerOpen(true)}
+                    >
+                      <Plus className="size-4" />
+                      Add Customer
+                    </Button>
+                  </PermissionGate>
 
-                <div className="min-w-0">
-                  <h1 className="text-xl font-semibold text-slate-950 md:text-2xl">
-                    Dashboard
-                  </h1>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Track customers, orders, production blocks, and promised deliveries.
-                  </p>
-                </div>
-              </div>
+                  <PermissionGate action="create" subject="orders">
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        navigate({
+                          to: "/app/create-order-page",
+                          search: {
+                            orderSource: "PHYSICAL_SHOP",
+                          },
+                        })
+                      }
+                    >
+                      <Plus className="size-4" />
+                      Create Order
+                    </Button>
+                  </PermissionGate>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  className="h-9 bg-white"
-                  onClick={() => navigate({ to: "/app/customers" })}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Customer
-                </Button>
+                  <PermissionGate action="create" subject="blocks">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateBlockOpen(true)}
+                    >
+                      <Plus className="size-4" />
+                      Add Block
+                    </Button>
+                  </PermissionGate>
+                </>
+              }
+            />
 
-                <Button
-                  className="h-9 rounded-md"
-                  onClick={() => setIsCreateOrderOpen(true)}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Order
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-9 bg-white"
-                  onClick={() => navigate({ to: "/app/blocks" })}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Block
-                </Button>
-              </div>
-            </div>
+            <DashboardSearch
+              value={quickSearch}
+              scope={searchScope}
+              onValueChange={setQuickSearch}
+              onScopeChange={setSearchScope}
+              onSubmit={handleQuickSearchSubmit}
+            />
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {dashboardStats.map((stat) => (
-                <DashboardStatCard
-                  key={stat.title}
-                  title={stat.title}
-                  value={stat.value}
-                  description={stat.description}
-                  badge={stat.badge}
-                  icon={stat.icon}
-                  danger={stat.danger}
-                  onClick={stat.onClick}
-                />
+                <DashboardStatCard key={stat.title} {...stat} />
               ))}
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-2">
-              <DashboardCustomerSearchCard />
-              <DashboardBlockLookupCard />
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(300px,0.9fr)]">
+              <OrderPipelineCard
+                stages={pipelineStages}
+                totalOrders={allOrdersCount}
+                isLoading={orderMetrics.isLoading || isRecentOrdersLoading}
+                onViewAll={() => navigate({ to: "/app/orders" })}
+              />
+
+              <TodaysActivityCard
+                items={activityItems}
+                updatedAtLabel={updatedAtLabel}
+                onViewAll={() => navigate({ to: "/app/orders" })}
+              />
+
+              
             </div>
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+            <div className="grid gap-4 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.7fr)]">
               <UpcomingPromisedOrders
                 orders={upcomingOrders}
                 isLoading={isUpcomingOrdersLoading || isUpcomingOrdersFetching}
+                onViewAll={() => navigate({ to: "/app/orders" })}
+                onSelectOrder={navigateToOrder}
               />
 
               <RecentOrdersTableCard
                 orders={recentOrders}
-                currentPage={recentOrdersPagination.page}
-                totalPages={recentOrdersPagination.totalPages}
                 isLoading={isRecentOrdersLoading || isRecentOrdersFetching}
-                onPageChange={setRecentOrdersPage}
+                onViewAll={() => navigate({ to: "/app/orders" })}
+                onViewOrder={navigateToOrder}
               />
             </div>
           </div>
+        </div>
 
-        <CreateOrderDialog
-          open={isCreateOrderOpen}
-          onOpenChange={setIsCreateOrderOpen}
-          onSubmit={async (payload) => {
-            console.log("Create order payload", payload);
-            // await createOrderMutation.mutateAsync(payload);
+        <CreateCustomerDialog
+          open={isCreateCustomerOpen}
+          onOpenChange={setIsCreateCustomerOpen}
+          onCreated={() => {
+            setIsCreateCustomerOpen(false);
+            void refetchCustomersCount();
+            void refetchActiveBlocksCount();
           }}
         />
 
-        <OverdueOrdersSheet
+        <CreateBlockDialog
+          open={isCreateBlockOpen}
+          onOpenChange={setIsCreateBlockOpen}
+          onCreated={() => {
+            setIsCreateBlockOpen(false);
+            void refetchActiveBlocksCount();
+          }}
+        />
+
+        <DashboardOrdersSheet
           open={isOverdueSheetOpen}
           onOpenChange={setIsOverdueSheetOpen}
+          title="Overdue Orders"
+          description="Orders with promised dates before today and not yet delivered."
+          countLabel="overdue"
+          emptyTitle="No overdue orders"
+          emptyDescription="Promised deliveries are currently clear."
+          emptyIcon={TriangleAlert}
           orders={overdueOrders}
           isLoading={isOverdueLoading}
           currentPage={overdueOrdersPagination.page}
           totalPages={overdueOrdersPagination.totalPages}
           totalItems={overdueOrdersPagination.totalItems}
+          tone="destructive"
           onPageChange={setOverdueOrdersPage}
           onViewAll={() => {
             setIsOverdueSheetOpen(false);
@@ -388,18 +508,19 @@ export default function Dashboard() {
           }}
           onViewOrder={(orderId) => {
             setIsOverdueSheetOpen(false);
-            navigate({
-              to: "/app/orders",
-              search: {
-                viewOrderId: orderId,
-              },
-            });
+            navigateToOrder(orderId);
           }}
         />
 
-        <PendingOrdersSheet
+        <DashboardOrdersSheet
           open={isPendingSheetOpen}
           onOpenChange={setIsPendingSheetOpen}
+          title="Pending Orders"
+          description="Active orders that are not delivered or cancelled yet."
+          countLabel="open"
+          emptyTitle="No pending orders"
+          emptyDescription="All orders are currently completed or cancelled."
+          emptyIcon={CalendarClock}
           orders={pendingOrders}
           isLoading={isPendingLoading}
           currentPage={pendingOrdersPagination.page}
@@ -412,461 +533,10 @@ export default function Dashboard() {
           }}
           onViewOrder={(orderId) => {
             setIsPendingSheetOpen(false);
-            navigate({
-              to: "/app/orders",
-              search: {
-                viewOrderId: orderId,
-              },
-            });
+            navigateToOrder(orderId);
           }}
         />
       </div>
     </PermissionGate>
-  );
-}
-
-function DashboardStatCard({
-  title,
-  value,
-  description,
-  badge,
-  icon: Icon,
-  danger,
-  onClick,
-}: {
-  title: string;
-  value: string;
-  description: string;
-  badge: string;
-  icon: React.ElementType;
-  danger?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <Card
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
-      onKeyDown={(event) => {
-        if (!onClick) return;
-
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onClick();
-        }
-      }}
-      className={cn(
-        "rounded-md border-border/90 bg-white shadow-sm transition-colors",
-        onClick && !danger && "cursor-pointer hover:border-primary/25 hover:bg-[#f8fbff]",
-        onClick && danger && "cursor-pointer hover:border-red-200 hover:bg-red-50/30",
-        danger && "border-red-200"
-      )}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-normal text-slate-500">{title}</p>
-
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "px-2 py-0.5 text-xs font-semibold",
-                  danger
-                    ? "bg-red-50 text-red-700"
-                    : "bg-slate-100 text-slate-600"
-                )}
-              >
-                {badge}
-              </Badge>
-            </div>
-
-            <p
-              className={cn(
-                "mt-2 text-2xl font-semibold text-slate-950",
-                danger && "text-red-600"
-              )}
-            >
-              {value}
-            </p>
-
-            <p className="mt-1 text-xs text-slate-500">
-              {description}
-            </p>
-          </div>
-
-          <div
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-700",
-              danger && "bg-red-50 text-red-600"
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function OverdueOrdersSheet({
-  open,
-  onOpenChange,
-  orders,
-  isLoading,
-  currentPage,
-  totalPages,
-  totalItems,
-  onPageChange,
-  onViewAll,
-  onViewOrder,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  orders: Order[];
-  isLoading: boolean;
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  onPageChange: (page: number) => void;
-  onViewAll: () => void;
-  onViewOrder: (orderId: string) => void;
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-hidden p-0 sm:max-w-3xl">
-        <SheetHeader className="border-b border-slate-200 px-5 py-4">
-          <div className="flex items-start justify-between gap-4 pr-10">
-            <div>
-              <SheetTitle className="text-lg font-semibold text-slate-950">
-                Overdue Orders
-              </SheetTitle>
-              <SheetDescription>
-                Orders with promised dates before today and not yet delivered.
-              </SheetDescription>
-            </div>
-
-            <Badge
-              variant="outline"
-              className="rounded-full border-red-200 bg-red-50 text-red-700"
-            >
-              {totalItems} overdue
-            </Badge>
-          </div>
-        </SheetHeader>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          {isLoading ? (
-            <div className="flex h-48 items-center justify-center text-sm text-slate-500">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading overdue orders...
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-center">
-              <TriangleAlert className="h-8 w-8 text-slate-400" />
-              <p className="mt-3 text-sm font-medium text-slate-800">
-                No overdue orders
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Promised deliveries are currently clear.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-slate-950">
-                          #{order.orderNumber}
-                        </p>
-                        <Badge className="rounded-full bg-red-50 text-red-700 hover:bg-red-50">
-                          {formatOrderStatus(order.status, order.promisedDate)}
-                        </Badge>
-                      </div>
-
-                      <p className="mt-1 text-sm text-slate-600">
-                        {order.customer?.fullName ?? "-"}
-                      </p>
-                      <p className="mt-1 truncate text-sm text-slate-500">
-                        {getOrderTitle(order)}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-left sm:text-right">
-                      <p className="text-sm font-semibold text-slate-950">
-                        {formatCurrency(order.totalAmount)}
-                      </p>
-                      <p className="mt-1 text-xs text-red-600">
-                        Promised {formatDisplayDate(order.promisedDate)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 sm:grid-cols-3">
-                    <div>
-                      <span className="font-medium text-slate-700">Qty:</span>{" "}
-                      {getOrderQuantity(order)}
-                    </div>
-                    <div>
-                      <span className="font-medium text-slate-700">
-                        Order date:
-                      </span>{" "}
-                      {formatDisplayDate(order.orderDate)}
-                    </div>
-                    <div>
-                      <span className="font-medium text-slate-700">
-                        Balance:
-                      </span>{" "}
-                      {formatCurrency(order.balanceAmount)}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewOrder(order.id)}
-                      className="rounded-lg"
-                    >
-                      View details
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
-            Page {currentPage} of {Math.max(totalPages, 1)}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={currentPage <= 1 || isLoading}
-              onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-              className="rounded-lg"
-            >
-              Previous
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={currentPage >= totalPages || isLoading}
-              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-              className="rounded-lg"
-            >
-              Next
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={onViewAll}
-              className="rounded-lg"
-            >
-              View all
-            </Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function PendingOrdersSheet({
-  open,
-  onOpenChange,
-  orders,
-  isLoading,
-  currentPage,
-  totalPages,
-  totalItems,
-  onPageChange,
-  onViewAll,
-  onViewOrder,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  orders: Order[];
-  isLoading: boolean;
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  onPageChange: (page: number) => void;
-  onViewAll: () => void;
-  onViewOrder: (orderId: string) => void;
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-hidden p-0 sm:max-w-3xl">
-        <SheetHeader className="border-b border-slate-200 px-5 py-4">
-          <div className="flex items-start justify-between gap-4 pr-10">
-            <div>
-              <SheetTitle className="text-lg font-semibold text-slate-950">
-                Pending Orders
-              </SheetTitle>
-              <SheetDescription>
-                Active orders that are not delivered or cancelled yet.
-              </SheetDescription>
-            </div>
-
-            <Badge
-              variant="outline"
-              className="rounded-full border-blue-200 bg-blue-50 text-blue-700"
-            >
-              {totalItems} open
-            </Badge>
-          </div>
-        </SheetHeader>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          {isLoading ? (
-            <div className="flex h-48 items-center justify-center text-sm text-slate-500">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading pending orders...
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-center">
-              <CalendarClock className="h-8 w-8 text-slate-400" />
-              <p className="mt-3 text-sm font-medium text-slate-800">
-                No pending orders
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                All orders are currently completed or cancelled.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-slate-950">
-                          #{order.orderNumber}
-                        </p>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "rounded-full",
-                            order.status === "PENDING"
-                              ? "border-amber-200 bg-amber-50 text-amber-700"
-                              : "border-blue-200 bg-blue-50 text-blue-700",
-                          )}
-                        >
-                          {formatOrderStatus(order.status, order.promisedDate)}
-                        </Badge>
-                      </div>
-
-                      <p className="mt-1 text-sm text-slate-600">
-                        {order.customer?.fullName ?? "-"}
-                      </p>
-                      <p className="mt-1 truncate text-sm text-slate-500">
-                        {getOrderTitle(order)}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-left sm:text-right">
-                      <p className="text-sm font-semibold text-slate-950">
-                        {formatCurrency(order.totalAmount)}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Promised {formatDisplayDate(order.promisedDate)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 sm:grid-cols-3">
-                    <div>
-                      <span className="font-medium text-slate-700">Qty:</span>{" "}
-                      {getOrderQuantity(order)}
-                    </div>
-                    <div>
-                      <span className="font-medium text-slate-700">
-                        Order date:
-                      </span>{" "}
-                      {formatDisplayDate(order.orderDate)}
-                    </div>
-                    <div>
-                      <span className="font-medium text-slate-700">
-                        Balance:
-                      </span>{" "}
-                      {formatCurrency(order.balanceAmount)}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewOrder(order.id)}
-                      className="rounded-lg"
-                    >
-                      View details
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
-            Page {currentPage} of {Math.max(totalPages, 1)}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={currentPage <= 1 || isLoading}
-              onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-              className="rounded-lg"
-            >
-              Previous
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={currentPage >= totalPages || isLoading}
-              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-              className="rounded-lg"
-            >
-              Next
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={onViewAll}
-              className="rounded-lg"
-            >
-              View all
-            </Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }

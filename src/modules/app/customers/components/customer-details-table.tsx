@@ -1,5 +1,14 @@
 import { Eye, MapPin, Phone, UserRound } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Customer } from "@/types/customers";
 
 const formatDate = (value?: string | null) => {
@@ -31,12 +40,12 @@ export function CustomersTable({
 }: CustomersTableProps) {
   if (customers.length === 0) {
     return (
-      <div className="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
-        <UserRound className="h-10 w-10 text-slate-400" />
-        <h3 className="mt-4 text-sm font-semibold text-slate-900">
+      <div className="flex min-h-80 flex-col items-center justify-center border border-dashed bg-background p-8 text-center">
+        <UserRound className="size-10 text-muted-foreground" />
+        <h3 className="mt-4 text-sm font-semibold text-foreground">
           No customers found
         </h3>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Try changing your search filters or add a new customer.
         </p>
       </div>
@@ -44,100 +53,83 @@ export function CustomersTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-237.5 text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 font-semibold">Phone</th>
-              <th className="px-4 py-3 font-semibold">Alternative Phone</th>
-              <th className="px-4 py-3 font-semibold">Town</th>
-              <th className="px-4 py-3 font-semibold">Orders</th>
-              <th className="px-4 py-3 font-semibold">Created Date</th>
-              <th className="px-4 py-3 text-right font-semibold">Action</th>
-            </tr>
-          </thead>
+    <div>
+      <Table>
+        <TableHeader className="bg-muted">
+          <TableRow>
+            <TableHead className="px-4">Customer</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead>Alternative Phone</TableHead>
+            <TableHead>Town</TableHead>
+          
+            <TableHead>Created Date</TableHead>
+            <TableHead className="px-4 text-left">Action</TableHead>
+          </TableRow>
+        </TableHeader>
 
-          <tbody className="divide-y divide-slate-100">
-            {customers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-slate-50/70">
-                <td className="px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
-                      {customer.fullName?.charAt(0)?.toUpperCase() || "C"}
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        {customer.fullName}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {customer.address || "No address"}
-                      </p>
-                    </div>
+        <TableBody>
+          {customers.map((customer) => (
+            <TableRow key={customer.id}>
+              <TableCell className="px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">
+                      {customer.fullName}
+                    </p>  
                   </div>
-                </td>
+                </div>
+              </TableCell>
 
-                <td className="px-4 py-4">
-                  <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
-                    <Phone className="h-3.5 w-3.5 text-slate-400" />
-                    {customer.phoneNumber}
+              <TableCell>
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <Phone className="size-3.5 text-muted-foreground" />
+                  {customer.phoneNumber}
+                </span>
+              </TableCell>
+
+              <TableCell>
+                {customer.alternatePhone ? (
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    <Phone className="size-3.5 text-muted-foreground" />
+                    {customer.alternatePhone}
                   </span>
-                </td>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </TableCell>
 
-                <td className="px-4 py-4">
-                  {customer.alternatePhone ? (
-                    <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
-                      <Phone className="h-3.5 w-3.5 text-slate-400" />
-                      {customer.alternatePhone}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400">-</span>
-                  )}
-                </td>
+              <TableCell>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="size-3.5 text-muted-foreground" />
+                  {customer.town || "-"}
+                </span>
+              </TableCell>
 
-                <td className="px-4 py-4">
-                  <span className="inline-flex items-center gap-1.5 text-slate-700">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                    {customer.town || "-"}
-                  </span>
-                </td>
+             
 
-                <td className="px-4 py-4">
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    {customer._count?.orders ?? 0}
-                  </span>
-                </td>
+              <TableCell>{formatDate(customer.createdAt)}</TableCell>
 
-                <td className="px-4 py-4 text-slate-700">
-                  {formatDate(customer.createdAt)}
-                </td>
+              <TableCell className="px-4 text-left">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onViewCustomer(customer.id)}
+                >
+                  <Eye className="size-4" />
+                  View
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
-                <td className="px-4 py-4 text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => onViewCustomer(customer.id)}
-                  >
-                    <Eye className="h-4 w-4" />
-                    View
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">
+      <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
           Showing page{" "}
-          <span className="font-medium text-slate-900">{currentPage}</span> of{" "}
-          <span className="font-medium text-slate-900">{totalPages}</span> —{" "}
-          <span className="font-medium text-slate-900">{totalCount}</span>{" "}
+          <span className="font-medium text-foreground">{currentPage}</span> of{" "}
+          <span className="font-medium text-foreground">{totalPages}</span> -{" "}
+          <span className="font-medium text-foreground">{totalCount}</span>{" "}
           customers
         </p>
 

@@ -3,14 +3,13 @@ import { Link, Outlet, useMatches } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { EnterpriseSidebar } from "./app-sidebar";
-import { Header, HeaderQuickSearch } from "@/components/layout/header";
+import { Header,  } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 
-import { Bell, Building2, Package, FileText, UserRound, LayoutDashboard } from "lucide-react";
+import { Bell, Package, FileText, UserRound, LayoutDashboard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "./profile-dropdown";
-import { useTenantStore } from "@/store/tenantstore";
 
 type RouteStaticData = {
   title?: string;
@@ -23,7 +22,6 @@ export function AuthenticatedLayout() {
   const current = matches[matches.length - 1];
   const staticData = current?.staticData as RouteStaticData | undefined;
   const isFixedLayout = staticData?.layout === "fixed";
-  const tenant = useTenantStore((state) => state.tenant);
   return (
     <SidebarProvider defaultOpen={true}>
       <EnterpriseSidebar />
@@ -39,29 +37,8 @@ export function AuthenticatedLayout() {
       >
         <Header fixed>
           <div className="flex w-full items-center gap-3 md:px-3 lg:px-4 xl:px-5">
-            <div className="flex min-w-0 items-center gap-2 rounded-md py-1.5">
-                {tenant?.logo ? (
-                  <img
-                    src={tenant.logo}
-                    alt={`${tenant.companyName ?? "Organization"} logo`}
-                    className="max-h-7 w-auto object-contain md:max-h-8"
-                  />
-                ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted-foreground shadow-sm">
-                    <Building2 className="h-4 w-4" />
-                  </div>
-                )}
-                <div className="hidden min-w-0 md:block">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {tenant?.companyName ?? "Organization"}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    Operations workspace
-                  </p>
-                </div>
-              </div>
-
-            <HeaderQuickSearch />
+            
+            {/* <HeaderQuickSearch /> */}
 
             <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-3 py-2 md:hidden">
                <Link

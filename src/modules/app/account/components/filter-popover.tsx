@@ -181,7 +181,6 @@ export function FilterDialog({
                     mode="single"
                     selected={startDate}
                     onSelect={handleStartDateChange}
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
@@ -208,7 +207,6 @@ export function FilterDialog({
                     selected={endDate}
                     onSelect={handleEndDateChange}
                     disabled={(date) => (startDate ? date < startDate : false)}
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
