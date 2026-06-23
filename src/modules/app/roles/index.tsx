@@ -1,8 +1,6 @@
 import * as React from "react";
 
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
-import { AnimatePresence, motion } from "framer-motion";
-import { fadeUp } from "@/components/motions/MotionFade";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,16 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { Badge } from "@/components/ui/badge";
-
 import {
   ClipboardList,
   LayoutGrid,
   LockKeyhole,
-  ShieldCheck,
-  Store,
   UsersRound,
 } from "lucide-react";
+import { DashboardPageHeader } from "../dashboard/components/dashboard-page-header";
 
 import { RolesTable } from "./components/tabs/roles";
 import { ResourcesTable } from "./components/tabs/pages";
@@ -38,41 +33,13 @@ export default function AccessControlPage() {
 
   return (
     <PermissionGate action="read" subject="settings">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="helora-access-control"
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex h-full flex-col gap-4 p-3 md:p-5"
-          >
-            {/* Header */}
-            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0">
-                  <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
-                    Staff Access
-                  </h1>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    Manage what staff members can see and do in Helora ERP.
-                  </p>
-                </div>
-              </div>
-
-              <Badge
-                variant="outline"
-                className="w-fit rounded-lg border-slate-200 bg-slate-50 px-3 py-1.5 font-bold text-slate-600"
-              >
-                <Store className="mr-1.5 h-3.5 w-3.5" />
-                Helora ERP
-              </Badge>
-            </div>
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 md:p-6">
+            <DashboardPageHeader
+              title="Staff Access"
+              description="Manage what staff members can see and do in Helora ERP."
+            />
 
             {/* Overview Cards */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -96,14 +63,12 @@ export default function AccessControlPage() {
             </div>
 
             {/* Main Content */}
-            <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden rounded-lg border-slate-200 bg-white shadow-sm">
-              <CardHeader className="border-b border-slate-100 px-4 py-4">
+            <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
+              <CardHeader className="border-b">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <CardTitle className="text-base font-black text-slate-950">
-                      Access Setup
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+                    <CardTitle>Access Setup</CardTitle>
+                    <CardDescription>
                       Set up staff roles first, then decide which system areas
                       each role can use.
                     </CardDescription>
@@ -113,53 +78,37 @@ export default function AccessControlPage() {
 
               <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
                 <Tabs
-  value={activeTab}
-  onValueChange={setActiveTab}
-  className="flex h-full min-h-0 flex-col"
->
-  <div className="border-b border-slate-100 bg-white px-4 py-3">
-    <TabsList className="grid h-10 w-full max-w-xl grid-cols-3 rounded-lg bg-slate-100 p-1">
-      <TabsTrigger
-        value="roles"
-        className="rounded-lg font-bold text-slate-600 transition data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm"
-      >
-        Staff Roles
-      </TabsTrigger>
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="flex h-full min-h-0 flex-col"
+                >
+                  <div className="border-b px-4">
+                    <TabsList
+                      className="grid w-full max-w-xl grid-cols-3"
+                      variant="line"
+                    >
+                      <TabsTrigger value="roles">Staff Roles</TabsTrigger>
+                      <TabsTrigger value="resources">System Areas</TabsTrigger>
+                      <TabsTrigger value="permissions">Role Access</TabsTrigger>
+                    </TabsList>
+                  </div>
 
-      <TabsTrigger
-        value="resources"
-        className="rounded-lg font-bold text-slate-600 transition data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm"
-      >
-        System Areas
-      </TabsTrigger>
-
-      <TabsTrigger
-        value="permissions"
-        className="rounded-lg font-bold text-slate-600 transition data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm"
-      >
-        Role Access
-      </TabsTrigger>
-    </TabsList>
-  </div>
-
-  <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
-    <TabsContent value="roles" className="m-0 h-full focus-visible:ring-0">
-      <RolesTabContent />
-    </TabsContent>
-
-    <TabsContent value="resources" className="m-0 h-full focus-visible:ring-0">
-      <ResourcesTabContent />
-    </TabsContent>
-
-    <TabsContent value="permissions" className="m-0 h-full focus-visible:ring-0">
-      <PermissionTabContent />
-    </TabsContent>
-  </div>
-</Tabs>
+                  <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <TabsContent value="roles" className="m-0 h-full">
+                      <RolesTabContent />
+                    </TabsContent>
+                    <TabsContent value="resources" className="m-0 h-full">
+                      <ResourcesTabContent />
+                    </TabsContent>
+                    <TabsContent value="permissions" className="m-0 h-full">
+                      <PermissionTabContent />
+                    </TabsContent>
+                  </div>
+                </Tabs>
               </CardContent>
             </Card>
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        </div>
       </div>
     </PermissionGate>
   );
@@ -179,16 +128,16 @@ function AccessInfoCard({
   icon: React.ElementType;
 }) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+    <Card>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-            <Icon className="h-5 w-5" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Icon className="size-5" />
           </div>
 
           <div className="min-w-0">
-            <p className="font-black text-slate-950">{title}</p>
-            <p className="mt-1 text-sm font-medium leading-5 text-slate-500">
+            <p className="font-semibold">{title}</p>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
               {description}
             </p>
           </div>
@@ -204,18 +153,16 @@ function AccessInfoCard({
 
 function RolesTabContent() {
   return (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100 bg-white px-4 py-4">
+    <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden">
+      <CardHeader className="border-b">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <UsersRound className="h-5 w-5 text-slate-600" />
-              <CardTitle className="text-base font-black text-slate-950">
-                Staff role list
-              </CardTitle>
+              <UsersRound className="size-5 text-muted-foreground" />
+              <CardTitle>Staff role list</CardTitle>
             </div>
 
-            <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+            <CardDescription>
               Create simple roles for the people who work in the shop.
             </CardDescription>
           </div>
@@ -237,15 +184,13 @@ function RolesTabContent() {
 
 function ResourcesTabContent() {
   return (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100 bg-white px-4 py-4">
+    <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden">
+      <CardHeader className="border-b">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-slate-600" />
+          <ClipboardList className="size-5 text-muted-foreground" />
           <div>
-            <CardTitle className="text-base font-black text-slate-950">
-              System areas
-            </CardTitle>
-            <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+            <CardTitle>System areas</CardTitle>
+            <CardDescription>
               These are the main parts of Helora ERP where access can be given.
             </CardDescription>
           </div>
@@ -265,15 +210,13 @@ function ResourcesTabContent() {
 
 function PermissionTabContent() {
   return (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100 bg-white px-4 py-4">
+    <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden">
+      <CardHeader className="border-b">
         <div className="flex items-center gap-2">
-          <LockKeyhole className="h-5 w-5 text-slate-600" />
+          <LockKeyhole className="size-5 text-muted-foreground" />
           <div>
-            <CardTitle className="text-base font-black text-slate-950">
-              Role access
-            </CardTitle>
-            <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+            <CardTitle>Role access</CardTitle>
+            <CardDescription>
               Select what each staff role can view, add, change, or remove.
             </CardDescription>
           </div>

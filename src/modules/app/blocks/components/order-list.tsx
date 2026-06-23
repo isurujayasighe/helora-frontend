@@ -14,63 +14,6 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./table-component";
 import type { Order } from "../types/Order";
 
-const getStatusStyles = (status: string) => {
-  const s = status?.toLowerCase() || "";
-
-  if (s.includes("delivered") || s.includes("completed")) {
-    return {
-      bg: "bg-emerald-50/50",
-      border: "border-emerald-100",
-      text: "text-emerald-700",
-      iconBg: "bg-emerald-100",
-      accent: "bg-emerald-500",
-      ring: "ring-emerald-500/20",
-    };
-  }
-
-  if (s.includes("processing") || s.includes("planned")) {
-    return {
-      bg: "bg-blue-50/50",
-      border: "border-blue-100",
-      text: "text-blue-700",
-      iconBg: "bg-blue-100",
-      accent: "bg-blue-500",
-      ring: "ring-blue-500/20",
-    };
-  }
-
-  if (s.includes("invoiced") || s.includes("released")) {
-    return {
-      bg: "bg-amber-50/50",
-      border: "border-amber-100",
-      text: "text-amber-700",
-      iconBg: "bg-amber-100",
-      accent: "bg-amber-500",
-      ring: "ring-amber-500/20",
-    };
-  }
-
-  if (s.includes("cancelled") || s.includes("rejected")) {
-    return {
-      bg: "bg-rose-50/50",
-      border: "border-rose-100",
-      text: "text-rose-700",
-      iconBg: "bg-rose-100",
-      accent: "bg-rose-500",
-      ring: "ring-rose-500/20",
-    };
-  }
-
-  return {
-    bg: "bg-slate-50/50",
-    border: "border-slate-100",
-    text: "text-slate-700",
-    iconBg: "bg-slate-100",
-    accent: "bg-slate-500",
-    ring: "ring-slate-500/20",
-  };
-};
-
 interface OrderCardProps {
   order: Order;
   onViewDetails: () => void;
@@ -82,11 +25,6 @@ export const OrderCard = memo(
   ({ order, onViewDetails, isExpanded, onToggle }: OrderCardProps) => {
     const MAX_VISIBLE_PARTS = 3;
     const hasManyParts = order.orderLines.length > MAX_VISIBLE_PARTS;
-
-    const styles = useMemo(
-      () => getStatusStyles(order.ifsState || order.state),
-      [order.ifsState, order.state],
-    );
 
     const formattedDate = useMemo(() => {
       if (!order.dateEntered) return "N/A";
@@ -113,85 +51,56 @@ export const OrderCard = memo(
     };
 
     return (
-      <div
-        className={cn(
-          "group relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition-all duration-300",
-          "hover:border-slate-300 hover:shadow-lg active:scale-[0.99] md:active:scale-100",
-          isExpanded
-            ? cn("border-transparent shadow-xl ring-4", styles.ring)
-            : "shadow-sm",
-        )}
-      >
+      <div className="group relative flex flex-col overflow-hidden border transition-all duration-300 active:scale-[0.99] md:active:scale-100">
         {/* Header */}
         <div
           role="button"
           tabIndex={0}
           aria-expanded={isExpanded}
-          className={cn(
-            "flex items-start gap-3 cursor-pointer select-none p-3 transition-colors md:items-center md:gap-6",
-            isExpanded ? styles.bg : "bg-white hover:bg-slate-50/30",
-          )}
+          className="flex cursor-pointer select-none items-start gap-3 p-3 transition-colors md:items-center md:gap-6"
           onClick={handleInteraction}
           onKeyDown={(e) => e.key === "Enter" && handleInteraction()}
         >
-          {/* Leading icon */}
-          {/* <div
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border md:h-7 md:w-7 md:rounded-xl",
-              styles.iconBg,
-              styles.border,
-              styles.text
-            )}
-          >
-            <Package className="h-4 w-4" />
-          </div> */}
-
           {/* Details */}
           <div className="min-w-0 flex-1">
             {/* Mobile */}
             <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:hidden">
               <div className="min-w-0">
-                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                  Order No
-                </span>
-                <h3 className="truncate text-xs font-semibold tracking-tight text-slate-900">
+                <span className="mb-0.5 block text-xs uppercase">Order No</span>
+                <h3 className="truncate text-xs font-semibold">
                   #{order.orderNo}
                 </h3>
               </div>
 
               <div className="min-w-0">
-                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                  Status
-                </span>
+                <span className="mb-0.5 block text-xs uppercase">Status</span>
                 <StatusBadge status={order.ifsState} />
               </div>
 
               <div className="min-w-0">
-                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                  Created
-                </span>
-                <div className="flex items-center text-[11px] font-medium text-slate-600">
-                  <CalendarDaysIcon className="mr-1 h-3 w-3 text-slate-400" />
+                <span className="mb-0.5 block text-xs uppercase">Created</span>
+                <div className="flex items-center text-xs font-medium">
+                  <CalendarDaysIcon className="mr-1 h-3 w-3" />
                   <span className="truncate">{formattedDate}</span>
                 </div>
               </div>
 
               <div className="min-w-0">
-                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                <span className="mb-0.5 block text-xs uppercase">
                   Total Qty
                 </span>
-                <div className="flex items-center text-[11px] font-bold text-slate-700">
-                  <Box className="mr-1 h-3 w-3 text-slate-400" />
+                <div className="flex items-center text-xs">
+                  <Box className="mr-1 h-3 w-3" />
                   <span className="truncate">{order.totalQuantity} Units</span>
                 </div>
               </div>
 
               <div className="col-span-2 min-w-0">
-                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                <span className="mb-0.5 block text-xs uppercase">
                   Delivery Address
                 </span>
-                <div className="flex items-start text-[11px] font-medium text-slate-600">
-                  <MapPin className="mr-1 mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
+                <div className="flex items-start text-xs font-medium">
+                  <MapPin className="mr-1 mt-0.5 h-3 w-3 shrink-0" />
                   <span className="line-clamp-2">
                     {order.shipAddrNo || "Standard Delivery Address"}
                   </span>
@@ -199,16 +108,11 @@ export const OrderCard = memo(
               </div>
 
               {order.ifsState === "Invoiced" && (
-                <div className="col-span-2 min-w-0 border-t border-slate-100 pt-2">
-                  <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                <div className="col-span-2 min-w-0 border-t pt-2">
+                  <span className="mb-0.5 block text-xs uppercase">
                     Gross Total
                   </span>
-                  <p
-                    className={cn(
-                      "text-xs font-black leading-none tabular-nums",
-                      styles.text,
-                    )}
-                  >
+                  <p className="text-xs font-semibold leading-none tabular-nums">
                     GBP {formattedTotal}
                   </p>
                 </div>
@@ -218,42 +122,29 @@ export const OrderCard = memo(
             {/* Desktop */}
             <div className="hidden items-center gap-2 md:grid md:grid-cols-4">
               <div className="flex min-w-0 flex-col">
-                <span className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  Order No
-                </span>
-                <h3 className="truncate text-sm font-medium tracking-tight text-slate-900">
+                <span className="mb-0.5 text-xs uppercase">Order No</span>
+                <h3 className="truncate text-sm font-medium">
                   #{order.orderNo}
                 </h3>
               </div>
 
               <div className="flex min-w-0 flex-col">
-                <span className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  Created Date
-                </span>
-                <div className="flex items-center text-xs font-medium text-slate-600">
-                  <CalendarDaysIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                <span className="mb-0.5 text-xs uppercase">Created Date</span>
+                <div className="flex items-center text-xs font-medium">
+                  <CalendarDaysIcon className="mr-2 h-3.5 w-3.5" />
                   {formattedDate}
                 </div>
               </div>
 
               <div className="flex min-w-0 flex-col">
-                <span className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  Status
-                </span>
+                <span className="mb-0.5 text-xs uppercase">Status</span>
                 <StatusBadge status={order.ifsState} />
               </div>
               <div className="flex min-w-0 flex-col items-end">
                 {order.ifsState === "Invoiced" && (
                   <>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      Gross Total
-                    </span>
-                    <p
-                      className={cn(
-                        "mt-0.5 text-xs font-black leading-none tabular-nums",
-                        styles.text,
-                      )}
-                    >
+                    <span className="text-xs uppercase">Gross Total</span>
+                    <p className="mt-0.5 text-xs font-semibold leading-none tabular-nums">
                       GBP {formattedTotal}
                     </p>
                   </>
@@ -266,18 +157,11 @@ export const OrderCard = memo(
           <div className="shrink-0 self-center">
             <div
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full  transition-all md:h-8 md:w-8",
-                isExpanded
-                  ? "rotate-180 border-slate-900 bg-slate-900"
-                  : "border-slate-200 bg-white",
+                "flex h-7 w-7 items-center justify-center  transition-all md:h-8 md:w-8",
+                isExpanded ? "rotate-180" : "",
               )}
             >
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 md:h-4 md:w-4",
-                  isExpanded ? "text-white" : "text-slate-500",
-                )}
-              />
+              <ChevronDown className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
           </div>
         </div>
@@ -290,23 +174,21 @@ export const OrderCard = memo(
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="hidden border-t border-slate-100 bg-slate-50/40 md:block"
+              className="hidden border-t md:block"
             >
               <div className="flex max-w-4xl flex-col gap-8 p-6">
                 {/* Delivery */}
                 <section className="relative pl-6">
-                  <div className="absolute -bottom-8 left-1.75 top-2 w-0.5 bg-slate-200" />
+                  <div className="absolute -bottom-8 left-1.75 top-2 w-0.5" />
                   <div className="mb-3 flex items-center gap-2">
-                    <div className="absolute left-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-slate-400 bg-white">
-                      <MapPin className="h-2.5 w-2.5 text-slate-600" />
+                    <div className="absolute left-0 flex h-4 w-4 items-center justify-center border-2">
+                      <MapPin className="h-2.5 w-2.5" />
                     </div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      Delivery Address
-                    </h4>
+                    <h4 className="text-xs uppercase">Delivery Address</h4>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-sm font-semibold leading-relaxed text-slate-700">
+                  <div className="border p-4">
+                    <p className="text-sm font-semibold leading-relaxed">
                       {order.shipAddrNo || "Standard Delivery Address"}
                     </p>
                   </div>
@@ -315,10 +197,10 @@ export const OrderCard = memo(
                 {/* Sales parts */}
                 <section className="relative pl-6">
                   <div className="mb-3 flex items-center gap-2">
-                    <div className="absolute left-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-900">
-                      <Package className="h-2.5 w-2.5 text-white" />
+                    <div className="absolute left-0 flex h-4 w-4 items-center justify-center border-2">
+                      <Package className="h-2.5 w-2.5" />
                     </div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <h4 className="text-xs uppercase">
                       Sales Parts ({order.orderLines.length})
                     </h4>
                   </div>
@@ -327,21 +209,13 @@ export const OrderCard = memo(
                     {order.orderLines
                       .slice(0, MAX_VISIBLE_PARTS)
                       .map((part, idx) => {
-                        const lineStyles = getStatusStyles(part.state);
-
                         return (
                           <div
                             key={idx}
-                            className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-slate-300"
+                            className="flex items-center justify-between border p-3 transition-colors"
                           >
                             <div className="flex min-w-0 items-center gap-3">
-                              <div
-                                className={cn(
-                                  "h-2 w-2 shrink-0 rounded-full",
-                                  lineStyles.accent,
-                                )}
-                              />
-                              <span className="truncate text-sm font-bold text-slate-800">
+                              <span className="truncate text-sm">
                                 {part.salesParts}
                               </span>
                             </div>
@@ -349,33 +223,21 @@ export const OrderCard = memo(
                             <div className="ml-4 flex shrink-0 items-center gap-6">
                               {part.salesUnitMeasure?.trim() && (
                                 <div className="text-right">
-                                  <p className="text-[9px] font-bold uppercase text-slate-400">
-                                    UOM
-                                  </p>
-                                  <p className="text-xs font-black text-slate-700">
+                                  <p className="text-xs uppercase">UOM</p>
+                                  <p className="text-xs font-semibold">
                                     {part.salesUnitMeasure}
                                   </p>
                                 </div>
                               )}
                               <div className="text-right">
-                                <p className="text-[9px] font-bold uppercase text-slate-400">
-                                  Qty
-                                </p>
-                                <p className="text-xs font-black text-slate-700">
+                                <p className="text-xs uppercase">Qty</p>
+                                <p className="text-xs font-semibold">
                                   {part.qty}
                                 </p>
                               </div>
 
                               <div className="flex w-24 justify-end">
-                                <Badge
-                                  className={cn(
-                                    "border-none px-2 py-0.5 text-[9px] font-bold uppercase",
-                                    lineStyles.bg,
-                                    lineStyles.text,
-                                  )}
-                                >
-                                  {part.state}
-                                </Badge>
+                                <Badge variant="secondary">{part.state}</Badge>
                               </div>
                             </div>
                           </div>
@@ -389,7 +251,7 @@ export const OrderCard = memo(
                           e.stopPropagation();
                           onViewDetails();
                         }}
-                        className="mt-2 h-12 w-full justify-center rounded-lg border-2 border-dashed border-slate-200 text-xs font-bold text-slate-500 transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600"
+                        className="mt-2 h-12 w-full justify-center border-2 border-dashed text-xs transition-all"
                       >
                         Show All {order.orderLines.length} Items
                         <ArrowRight className="ml-2 h-3 w-3" />

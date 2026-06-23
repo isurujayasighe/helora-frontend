@@ -2,6 +2,14 @@
 
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -10,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Order } from "@/types/orders";
-import { cn } from "@/lib/utils";
 
 type OrdersTableProps = {
   orders: Order[];
@@ -38,21 +45,6 @@ function formatCurrency(value: string | number) {
   }).format(Number(value || 0));
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    case "IN_PROGRESS":
-      return "bg-blue-50 text-blue-700 border-blue-200";
-    case "PENDING":
-      return "bg-amber-50 text-amber-700 border-amber-200";
-    case "CANCELLED":
-      return "bg-red-50 text-red-700 border-red-200";
-    default:
-      return "bg-slate-50 text-slate-700 border-slate-200";
-  }
-}
-
 export function OrdersTable({
   orders,
   currentPage,
@@ -62,74 +54,95 @@ export function OrdersTable({
   onViewDetails,
 }: OrdersTableProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+    <div className="border overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-275">
-          <thead className="bg-slate-50">
-            <tr className="border-b border-slate-200 text-left">
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Order Number</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Customer Name</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Order Date</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Promised Date</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Item Count</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Total Amount</th>
-              <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Balance</th>
-              <th className="px-4 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">Actions</th>
-            </tr>
-          </thead>
+        <Table className="w-full min-w-275">
+          <TableHeader>
+            <TableRow className="border-b text-left">
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Order Number
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Customer Name
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Order Date
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Promised Date
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Status
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Item Count
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Total Amount
+              </TableHead>
+              <TableHead className="px-4 py-4 text-xs font-semibold uppercase">
+                Balance
+              </TableHead>
+              <TableHead className="px-4 py-4 text-right text-xs font-semibold uppercase">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
 
-          <tbody>
+          <TableBody>
             {orders.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+              <TableRow>
+                <TableCell
+                  colSpan={9}
+                  className="px-4 py-10 text-center text-sm"
+                >
                   No orders found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50"
-                >
-                  <td className="px-4 py-4 text-sm font-semibold text-blue-600">
+                <TableRow key={order.id} className="border-b last:border-b-0">
+                  <TableCell className="px-4 py-4 text-sm font-semibold">
                     #{order.orderNumber}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-sm text-slate-700">
+                  <TableCell className="px-4 py-4 text-sm">
                     {order.customer?.fullName || "-"}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-sm text-slate-600">
+                  <TableCell className="px-4 py-4 text-sm">
                     {formatDate(order.orderDate)}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-sm text-slate-600">
+                  <TableCell className="px-4 py-4 text-sm">
                     {formatDate(order.promisedDate)}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4">
+                  <TableCell className="px-4 py-4">
                     <Badge
-                      variant="outline"
-                      className={cn("rounded-full text-[10px]", statusClass(order.status))}
+                      variant={
+                        order.status === "CANCELLED"
+                          ? "destructive"
+                          : "secondary"
+                      }
                     >
-                      {order.status.replaceAll("_", " ")}
+                      {order.status.replaceAll("_", "")}
                     </Badge>
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-sm text-slate-700">
+                  <TableCell className="px-4 py-4 text-sm">
                     {order._count?.items ?? order.items.length}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-sm font-medium text-slate-800">
+                  <TableCell className="px-4 py-4 text-sm font-medium">
                     {formatCurrency(order.totalAmount)}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-sm font-medium text-slate-800">
+                  <TableCell className="px-4 py-4 text-sm font-medium">
                     {formatCurrency(order.balanceAmount)}
-                  </td>
+                  </TableCell>
 
-                  <td className="px-4 py-4 text-right">
+                  <TableCell className="px-4 py-4 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -145,16 +158,16 @@ export function OrdersTable({
                         <DropdownMenuItem>Mark complete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-slate-500">
+      <div className="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-sm">
           Showing {orders.length} of {totalCount} orders
         </span>
 
@@ -168,7 +181,7 @@ export function OrdersTable({
             Previous
           </Button>
 
-          <div className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700">
+          <div className="border px-3 py-1.5 text-sm font-medium">
             {currentPage} / {Math.max(totalPages, 1)}
           </div>
 

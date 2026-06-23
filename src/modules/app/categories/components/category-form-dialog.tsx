@@ -1,6 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, type ElementType } from "react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
+import {
+  ClipboardList,
+  FolderPlus,
+  HelpCircle,
+  Loader2,
+  Ruler,
+  Save,
+  Shirt,
+  ShoppingBag,
+  Tag,
+  X,
+} from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -9,17 +32,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  FolderPlus,
-  HelpCircle,
-  Loader2,
-  Save,
-  Shirt,
-} from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import type { Category, CreateCategoryPayload } from "../types/category.types";
 import { useCreateCategory, useUpdateCategory } from "../api/category-api";
@@ -81,63 +99,82 @@ export function CategoryFormDialog({ open, category, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-2xl gap-0">
-        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-              <FolderPlus className="h-5 w-5" />
+      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="border-b bg-background px-6 py-5">
+          <div className="flex items-start gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary">
+              <FolderPlus className="size-6" />
             </div>
 
-            <div className="min-w-0">
-              <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
-                {isEdit ? "Edit Category" : "Add Category"}
-              </DialogTitle>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogTitle className="text-xl font-semibold tracking-tight">
+                  {isEdit ? "Edit Category" : "Add Category"}
+                </DialogTitle>
 
-              <DialogDescription className="mt-1 text-sm font-medium text-slate-500">
+                <Badge variant="secondary">
+                  {isEdit ? "Update Record" : "New Record"}
+                </Badge>
+              </div>
+
+              <DialogDescription className="mt-1 max-w-xl text-sm">
                 {isEdit
-                  ? "Update this garment category name and description."
-                  : "Create a garment category like Nurse Uniform, Saree, Blouse, or School Uniform."}
+                  ? "Update this garment category used across orders, blocks, and measurement setup."
+                  : "Create a garment category such as Nurse Uniform, Saree, Blouse, or School Uniform."}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="max-h-[calc(92vh-150px)] overflow-y-auto bg-slate-50 p-5">
+        <ScrollArea className="max-h-[calc(92vh-153px)]">
           <form
-            className="space-y-4"
+            id="category-form"
+            className="space-y-5 bg-muted/30 p-6"
             onSubmit={(event) => {
               event.preventDefault();
               event.stopPropagation();
               form.handleSubmit();
             }}
           >
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={Shirt}
-                title="Category details"
-                description="This category will be used for orders, blocks, and measurement fields."
-              />
+            <Card className="shadow-sm">
+              <CardHeader className="space-y-0 pb-4">
+                <SectionTitle
+                  icon={Shirt}
+                  title="Category details"
+                  description="This category will be available when creating orders, blocks, and measurement fields."
+                />
+              </CardHeader>
 
-              <div className="mt-4 grid gap-4">
+              <Separator />
+
+              <CardContent className="space-y-5 pt-5">
                 <form.Field
                   name="name"
                   children={(field) => (
                     <div className="grid gap-2">
-                      <Label className="font-bold text-slate-700">
-                        Category name <span className="text-red-500">*</span>
-                      </Label>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="category-name">
+                          Category name <span className="text-destructive">*</span>
+                        </Label>
+
+                        <span className="text-xs text-muted-foreground">
+                          Required
+                        </span>
+                      </div>
 
                       <Input
+                        id="category-name"
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(event) =>
                           field.handleChange(event.target.value)
                         }
                         placeholder="Example: Nurse Uniform"
+                        disabled={isPending}
                         className={cn(
-                          "h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none",
+                          "h-11 bg-background",
                           field.state.meta.errors.length &&
-                            "border-red-500 focus-visible:ring-red-500"
+                            "border-destructive focus-visible:ring-destructive",
                         )}
                       />
 
@@ -150,76 +187,111 @@ export function CategoryFormDialog({ open, category, onClose }: Props) {
                   name="description"
                   children={(field) => (
                     <div className="grid gap-2">
-                      <Label className="font-bold text-slate-700">
-                        Description
-                      </Label>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="category-description">
+                          Description
+                        </Label>
+
+                        <span className="text-xs text-muted-foreground">
+                          Optional
+                        </span>
+                      </div>
 
                       <Textarea
+                        id="category-description"
                         value={field.state.value ?? ""}
                         onBlur={field.handleBlur}
                         onChange={(event) =>
                           field.handleChange(event.target.value)
                         }
-                        placeholder="Example: Nurse Uniform Hospital"
-                        className="min-h-28 rounded-lg bg-slate-50 text-sm font-semibold shadow-none"
+                        placeholder="Example: Uniform category for hospital nurse staff."
+                        disabled={isPending}
+                        className="min-h-28 resize-none bg-background"
                       />
+
+                      <p className="text-xs text-muted-foreground">
+                        Add a short note to help staff understand when to use
+                        this category.
+                      </p>
                     </div>
                   )}
                 />
-              </div>
-            </section>
+              </CardContent>
+            </Card>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={HelpCircle}
-                title="How this is used"
-                description="Categories help Helora organize garment work."
+            <Alert className="bg-background">
+              <HelpCircle className="size-4" />
+              <AlertTitle>How this category is used</AlertTitle>
+              <AlertDescription>
+                Categories help Helora organize garment workflows across orders,
+                reusable blocks, and measurement configuration.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <UsageCard
+                icon={ShoppingBag}
+                title="Orders"
+                description="Selected when creating customer order items."
               />
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <InfoBox title="Orders" description="Used when creating order items." />
-                <InfoBox title="Blocks" description="Used to group reusable fits." />
-                <InfoBox title="Measurements" description="Used to define fields." />
-              </div>
-            </section>
+              <UsageCard
+                icon={ClipboardList}
+                title="Blocks"
+                description="Used to group reusable garment fit records."
+              />
+
+              <UsageCard
+                icon={Ruler}
+                title="Measurements"
+                description="Used to define category-specific fields."
+              />
+            </div>
           </form>
-        </div>
+        </ScrollArea>
 
-        <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4">
-          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={isPending}
-              className="h-11 rounded-lg font-bold"
-            >
-              Cancel
-            </Button>
+        <DialogFooter className="border-t bg-background px-6 py-4">
+          <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {isEdit
+                ? "Changes may affect future order and block setup."
+                : "You can configure measurement fields after creating the category."}
+            </p>
 
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
-                <Button
-                  type="button"
-                  onClick={form.handleSubmit}
-                  disabled={!canSubmit || isSubmitting || isPending}
-                  className="h-11 rounded-lg font-bold"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      {isEdit ? "Save Changes" : "Add Category"}
-                    </>
-                  )}
-                </Button>
-              )}
-            />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isPending}
+              >
+                <X className="mr-2 size-4" />
+                Cancel
+              </Button>
+
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+                children={([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="button"
+                    onClick={form.handleSubmit}
+                    disabled={!canSubmit || isSubmitting || isPending}
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 size-4" />
+                        {isEdit ? "Save Changes" : "Add Category"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              />
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>
@@ -232,40 +304,50 @@ function SectionTitle({
   title,
   description,
 }: {
-  icon: React.ElementType;
+  icon: ElementType;
   title: string;
   description: string;
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-        <Icon className="h-5 w-5" />
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <Icon className="size-5" />
       </div>
 
-      <div>
-        <h3 className="text-base font-black text-slate-950">{title}</h3>
-        <p className="mt-1 text-sm font-medium leading-5 text-slate-500">
-          {description}
-        </p>
+      <div className="min-w-0">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription className="mt-1">{description}</CardDescription>
       </div>
     </div>
   );
 }
 
-function InfoBox({
+function UsageCard({
+  icon: Icon,
   title,
   description,
 }: {
+  icon: ElementType;
   title: string;
   description: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-sm font-black text-slate-900">{title}</p>
-      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-        {description}
-      </p>
-    </div>
+    <Card className="shadow-sm">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="size-4" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {description}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -273,10 +355,25 @@ function FieldError({ errors }: { errors: unknown[] }) {
   if (!errors.length) return null;
 
   return (
-    <p className="text-sm font-semibold text-red-600">
-      {errors.join(", ")}
+    <p className="text-sm font-medium text-destructive">
+      {errors.map(formatFormError).join(", ")}
     </p>
   );
+}
+
+function formatFormError(error: unknown) {
+  if (typeof error === "string") return error;
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return "Invalid value";
 }
 
 function getDefaultValues(category?: Category | null) {

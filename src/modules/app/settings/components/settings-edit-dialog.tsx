@@ -21,10 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Save } from "lucide-react";
-import type {
-  HeloraSettings,
-  SettingsCategory,
-} from "../types/settings.types";
+import type { HeloraSettings, SettingsCategory } from "../types/settings.types";
 import { SettingsSectionCard } from "./settings-section-card";
 
 interface Props {
@@ -70,14 +67,10 @@ export function SettingsEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-4xl">
-        <DialogHeader className="border-b bg-white px-5 py-4">
-          <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
-            {title}
-          </DialogTitle>
-          <DialogDescription className="mt-1 text-sm font-medium text-slate-500">
-            {description}
-          </DialogDescription>
+      <DialogContent className="max-h-[92vh] overflow-hidden p-0 sm:max-w-4xl">
+        <DialogHeader className="border-b px-5 py-4">
+          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <DialogDescription className="mt-1">{description}</DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[calc(92vh-150px)] overflow-y-auto bg-slate-50 p-5">
@@ -89,7 +82,9 @@ export function SettingsEditDialog({
               form.handleSubmit();
             }}
           >
-            {category?.id === "business" && <BusinessSettingsForm form={form} />}
+            {category?.id === "business" && (
+              <BusinessSettingsForm form={form} />
+            )}
             {category?.id === "orders" && <OrderSettingsForm form={form} />}
             {category?.id === "measurements" && (
               <MeasurementSettingsForm form={form} />
@@ -101,9 +96,7 @@ export function SettingsEditDialog({
             {category?.id === "whatsapp" && (
               <WhatsAppSettingsForm form={form} />
             )}
-            {category?.id === "payments" && (
-              <PaymentSettingsForm form={form} />
-            )}
+            {category?.id === "payments" && <PaymentSettingsForm form={form} />}
             {category?.id === "dataImport" && (
               <DataImportSettingsForm form={form} />
             )}
@@ -162,7 +155,11 @@ function BusinessSettingsForm({ form }: { form: any }) {
     >
       <div className="grid gap-4 md:grid-cols-2">
         <TextField form={form} name="business.shopName" label="Shop name" />
-        <TextField form={form} name="business.phoneNumber" label="Phone number" />
+        <TextField
+          form={form}
+          name="business.phoneNumber"
+          label="Phone number"
+        />
         <TextField form={form} name="business.email" label="Email" />
         <TextField form={form} name="business.town" label="Town" />
         <TextField form={form} name="business.address" label="Address" />
@@ -207,7 +204,11 @@ function OrderSettingsForm({ form }: { form: any }) {
         description="Control how normal orders and group orders are numbered."
       >
         <div className="grid gap-4 md:grid-cols-2">
-          <TextField form={form} name="orders.orderPrefix" label="Order prefix" />
+          <TextField
+            form={form}
+            name="orders.orderPrefix"
+            label="Order prefix"
+          />
           <TextField
             form={form}
             name="orders.groupOrderPrefix"
@@ -823,10 +824,7 @@ function SelectField({
       children={(field: any) => (
         <div className="grid gap-2">
           <Label className="font-bold text-slate-700">{label}</Label>
-          <Select
-            value={field.state.value}
-            onValueChange={field.handleChange}
-          >
+          <Select value={field.state.value} onValueChange={field.handleChange}>
             <SelectTrigger className="h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none">
               <SelectValue />
             </SelectTrigger>

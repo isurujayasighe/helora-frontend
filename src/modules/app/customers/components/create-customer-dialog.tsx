@@ -1,22 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
+import type { LucideIcon } from "lucide-react";
 import {
+  AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  Eye,
+  Info,
   Loader2,
+  LockKeyhole,
   PackagePlus,
   Search,
   Trash2,
   UserPlus,
   X,
 } from "lucide-react";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { AxiosError } from "axios";
+import { toast } from "sonner";
 
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -32,6 +42,20 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -51,6 +75,12 @@ import {
 } from "@/components/ui/form";
 
 import { useCreateCustomer } from "../api/useCreateCustomer";
+import {
+  useCustomerDuplicateCheck,
+  type CustomerDuplicateMatch,
+} from "../api/useGetCustomers";
+import { getApiErrorMessage } from "@/errors/api-error-response";
+import { cn } from "@/lib/utils";
 import { useGetBlocks } from "@/modules/app/blocks/api/useGetBlocks";
 import {
   usePackageTemplatesQuery,
@@ -58,23 +88,22 @@ import {
   type PackageTemplateItem,
 } from "@/modules/app/package-templates/api/package-template-api";
 
-const createCustomerSchema = z
-  .object({
-    fullName: z.string().min(1, "Customer name is required"),
-    phoneNumber: z.string().min(1, "Phone number is required"),
-    alternatePhone: z.string().optional(),
-    town: z.string().optional(),
-    address: z.string().optional(),
-    notes: z.string().optional(),
-    hasLegacyBlock: z.boolean().default(false),
-    blockCategoryId: z.string().optional(),
-    blockNumber: z.string().optional(),
-    readyMadeSize: z.string().optional(),
-    sizeLabel: z.string().optional(),
-    fitNotes: z.string().optional(),
-    blockDescription: z.string().optional(),
-    blockRemarks: z.string().optional(),
-  });
+const createCustomerSchema = z.object({
+  fullName: z.string().min(1, "Customer name is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  alternatePhone: z.string().optional(),
+  town: z.string().optional(),
+  address: z.string().optional(),
+  notes: z.string().optional(),
+  hasLegacyBlock: z.boolean().default(false),
+  blockCategoryId: z.string().optional(),
+  blockNumber: z.string().optional(),
+  readyMadeSize: z.string().optional(),
+  sizeLabel: z.string().optional(),
+  fitNotes: z.string().optional(),
+  blockDescription: z.string().optional(),
+  blockRemarks: z.string().optional(),
+});
 
 type CreateCustomerFormInput = z.input<typeof createCustomerSchema>;
 type CreateCustomerFormValues = z.output<typeof createCustomerSchema>;
@@ -83,6 +112,7 @@ type CreateCustomerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: (customerId: string) => void;
+  onViewCustomer?: (customerId: string) => void;
 };
 
 const defaultValues: CreateCustomerFormInput = {
@@ -129,12 +159,17 @@ export function CreateCustomerDialog({
   open,
   onOpenChange,
   onCreated,
+  onViewCustomer,
 }: CreateCustomerDialogProps) {
   const createCustomerMutation = useCreateCustomer();
   const [selectedExistingBlockId, setSelectedExistingBlockId] = useState<
     string | null
   >(null);
   const [blockLookupOpen, setBlockLookupOpen] = useState(false);
+  const blockLookupTransitionRef = useRef(false);
+  const blockLookupCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [blockLookupSearch, setBlockLookupSearch] = useState("");
   const [debouncedBlockSearch, setDebouncedBlockSearch] = useState("");
   const [legacyBlockAssignments, setLegacyBlockAssignments] = useState<
@@ -142,19 +177,57 @@ export function CreateCustomerDialog({
   >([]);
   const [selectedPackageTemplateId, setSelectedPackageTemplateId] =
     useState("");
+  const [legacySectionOpen, setLegacySectionOpen] = useState(false);
   const [activePackageCategory, setActivePackageCategory] =
     useState<PackageTemplateItem | null>(null);
+  const [serverDuplicate, setServerDuplicate] = useState<{
+    inputKey: string;
+    match: CustomerDuplicateMatch;
+  } | null>(null);
   const { data: packageTemplates = [], isLoading: isPackageTemplatesLoading } =
     usePackageTemplatesQuery({ isActive: true });
 
-  const form = useForm<CreateCustomerFormInput, any, CreateCustomerFormValues>({
+  const form = useForm<
+    CreateCustomerFormInput,
+    unknown,
+    CreateCustomerFormValues
+  >({
     resolver: zodResolver(createCustomerSchema),
     defaultValues,
   });
 
-  const { clearErrors, control, handleSubmit, reset, watch, setValue } = form;
-  const hasLegacyBlock = watch("hasLegacyBlock");
-  const blockCategoryId = watch("blockCategoryId");
+  const { clearErrors, control, handleSubmit, reset, setValue } = form;
+  const hasLegacyBlock = useWatch({ control, name: "hasLegacyBlock" });
+  const blockCategoryId = useWatch({ control, name: "blockCategoryId" });
+  const customerName = useWatch({ control, name: "fullName" });
+  const phoneNumber = useWatch({ control, name: "phoneNumber" });
+  const alternatePhone = useWatch({ control, name: "alternatePhone" });
+  const duplicateInputKey = `${customerName?.trim() ?? ""}|${phoneNumber?.trim() ?? ""}|${alternatePhone?.trim() ?? ""}`;
+  const duplicateCheck = useCustomerDuplicateCheck({
+    name: customerName,
+    phone: phoneNumber,
+    alternatePhone,
+  });
+  const activeServerDuplicate =
+    serverDuplicate?.inputKey === duplicateInputKey
+      ? serverDuplicate.match
+      : null;
+  const duplicateMatches = activeServerDuplicate
+    ? [
+        activeServerDuplicate,
+        ...duplicateCheck.matches.filter(
+          (match) => match.id !== activeServerDuplicate.id,
+        ),
+      ]
+    : duplicateCheck.matches;
+  const hasExactDuplicate =
+    Boolean(activeServerDuplicate) || duplicateCheck.hasExactMatch;
+  const exactDuplicateMatch = hasExactDuplicate
+    ? (duplicateMatches.find(
+        (match) => match.matchType === "Exact Phone Match",
+      ) ?? duplicateMatches[0])
+    : undefined;
+
   const selectedCategoryName =
     activePackageCategory?.category?.name ??
     activePackageCategory?.itemDescription ??
@@ -201,7 +274,9 @@ export function CreateCustomerDialog({
     status: "ACTIVE",
     includeCounts: true,
     includeTotal: false,
-    enabled: Boolean(open && hasLegacyBlock && blockCategoryId && blockLookupOpen),
+    enabled: Boolean(
+      open && hasLegacyBlock && blockCategoryId && blockLookupOpen,
+    ),
   });
 
   const blockSuggestions = useMemo(
@@ -209,20 +284,46 @@ export function CreateCustomerDialog({
     [blockSuggestionsResponse?.data.items],
   );
 
+  const setBlockLookupVisibility = (nextOpen: boolean) => {
+    if (blockLookupCloseTimerRef.current) {
+      clearTimeout(blockLookupCloseTimerRef.current);
+      blockLookupCloseTimerRef.current = null;
+    }
+
+    if (nextOpen) {
+      blockLookupTransitionRef.current = true;
+      setBlockLookupOpen(true);
+      return;
+    }
+
+    setBlockLookupOpen(false);
+    blockLookupCloseTimerRef.current = setTimeout(() => {
+      blockLookupTransitionRef.current = false;
+      blockLookupCloseTimerRef.current = null;
+    }, 500);
+  };
+
   const handleClose = () => {
     reset(defaultValues);
     setSelectedExistingBlockId(null);
     setLegacyBlockAssignments([]);
     setSelectedPackageTemplateId("");
+    setLegacySectionOpen(false);
     setActivePackageCategory(null);
     setBlockLookupOpen(false);
     setBlockLookupSearch("");
     setDebouncedBlockSearch("");
+    setServerDuplicate(null);
     onOpenChange(false);
   };
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
+      // The block lookup is rendered in its own portal. Without this guard,
+      // interacting with or closing that sheet can be treated as an outside
+      // interaction by the parent dialog and reset the entire customer form.
+      if (blockLookupOpen || blockLookupTransitionRef.current) return;
+
       handleClose();
       return;
     }
@@ -277,7 +378,7 @@ export function CreateCustomerDialog({
       shouldValidate: false,
     });
     setBlockLookupSearch(existingAssignment?.blockNumber ?? "");
-    setBlockLookupOpen(true);
+    setBlockLookupVisibility(true);
   };
 
   const applyExistingBlock = (block: BlockSuggestion) => {
@@ -306,7 +407,7 @@ export function CreateCustomerDialog({
       assignment,
     ]);
     clearBlockDraftFields();
-    setBlockLookupOpen(false);
+    setBlockLookupVisibility(false);
     setActivePackageCategory(null);
   };
 
@@ -340,12 +441,19 @@ export function CreateCustomerDialog({
       assignment,
     ]);
     clearBlockDraftFields();
-    setBlockLookupOpen(false);
+    setBlockLookupVisibility(false);
     setActivePackageCategory(null);
   };
 
   const onSubmit: SubmitHandler<CreateCustomerFormValues> = async (values) => {
     const legacyBlocks = values.hasLegacyBlock ? legacyBlockAssignments : [];
+
+    if (hasExactDuplicate) {
+      form.setError("phoneNumber", {
+        message: "This phone number already belongs to another customer.",
+      });
+      return;
+    }
 
     if (values.hasLegacyBlock && !legacyBlocks.length) {
       form.setError("hasLegacyBlock", {
@@ -354,66 +462,103 @@ export function CreateCustomerDialog({
       return;
     }
 
-    const result = await createCustomerMutation.mutateAsync({
-      fullName: values.fullName.trim(),
-      phoneNumber: values.phoneNumber.trim(),
-      alternatePhone: values.alternatePhone?.trim() || undefined,
-      town: values.town?.trim() || undefined,
-      address: values.address?.trim() || undefined,
-      notes: values.notes?.trim() || undefined,
-      legacyBlocks: legacyBlocks.length
-        ? legacyBlocks.map((assignment) => ({
-            categoryId: assignment.categoryId,
-            blockNumber: assignment.blockNumber,
-            readyMadeSize: assignment.readyMadeSize,
-            sizeLabel: assignment.sizeLabel,
-            fitNotes: assignment.fitNotes,
-            description: assignment.description,
-            remarks: assignment.remarks,
-          }))
-        : undefined,
-    });
+    try {
+      const result = await createCustomerMutation.mutateAsync({
+        fullName: values.fullName.trim(),
+        phoneNumber: values.phoneNumber.trim(),
+        alternatePhone: values.alternatePhone?.trim() || undefined,
+        town: values.town?.trim() || undefined,
+        address: values.address?.trim() || undefined,
+        notes: values.notes?.trim() || undefined,
+        legacyBlocks: legacyBlocks.length
+          ? legacyBlocks.map((assignment) => ({
+              categoryId: assignment.categoryId,
+              blockNumber: assignment.blockNumber,
+              readyMadeSize: assignment.readyMadeSize,
+              sizeLabel: assignment.sizeLabel,
+              fitNotes: assignment.fitNotes,
+              description: assignment.description,
+              remarks: assignment.remarks,
+            }))
+          : undefined,
+      });
 
-    onCreated?.(result.data.id);
-    handleClose();
+      onCreated?.(result.data.id);
+      handleClose();
+    } catch (error) {
+      const apiError = error as AxiosError<{
+        message?: string;
+        duplicateCustomer?: CustomerDuplicateMatch;
+      }>;
+      const duplicateCustomer = apiError.response?.data?.duplicateCustomer;
+
+      if (apiError.response?.status === 409 && duplicateCustomer) {
+        setServerDuplicate({
+          inputKey: `${values.fullName.trim()}|${values.phoneNumber.trim()}|${values.alternatePhone?.trim() ?? ""}`,
+          match: duplicateCustomer,
+        });
+        form.setError("phoneNumber", {
+          message: "This phone number already belongs to another customer.",
+        });
+      }
+
+      toast.error(getApiErrorMessage(error, "Unable to create customer."));
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="max-h-[92vh] sm:max-w-3xl overflow-hidden p-0 gap-0">
-        <DialogHeader className="border-b border-slate-200 px-5 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-                  <UserPlus className="h-4 w-4" />
-                </span>
-                Create Customer
-              </DialogTitle>
-              <p className="mt-1 text-sm text-slate-500">
+      <DialogContent
+        className="flex max-h-[94vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl lg:max-w-5xl"
+        onInteractOutside={(event) => {
+          if (blockLookupOpen || blockLookupTransitionRef.current) {
+            event.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(event) => {
+          if (blockLookupOpen || blockLookupTransitionRef.current) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <DialogHeader className="shrink-0 border-b px-6 py-5">
+          <div className="flex items-start gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <UserPlus className="size-6" />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="text-xl">Create Customer</DialogTitle>
+              <DialogDescription className="mt-1">
                 Add a new customer profile to use for orders and block
                 assignments.
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="max-h-[calc(92vh-82px)] overflow-y-auto bg-slate-50/60">
-          <Form {...form}>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-5">
-              <section className="rounded-xl border border-slate-200 bg-white">
+        <Form {...form}>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-muted/20 p-4 md:p-6">
+              <Card className="gap-0 py-0">
                 <SectionHeader
+                  icon={UserPlus}
                   title="Customer Information"
                   description="Basic details used to identify and contact the customer."
                 />
 
-                <div className="grid gap-4 p-4 md:grid-cols-2">
+                <CardContent className="grid gap-4 p-4 md:grid-cols-2">
                   <FormField
                     control={control}
                     name="fullName"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
-                        <FormLabel>Customer Name</FormLabel>
+                        <FormLabel>
+                          Customer Name
+                          <span className="text-destructive">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Input placeholder="Dinesha Shamali" {...field} />
                         </FormControl>
@@ -422,16 +567,41 @@ export function CreateCustomerDialog({
                     )}
                   />
 
+                  <div className="md:col-span-2">
+                    <CustomerDuplicateNotice
+                      isChecking={duplicateCheck.isChecking}
+                      hasExactMatch={hasExactDuplicate}
+                      hasPossibleMatches={
+                        Boolean(activeServerDuplicate) ||
+                        duplicateCheck.hasPossibleMatches
+                      }
+                      matches={duplicateMatches}
+                      error={duplicateCheck.error}
+                      onViewCustomer={
+                        onViewCustomer
+                          ? (customerId) => {
+                              handleClose();
+                              onViewCustomer(customerId);
+                            }
+                          : undefined
+                      }
+                    />
+                  </div>
+
                   <FormField
                     control={control}
                     name="phoneNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>
+                          Phone Number
+                          <span className="text-destructive">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Input placeholder="0718370292" {...field} />
                         </FormControl>
                         <FormMessage />
+                       
                       </FormItem>
                     )}
                   />
@@ -477,178 +647,17 @@ export function CreateCustomerDialog({
                       </FormItem>
                     )}
                   />
-                </div>
-              </section>
 
-              <section className="rounded-xl border border-slate-200 bg-white">
-                <SectionHeader
-                  title="Legacy Blocks"
-                  description="Optional block details from old records. Add one block per uniform category where needed."
-                />
-
-                <div className="space-y-4 p-4">
-                  <FormField
-                    control={control}
-                    name="hasLegacyBlock"
-                    render={({ field }) => (
-                      <FormItem className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              const enabled = checked === true;
-                              field.onChange(enabled);
-
-                              if (!enabled) {
-                                setBlockLookupOpen(false);
-                                setBlockLookupSearch("");
-                                setSelectedExistingBlockId(null);
-                                setActivePackageCategory(null);
-                                setLegacyBlockAssignments([]);
-                                setSelectedPackageTemplateId("");
-                                setValue("blockCategoryId", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                                setValue("blockNumber", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                                setValue("readyMadeSize", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                                setValue("sizeLabel", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                                setValue("fitNotes", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                                setValue("blockDescription", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                                setValue("blockRemarks", "", {
-                                  shouldDirty: true,
-                                  shouldValidate: false,
-                                });
-                              }
-                            }}
-                            className="mt-1"
-                          />
-                        </FormControl>
-
-                        <div className="min-w-0">
-                          <FormLabel className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                            <PackagePlus className="h-4 w-4 text-slate-500" />
-                            Add block to customer
-                          </FormLabel>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">
-                            Use this for legacy entries where a customer should
-                            be linked to one or more block numbers across
-                            uniform categories.
-                          </p>
-                          <FormMessage />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  {hasLegacyBlock && (
-                    <div className="space-y-4 rounded-lg border border-blue-100 bg-blue-50/40 p-4">
-                      <div>
-                        <FormLabel>Garment Set</FormLabel>
-                        <Select
-                          value={selectedPackageTemplateId || undefined}
-                          disabled={isPackageTemplatesLoading}
-                          onValueChange={(value) => {
-                            setSelectedPackageTemplateId(value);
-                            setActivePackageCategory(null);
-                            setBlockLookupOpen(false);
-                            setBlockLookupSearch("");
-                            setLegacyBlockAssignments([]);
-                            setValue("blockCategoryId", "", {
-                              shouldDirty: true,
-                              shouldValidate: false,
-                            });
-                            clearBlockDraftFields();
-                          }}
-                        >
-                          <SelectTrigger className="mt-2 w-full bg-white">
-                            <SelectValue
-                              placeholder={
-                                isPackageTemplatesLoading
-                                  ? "Loading garment sets..."
-                                  : "Select garment set"
-                              }
-                            />
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            {packageTemplates.map((template) => (
-                              <SelectItem key={template.id} value={template.id}>
-                                {template.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {selectedPackageTemplate ? (
-                        <PackageTemplateCategoryList
-                          template={selectedPackageTemplate}
-                          items={selectedPackageCategories}
-                          assignments={legacyBlockAssignments}
-                          activeDraftCategoryId={blockCategoryId}
-                          onUseCategory={handleUsePackageCategory}
-                        />
-                      ) : (
-                        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
-                          <PackagePlus className="mx-auto h-6 w-6 text-slate-400" />
-                          <p className="mt-2 text-sm font-semibold text-slate-900">
-                            Select a garment set
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">
-                            Categories and their selected block numbers will
-                            appear here after choosing a template set.
-                          </p>
-                        </div>
-                      )}
-
-                      <BlockAssignmentsList
-                        assignments={legacyBlockAssignments}
-                        onRemove={(key) =>
-                          setLegacyBlockAssignments((current) =>
-                            current.filter(
-                              (assignment) => assignment.key !== key,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-slate-200 bg-white">
-                <SectionHeader
-                  title="Notes"
-                  description="Optional internal note about this customer."
-                />
-
-                <div className="p-4">
                   <FormField
                     control={control}
                     name="notes"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Customer Notes</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="VIP customer"
-                            className="min-h-28 resize-none"
+                            placeholder="Optional internal note about this customer"
+                            className="min-h-20 resize-none"
                             {...field}
                           />
                         </FormControl>
@@ -656,37 +665,271 @@ export function CreateCustomerDialog({
                       </FormItem>
                     )}
                   />
-                </div>
-              </section>
+                </CardContent>
+              </Card>
 
-              <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-slate-200 bg-white px-5 py-3">
+              <Collapsible
+                open={legacySectionOpen}
+                onOpenChange={setLegacySectionOpen}
+              >
+                <Card className="gap-0 py-0">
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 p-4 text-left"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                        <PackagePlus className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <CardTitle>Legacy Blocks</CardTitle>
+                          <Badge variant="outline">Optional</Badge>
+                          {legacyBlockAssignments.length > 0 && (
+                            <Badge variant="secondary">
+                              {legacyBlockAssignments.length} assigned
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="mt-1">
+                          Add one block per uniform category from old records.
+                        </CardDescription>
+                      </div>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 shrink-0 transition-transform",
+                          legacySectionOpen && "rotate-180",
+                        )}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <CardContent className="space-y-4 border-t p-4">
+                      <FormField
+                        control={control}
+                        name="hasLegacyBlock"
+                        render={({ field }) => (
+                          <FormItem className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                  const enabled = checked === true;
+                                  field.onChange(enabled);
+
+                                  if (!enabled) {
+                                    setBlockLookupOpen(false);
+                                    setBlockLookupSearch("");
+                                    setSelectedExistingBlockId(null);
+                                    setActivePackageCategory(null);
+                                    setLegacyBlockAssignments([]);
+                                    setSelectedPackageTemplateId("");
+                                    setValue("blockCategoryId", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                    setValue("blockNumber", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                    setValue("readyMadeSize", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                    setValue("sizeLabel", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                    setValue("fitNotes", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                    setValue("blockDescription", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                    setValue("blockRemarks", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: false,
+                                    });
+                                  }
+                                }}
+                                className="mt-1"
+                              />
+                            </FormControl>
+
+                            <div className="min-w-0">
+                              <FormLabel className="flex items-center gap-2 text-sm font-semibold">
+                                <PackagePlus className="size-4 text-muted-foreground" />
+                                Add block to customer
+                              </FormLabel>
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                Use this for legacy entries where a customer
+                                should be linked to one or more block numbers
+                                across uniform categories.
+                              </p>
+                              <FormMessage />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {hasLegacyBlock && (
+                        <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+                          <div>
+                            <FormLabel>Garment Set</FormLabel>
+                            <Select
+                              value={selectedPackageTemplateId || undefined}
+                              disabled={isPackageTemplatesLoading}
+                              onValueChange={(value) => {
+                                setSelectedPackageTemplateId(value);
+                                setActivePackageCategory(null);
+                                setBlockLookupOpen(false);
+                                setBlockLookupSearch("");
+                                setLegacyBlockAssignments([]);
+                                setValue("blockCategoryId", "", {
+                                  shouldDirty: true,
+                                  shouldValidate: false,
+                                });
+                                clearBlockDraftFields();
+                              }}
+                            >
+                              <SelectTrigger className="mt-2 w-full bg-background">
+                                <SelectValue
+                                  placeholder={
+                                    isPackageTemplatesLoading
+                                      ? "Loading garment sets..."
+                                      : "Select garment set"
+                                  }
+                                />
+                              </SelectTrigger>
+
+                              <SelectContent>
+                                {packageTemplates.map((template) => (
+                                  <SelectItem
+                                    key={template.id}
+                                    value={template.id}
+                                  >
+                                    {template.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {selectedPackageTemplate ? (
+                            <PackageTemplateCategoryList
+                              template={selectedPackageTemplate}
+                              items={selectedPackageCategories}
+                              assignments={legacyBlockAssignments}
+                              activeDraftCategoryId={blockCategoryId}
+                              onUseCategory={handleUsePackageCategory}
+                            />
+                          ) : (
+                            <div className="rounded-lg border border-dashed bg-background px-4 py-8 text-center">
+                              <PackagePlus className="mx-auto size-6 text-muted-foreground" />
+                              <p className="mt-2 text-sm font-semibold">
+                                Select a garment set
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                Categories and their selected block numbers will
+                                appear here after choosing a template set.
+                              </p>
+                            </div>
+                          )}
+
+                          <BlockAssignmentsList
+                            assignments={legacyBlockAssignments}
+                            onRemove={(key) =>
+                              setLegacyBlockAssignments((current) =>
+                                current.filter(
+                                  (assignment) => assignment.key !== key,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            </div>
+
+            <DialogFooter className="shrink-0 items-center border-t px-6 py-4 sm:justify-between">
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                {hasExactDuplicate ? (
+                  <>
+                    <LockKeyhole className="size-4 shrink-0 text-destructive" />
+                    <span className="truncate text-destructive">
+                      Creation is blocked until the duplicate is resolved.
+                    </span>
+                  </>
+                ) : duplicateCheck.isChecking ? (
+                  <>
+                    <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                    <span className="truncate text-muted-foreground">
+                      Checking existing customers...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Info className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate text-muted-foreground">
+                      Customer details will be verified again before saving.
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
                 <Button type="button" variant="outline" onClick={handleClose}>
                   Cancel
                 </Button>
 
-                <Button
-                  type="submit"
-                  disabled={createCustomerMutation.isPending}
-                >
-                  {createCustomerMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {hasLegacyBlock && legacyBlockAssignments.length
-                    ? `Create Customer & Link ${legacyBlockAssignments.length} Blocks`
-                    : hasLegacyBlock
-                      ? "Create Customer & Link Blocks"
-                      : "Create Customer"}
-                </Button>
+                {hasExactDuplicate && exactDuplicateMatch && onViewCustomer ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      handleClose();
+                      onViewCustomer(exactDuplicateMatch.id);
+                    }}
+                  >
+                    <Eye className="size-4" />
+                    Open Existing Customer
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={
+                      createCustomerMutation.isPending ||
+                      duplicateCheck.isChecking ||
+                      hasExactDuplicate
+                    }
+                  >
+                    {createCustomerMutation.isPending && (
+                      <Loader2 className="size-4 animate-spin" />
+                    )}
+                    {hasExactDuplicate
+                      ? "Existing Customer Found"
+                      : hasLegacyBlock && legacyBlockAssignments.length
+                        ? `Create Customer & Link ${legacyBlockAssignments.length} Blocks`
+                        : hasLegacyBlock
+                          ? "Create Customer & Link Blocks"
+                          : "Create Customer"}
+                  </Button>
+                )}
               </div>
-            </form>
-          </Form>
-        </div>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
 
       <BlockLookupSheet
         open={blockLookupOpen}
         onOpenChange={(nextOpen) => {
-          setBlockLookupOpen(nextOpen);
+          setBlockLookupVisibility(nextOpen);
           if (!nextOpen) {
             setActivePackageCategory(null);
           }
@@ -701,6 +944,188 @@ export function CreateCustomerDialog({
         onCreateNew={applyManualBlock}
       />
     </Dialog>
+  );
+}
+
+function CustomerDuplicateNotice({
+  isChecking,
+  hasExactMatch,
+  hasPossibleMatches,
+  matches,
+  error,
+  onViewCustomer,
+}: {
+  isChecking: boolean;
+  hasExactMatch: boolean;
+  hasPossibleMatches: boolean;
+  matches: CustomerDuplicateMatch[];
+  error: unknown;
+  onViewCustomer?: (customerId: string) => void;
+}) {
+  if (isChecking) {
+    return (
+      <Alert>
+        <Loader2 className="size-4 animate-spin" />
+        <AlertTitle>Checking existing customers...</AlertTitle>
+        <AlertDescription>
+          Comparing the customer name and phone numbers.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert>
+        <AlertTriangle className="size-4" />
+        <AlertTitle>Duplicate check unavailable</AlertTitle>
+        <AlertDescription>
+          You can continue. The server will check again before saving.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!hasPossibleMatches || !matches.length) return null;
+
+  return (
+    <DuplicateMatchesPanel
+      hasExactMatch={hasExactMatch}
+      matches={matches}
+      onViewCustomer={onViewCustomer}
+    />
+  );
+}
+
+function DuplicateMatchesPanel({
+  hasExactMatch,
+  matches,
+  onViewCustomer,
+}: {
+  hasExactMatch: boolean;
+  matches: CustomerDuplicateMatch[];
+  onViewCustomer?: (customerId: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
+      <div
+        className={cn(
+          "overflow-hidden rounded-lg border border-amber-300 bg-amber-50/40",
+          hasExactMatch && "border-amber-300 bg-amber-50/40",
+        )}
+      >
+        <div className="flex items-start gap-3 p-4">
+          <AlertTriangle
+            className={cn(
+              "mt-0.5 size-5 shrink-0 text-muted-foreground",
+              hasExactMatch && "text-amber-600",
+            )}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">
+              {hasExactMatch
+                ? "Existing customer found"
+                : "Possible existing customer found"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {hasExactMatch
+                ? "The phone number entered matches an existing customer. Use the existing record to avoid duplicate data."
+                : "Please review these similar customers before creating a new one."}
+            </p>
+          </div>
+
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={expanded ? "Collapse matches" : "Expand matches"}
+            >
+              <ChevronDown
+                className={cn(
+                  "size-4 transition-transform",
+                  expanded && "rotate-180",
+                )}
+              />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+
+        <CollapsibleContent>
+          <div className="space-y-3 px-4 pb-4 pl-12">
+            <div className="space-y-2">
+              {matches.slice(0, 3).map((match) => (
+                <div
+                  key={match.id}
+                  className="flex flex-col gap-3 rounded-lg border bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                      {match.customerName
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((part) => part.charAt(0).toUpperCase())
+                        .join("")}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-semibold">
+                          {match.customerName}
+                        </p>
+                        <Badge variant="secondary">{match.matchType}</Badge>
+                        <Badge variant="outline">
+                          {match.confidence}% confidence
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {match.phone ||
+                          match.alternatePhone ||
+                          "No phone number"}
+                        {match.town ? ` - ${match.town}` : ""}
+                        {match.address ? ` - ${match.address}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {onViewCustomer && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => onViewCustomer(match.id)}
+                    >
+                      <Eye className="size-4" />
+                      View Customer
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Info className="size-4 shrink-0" />
+                {hasExactMatch
+                  ? "Continuing would create a duplicate record."
+                  : "You may continue after reviewing these possible matches."}
+              </div>
+
+              {hasExactMatch && (
+                <Button type="button" variant="outline" size="sm" disabled>
+                  <LockKeyhole className="size-4" />
+                  Continue anyway
+                </Button>
+              )}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 }
 
@@ -738,12 +1163,22 @@ function BlockLookupSheet({
   const normalizedSearch = search.trim().toUpperCase();
 
   useEffect(() => {
-    if (!open) {
+    if (open) return;
+
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+
       setReadyMadeSize("");
       setSizeLabel("");
       setFitNotes("");
       setRemarks("");
-    }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   const exactMatchExists = suggestions.some(
@@ -756,6 +1191,7 @@ function BlockLookupSheet({
         side="right"
         showCloseButton={false}
         className="w-full gap-0 bg-white p-0 sm:max-w-lg"
+        onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <SheetHeader className="border-b border-slate-200 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
@@ -921,8 +1357,8 @@ function BlockLookupSheet({
                 {isFetching ? "Searching blocks..." : "No existing block found"}
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Try another search term or add the block from the Blocks page
-                by using the new block panel above.
+                Try another search term or add the block from the Blocks page by
+                using the new block panel above.
               </p>
             </div>
           )}
@@ -1117,16 +1553,25 @@ function PackageTemplateCategoryList({
 }
 
 function SectionHeader({
+  icon: Icon,
   title,
   description,
 }: {
+  icon: LucideIcon;
   title: string;
   description: string;
 }) {
   return (
-    <div className="border-b border-slate-100 px-4 py-3">
-      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-      <p className="mt-0.5 text-xs text-slate-500">{description}</p>
-    </div>
+    <CardHeader className="border-b p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <CardTitle>{title}</CardTitle>
+          <CardDescription className="mt-1">{description}</CardDescription>
+        </div>
+      </div>
+    </CardHeader>
   );
 }

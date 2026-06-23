@@ -29,7 +29,7 @@ export function AuthenticatedLayout() {
       <div
         id="content"
         className={cn(
-          "ml-auto flex h-svh w-full max-w-full flex-col bg-background",
+          "ml-auto flex h-svh w-full max-w-full flex-col ",
           "peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]",
           "peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon))]",
           "transition-[width] duration-150 ease-linear"

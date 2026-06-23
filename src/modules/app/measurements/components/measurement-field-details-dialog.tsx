@@ -28,12 +28,12 @@ export function MeasurementFieldDetailsDialog({ open, field, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-2xl">
-        <DialogHeader className="border-b bg-white px-5 py-4">
+      <DialogContent className="max-h-[92vh] overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="border-b px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-                <Ruler className="h-6 w-6" />
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Ruler className="size-6" />
               </div>
 
               <div className="min-w-0">
@@ -117,8 +117,14 @@ export function MeasurementFieldDetailsDialog({ open, field, onClose }: Props) {
               <SectionHeading icon={FileText} title="System details" />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <InfoItem label="Created" value={formatDateTime(field.createdAt)} />
-                <InfoItem label="Updated" value={formatDateTime(field.updatedAt)} />
+                <InfoItem
+                  label="Created"
+                  value={formatDateTime(field.createdAt)}
+                />
+                <InfoItem
+                  label="Updated"
+                  value={formatDateTime(field.updatedAt)}
+                />
               </div>
             </section>
           </div>

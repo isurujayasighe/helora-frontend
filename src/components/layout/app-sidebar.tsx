@@ -96,6 +96,11 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
         url: "/app/customers",
         icon: Users,
       },
+       {
+            title: "Customer Blocks",
+            url: "/app/blocks",
+            icon: Shirt,
+          },
       {
         title: "Orders",
         icon: ReceiptText,
@@ -126,11 +131,7 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
         title: "Production",
         icon: Scissors,
         children: [
-          {
-            title: "Blocks",
-            url: "/app/blocks",
-            icon: Shirt,
-          },
+         
           {
             title: "Measurements",
             url: "/app/measurements",

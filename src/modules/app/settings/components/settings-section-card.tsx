@@ -8,12 +8,12 @@ interface Props {
 
 export function SettingsSectionCard({ title, description, children }: Props) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
+    <Card>
       <CardContent className="p-4">
         <div className="mb-4">
-          <h3 className="text-base font-black text-slate-950">{title}</h3>
+          <h3 className="text-base font-semibold">{title}</h3>
           {description && (
-            <p className="mt-1 text-sm font-medium leading-5 text-slate-500">
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
               {description}
             </p>
           )}

@@ -5,11 +5,14 @@
 import * as React from "react";
 import { z } from "zod";
 import {
+  Box,
+  Info,
   Loader2,
   PackagePlus,
   Plus,
   Ruler,
   Save,
+  Star,
   Trash2,
   UserRound,
   Users,
@@ -46,7 +49,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 import { cn } from "@/lib/utils";
 import { getLatestMeasurement } from "@/api/useGetLatestMeasurement";
@@ -151,51 +160,46 @@ function SectionCard({
   description,
   icon: Icon,
   className,
+  contentClassName,
   children,
 }: {
   title: string;
   description?: string;
   icon: React.ElementType;
   className?: string;
+  contentClassName?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card
-      className={cn(
-        "rounded-lg border-slate-200 bg-white shadow-sm",
-        className,
-      )}
-    >
-      <CardHeader className="border-b border-slate-100 px-4 py-3">
+    <Card className={cn("gap-0 py-0", className)}>
+      <CardHeader className="shrink-0 border-b p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
-            <Icon className="h-4 w-4" />
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="size-4" />
           </div>
 
           <div className="min-w-0">
-            <CardTitle className="text-sm font-bold text-slate-900">
-              {title}
-            </CardTitle>
+            <CardTitle>{title}</CardTitle>
 
             {description && (
-              <p className="mt-1 text-xs leading-5 text-slate-500">
+              <CardDescription className="mt-1 leading-5">
                 {description}
-              </p>
+              </CardDescription>
             )}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4">{children}</CardContent>
+      <CardContent className={cn("min-h-0 p-4", contentClassName)}>
+        {children}
+      </CardContent>
     </Card>
   );
 }
 
-const fieldClassName =
-  "h-10 rounded-lg border-slate-200 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/10";
+const fieldClassName = "h-10";
 
-const textAreaClassName =
-  "min-h-24 resize-none rounded-lg border-slate-200 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-slate-900/10";
+const textAreaClassName = "min-h-24 resize-none";
 
 function toOptionalString(value?: string | null) {
   const cleaned = value?.trim();
@@ -248,12 +252,14 @@ function PackageTemplateCategoryPicker({
 }) {
   if (!template) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center">
-        <PackagePlus className="mx-auto h-6 w-6 text-slate-400" />
-        <p className="mt-2 text-sm font-semibold text-slate-900">
+      <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Box className="size-6" />
+        </div>
+        <p className="mt-3 text-sm font-semibold text-foreground">
           Select a garment set first
         </p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
+        <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
           The categories from that set will appear here for block creation.
         </p>
       </div>
@@ -262,17 +268,17 @@ function PackageTemplateCategoryPicker({
 
   if (!items.length) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         This garment set does not have garment categories configured.
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="flex flex-col gap-1 border-b border-slate-100 px-3 py-2">
-        <p className="text-sm font-semibold text-slate-900">{template.name}</p>
-        <p className="text-xs text-slate-500">
+    <div className="overflow-hidden rounded-lg border">
+      <div className="flex flex-col gap-1 border-b bg-muted/30 px-3 py-2">
+        <p className="text-sm font-semibold">{template.name}</p>
+        <p className="text-xs">
           Enter block numbers only for the categories you want to create now.
         </p>
       </div>
@@ -291,33 +297,26 @@ function PackageTemplateCategoryPicker({
             <div
               key={item.id}
               className={cn(
-                "rounded-lg border bg-white p-3 transition",
+                "rounded-lg border p-3 transition",
                 hasDuplicate
-                  ? "border-red-200 bg-red-50 ring-1 ring-red-200"
+                  ? "border-destructive/40 bg-destructive/5"
                   : hasBlockNumber
-                  ? "border-blue-200 bg-blue-50 ring-1 ring-blue-200"
-                  : "border-slate-200",
+                    ? "border-primary/40 bg-primary/5"
+                    : "bg-background",
               )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">
+                  <p className="truncate text-sm font-semibold">
                     {item.category?.name ?? item.itemDescription}
                   </p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                  <p className="mt-1 line-clamp-2 text-xs leading-5">
                     {item.itemDescription}
                   </p>
                 </div>
 
                 {hasBlockNumber && (
-                  <Badge
-                    className={cn(
-                      "shrink-0 rounded-md text-white",
-                      hasDuplicate
-                        ? "bg-red-600 hover:bg-red-600"
-                        : "bg-blue-600 hover:bg-blue-600",
-                    )}
-                  >
+                  <Badge variant={hasDuplicate ? "destructive" : "default"}>
                     {hasDuplicate ? "Exists" : "Ready"}
                   </Badge>
                 )}
@@ -335,18 +334,17 @@ function PackageTemplateCategoryPicker({
                 className={cn(
                   fieldClassName,
                   "mt-3",
-                  hasDuplicate &&
-                    "border-red-300 bg-white text-red-950 focus-visible:ring-red-500/20",
+                  hasDuplicate && "text-destructive",
                 )}
               />
 
               {hasDuplicate ? (
-                <p className="mt-2 text-xs leading-5 text-red-700">
+                <p className="mt-2 text-xs leading-5 text-destructive">
                   Block {duplicateBlock.blockNumber} already exists for this
                   category. Choose another number or use the existing block.
                 </p>
               ) : hasBlockNumber && isCheckingDuplicates ? (
-                <p className="mt-2 text-xs leading-5 text-slate-500">
+                <p className="mt-2 text-xs leading-5">
                   Checking existing block numbers...
                 </p>
               ) : null}
@@ -402,43 +400,53 @@ export function CreateBlockDialog({
   React.useEffect(() => {
     if (!open || !initialCustomer) return;
 
-    setSelectedCustomer(initialCustomer);
-    setCustomerAssignments((current) => {
-      if (
-        current.some(
-          (assignment) => assignment.customerId === initialCustomer.id,
-        )
-      ) {
-        return current;
-      }
+    let cancelled = false;
 
-      return [mapCustomerToAssignment(initialCustomer), ...current];
+    queueMicrotask(() => {
+      if (cancelled) return;
+
+      setSelectedCustomer(initialCustomer);
+      setCustomerAssignments((current) => {
+        if (
+          current.some(
+            (assignment) => assignment.customerId === initialCustomer.id,
+          )
+        ) {
+          return current;
+        }
+
+        return [mapCustomerToAssignment(initialCustomer), ...current];
+      });
+
+      setValue("customerId", initialCustomer.id, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+      setValue("customerName", initialCustomer.fullName, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+      setValue("phoneNumber", initialCustomer.phoneNumber ?? "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+      setValue("customerTown", initialCustomer.town ?? "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+      setValue("customerAddress", initialCustomer.address ?? "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+      setValue("hospitalName", initialCustomer.hospitalName ?? "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
     });
 
-    setValue("customerId", initialCustomer.id, {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
-    setValue("customerName", initialCustomer.fullName, {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
-    setValue("phoneNumber", initialCustomer.phoneNumber ?? "", {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
-    setValue("customerTown", initialCustomer.town ?? "", {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
-    setValue("customerAddress", initialCustomer.address ?? "", {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
-    setValue("hospitalName", initialCustomer.hospitalName ?? "", {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
+    return () => {
+      cancelled = true;
+    };
   }, [initialCustomer, open, setValue]);
 
   const selectedPackageTemplate = React.useMemo(() => {
@@ -701,7 +709,8 @@ export function CreateBlockDialog({
     const assignments = draftAssignment
       ? [
           ...customerAssignments.filter(
-            (assignment) => assignment.customerId !== draftAssignment.customerId,
+            (assignment) =>
+              assignment.customerId !== draftAssignment.customerId,
           ),
           draftAssignment,
         ]
@@ -787,9 +796,7 @@ export function CreateBlockDialog({
   const isSubmitting = createBlockMutation.isPending;
 
   const canAddCustomer =
-    Boolean(customerId) &&
-    Boolean(selectedPackageTemplateId) &&
-    !isSubmitting;
+    Boolean(customerId) && Boolean(selectedPackageTemplateId) && !isSubmitting;
   const canSubmit =
     Boolean(selectedPackageTemplateId) &&
     Boolean(blockEntries.length) &&
@@ -800,36 +807,27 @@ export function CreateBlockDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex h-[92vh] max-h-[92vh] flex-col gap-0 overflow-hidden rounded-lg border-slate-200 bg-slate-50 p-0 sm:max-w-5xl">
-        <DialogHeader className="shrink-0 border-b border-slate-200 bg-white px-5 py-4">
+      <DialogContent className="flex h-[94vh] max-h-[94vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl">
+        <DialogHeader className="shrink-0 border-b px-5 py-4 pr-14">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
-                <PackagePlus className="h-5 w-5" />
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <PackagePlus className="size-5" />
               </div>
 
               <div className="min-w-0">
-                <DialogTitle className="text-lg font-bold text-slate-900">
-                  Create New Block
-                </DialogTitle>
+                <DialogTitle className="text-xl">Create New Block</DialogTitle>
 
-                <DialogDescription className="mt-1 text-sm text-slate-500">
-                  Assign the reusable block to one or more customers. The
-                  latest matching measurement is linked for each customer when
+                <DialogDescription className="mt-1 text-sm">
+                  Assign the reusable block to one or more customers. The latest
+                  matching measurement is linked for each customer when
                   available.
                 </DialogDescription>
               </div>
             </div>
 
-            <Badge
-              variant="outline"
-              className={cn(
-                "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-                customerAssignments.length || customerId
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700",
-              )}
-            >
+            <Badge variant="secondary" className="w-fit shrink-0">
+              <UserRound className="size-3.5" />
               {customerAssignments.length
                 ? `${customerAssignments.length} customer${
                     customerAssignments.length === 1 ? "" : "s"
@@ -846,12 +844,13 @@ export function CreateBlockDialog({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
           >
-            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[1fr_minmax(280px,340px)] lg:overflow-hidden">
+            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto bg-muted/20 p-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:overflow-hidden">
               <SectionCard
                 title="Customer Assignments"
                 description="Add every customer who can use this block. Helora will link the latest matching measurement when available."
                 icon={Users}
-                className="lg:col-start-2 lg:row-start-1 lg:min-h-0 lg:overflow-y-auto"
+                className="order-2 lg:col-start-2 lg:row-start-1 lg:min-h-0"
+                contentClassName="flex-1 lg:overflow-y-auto"
               >
                 <div className="space-y-4">
                   <CustomerPhoneLookupField
@@ -896,15 +895,15 @@ export function CreateBlockDialog({
                   />
 
                   {selectedCustomer || customerId ? (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3">
+                    <div className="rounded-lg border bg-muted/30 px-3 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-emerald-950">
+                          <p className="text-sm font-medium text-foreground">
                             {form.getValues("customerName") ||
                               "Customer selected"}
                           </p>
 
-                          <p className="mt-1 text-xs text-emerald-700">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {form.getValues("phoneNumber") || "-"}
                             {form.getValues("customerTown")
                               ? ` • ${form.getValues("customerTown")}`
@@ -915,14 +914,15 @@ export function CreateBlockDialog({
                           </p>
                         </div>
 
-                        <Badge className="shrink-0 rounded-full bg-emerald-600 text-white hover:bg-emerald-600">
-                          Selected
-                        </Badge>
+                        <Badge className="shrink-0">Selected</Badge>
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-medium text-amber-800">
-                      Select a customer, then add them to the assignment list.
+                    <div className="flex items-start gap-2 rounded-lg border bg-muted/30 px-3 py-3 text-sm">
+                      <Info className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <span>
+                        Select a customer, then add them to the assignment list.
+                      </span>
                     </div>
                   )}
 
@@ -939,68 +939,74 @@ export function CreateBlockDialog({
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full rounded-lg bg-white"
+                    className="w-full"
                     disabled={!canAddCustomer}
                     onClick={handleAddCustomerAssignment}
                   >
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus className="size-4" />
                     Add customer to block
                   </Button>
 
-                  <div className="rounded-lg border border-slate-200 bg-white">
-                    <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
-                      <p className="text-xs font-semibold uppercase text-slate-500">
+                  <div className="overflow-hidden rounded-lg border">
+                    <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2.5">
+                      <p className="text-sm font-semibold">
                         Assigned customers
                       </p>
-                      <Badge variant="outline" className="rounded-md">
+                      <Badge variant="outline">
                         {customerAssignments.length}
                       </Badge>
                     </div>
 
                     {customerAssignments.length ? (
-                      <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
+                      <div className="max-h-80 divide-y overflow-y-auto">
                         {customerAssignments.map((assignment) => (
                           <div
                             key={assignment.customerId}
                             className="space-y-3 px-3 py-3"
                           >
                             <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-slate-900">
-                                  {assignment.customerName}
-                                </p>
-                                <p className="mt-1 truncate text-xs text-slate-500">
-                                  {assignment.phoneNumber || "-"}
-                                  {assignment.town
-                                    ? ` - ${assignment.town}`
-                                    : ""}
-                                  {assignment.hospitalName
-                                    ? ` - ${assignment.hospitalName}`
-                                    : ""}
-                                </p>
-                                <p className="mt-1 truncate text-xs text-slate-500">
-                                  Latest matching measurements are linked when
-                                  the blocks are saved.
-                                </p>
+                              <div className="flex min-w-0 items-start gap-2.5">
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
+                                  {assignment.customerName
+                                    .charAt(0)
+                                    .toUpperCase() || "C"}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-foreground">
+                                    {assignment.customerName}
+                                  </p>
+                                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                                    {assignment.phoneNumber || "-"}
+                                    {assignment.town
+                                      ? ` - ${assignment.town}`
+                                      : ""}
+                                  </p>
+                                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                                    Measurement linked automatically when
+                                    available.
+                                  </p>
+                                </div>
                               </div>
 
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 shrink-0 text-slate-400 hover:text-red-600"
+                                className="size-8 shrink-0"
                                 onClick={() =>
                                   handleRemoveCustomerAssignment(
                                     assignment.customerId,
                                   )
                                 }
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="size-4" />
+                                <span className="sr-only">Remove customer</span>
                               </Button>
                             </div>
 
-                            <div className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
-                              <span className="text-xs text-slate-600">
+                            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+                              <span className="text-xs text-muted-foreground">
                                 Default block for this customer
                               </span>
                               <Switch
@@ -1017,9 +1023,16 @@ export function CreateBlockDialog({
                         ))}
                       </div>
                     ) : (
-                      <div className="px-3 py-5 text-center text-sm text-slate-500">
-                        <UserRound className="mx-auto mb-2 h-5 w-5 text-slate-400" />
-                        No customers added yet.
+                      <div className="flex min-h-44 flex-col items-center justify-center px-3 py-6 text-center">
+                        <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                          <Users className="size-5" />
+                        </div>
+                        <p className="mt-3 text-sm font-medium text-foreground">
+                          No customers added yet
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Search and add a customer to get started.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1030,10 +1043,11 @@ export function CreateBlockDialog({
                 title="Block Details"
                 description="Select the garment set first, choose the category, then assign the block number."
                 icon={Ruler}
-                className="lg:col-start-1 lg:row-start-1 lg:min-h-0 lg:overflow-y-auto"
+                className="order-1 lg:col-start-1 lg:row-start-1 lg:min-h-0"
+                contentClassName="flex-1 lg:overflow-y-auto"
               >
                 {isPackageTemplatesError && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                     Garment sets could not be loaded. Please refresh and try
                     again.
                   </div>
@@ -1060,7 +1074,7 @@ export function CreateBlockDialog({
                       <SelectContent
                         position="popper"
                         sideOffset={6}
-                        className="z-80 max-h-72 rounded-lg"
+                        className="z-80 max-h-72"
                       >
                         {packageTemplates.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
@@ -1094,27 +1108,26 @@ export function CreateBlockDialog({
 
                   <div
                     className={cn(
-                      "md:col-span-12 rounded-lg border px-3 py-3 text-xs leading-5",
+                      "flex items-start gap-2 rounded-lg border px-3 py-3 text-xs leading-5 md:col-span-12",
                       hasDuplicateBlockNumbers
-                        ? "border-red-200 bg-red-50 text-red-700"
-                        : isCheckingDuplicateBlocks
-                          ? "border-amber-200 bg-amber-50 text-amber-800"
-                          : "border-blue-100 bg-blue-50 text-blue-800",
+                        ? "border-destructive/30 bg-destructive/5 text-destructive"
+                        : "bg-muted/30 text-muted-foreground",
                     )}
                   >
-                    {hasDuplicateBlockNumbers
-                      ? `${duplicateBlockCount} block ${
-                          duplicateBlockCount === 1 ? "number" : "numbers"
-                        } already exist. Choose different numbers before saving.`
-                      : isCheckingDuplicateBlocks
-                        ? "Checking whether these block numbers already exist..."
-                        : blockEntries.length
-                          ? `${blockEntries.length} block ${
-                              blockEntries.length === 1
-                                ? "number"
-                                : "numbers"
-                            } ready to create. Latest matching measurements will be linked per customer and category during save.`
-                          : "Add a block number to any category above. Categories without a number will be skipped."}
+                    <Info className="mt-0.5 size-4 shrink-0" />
+                    <span>
+                      {hasDuplicateBlockNumbers
+                        ? `${duplicateBlockCount} block ${
+                            duplicateBlockCount === 1 ? "number" : "numbers"
+                          } already exist. Choose different numbers before saving.`
+                        : isCheckingDuplicateBlocks
+                          ? "Checking whether these block numbers already exist..."
+                          : blockEntries.length
+                            ? `${blockEntries.length} block ${
+                                blockEntries.length === 1 ? "number" : "numbers"
+                              } ready to create. Latest matching measurements will be linked per customer and category during save.`
+                            : "Add a block number to any category above. Categories without a number will be skipped."}
+                    </span>
                   </div>
 
                   <FormField
@@ -1160,7 +1173,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="versionNo"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-3">
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Version No</FormLabel>
                         <FormControl>
                           <Input
@@ -1179,7 +1192,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="previousBlockId"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-3">
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Previous Block ID</FormLabel>
                         <FormControl>
                           <Input
@@ -1197,7 +1210,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="status"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-3">
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Status</FormLabel>
 
                         <Select
@@ -1213,7 +1226,7 @@ export function CreateBlockDialog({
                           <SelectContent
                             position="popper"
                             sideOffset={6}
-                            className="z-80 rounded-lg"
+                            className="z-80"
                           >
                             <SelectItem value="ACTIVE">Active</SelectItem>
                             <SelectItem value="INACTIVE">Inactive</SelectItem>
@@ -1230,7 +1243,7 @@ export function CreateBlockDialog({
                     control={control}
                     name="legacyId"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-3">
+                      <FormItem className="md:col-span-4">
                         <FormLabel>Legacy ID</FormLabel>
 
                         <FormControl>
@@ -1316,15 +1329,20 @@ export function CreateBlockDialog({
                     name="isDefault"
                     render={({ field }) => (
                       <FormItem className="md:col-span-12">
-                        <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                          <div>
-                            <FormLabel className="text-sm font-bold text-slate-900">
-                              Make default block for this customer
-                            </FormLabel>
-                            <p className="mt-1 text-xs text-slate-500">
-                              Recommended when this is the main block for future
-                              orders.
-                            </p>
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              <Star className="size-4" />
+                            </div>
+                            <div>
+                              <FormLabel className="text-sm">
+                                Make default block for this customer
+                              </FormLabel>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Recommended when this is the main block for
+                                future orders.
+                              </p>
+                            </div>
                           </div>
 
                           <FormControl>
@@ -1341,25 +1359,19 @@ export function CreateBlockDialog({
                   />
                 </div>
               </SectionCard>
-
             </div>
 
-            <DialogFooter className="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
+            <DialogFooter className="shrink-0 border-t bg-background px-5 py-4">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-lg"
                 disabled={isSubmitting}
                 onClick={() => handleClose(false)}
               >
                 Cancel
               </Button>
 
-              <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="rounded-lg bg-slate-900 hover:bg-slate-800"
-              >
+              <Button type="submit" disabled={!canSubmit}>
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

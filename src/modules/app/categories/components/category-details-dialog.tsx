@@ -1,17 +1,41 @@
+import { useEffect, type ElementType } from "react";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import {
+  ClipboardList,
+  HelpCircle,
+  Loader2,
+  Pencil,
+  Ruler,
+  Save,
+  Shirt,
+  ShoppingBag,
+  X,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  CalendarDays,
-  ClipboardList,
-  FileText,
-  Shirt,
-} from "lucide-react";
-import type { Category } from "../types/category.types";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+
+import { cn } from "@/lib/utils";
+import type { Category, CreateCategoryPayload } from "../types/category.types";
+import { useCreateCategory, useUpdateCategory } from "../api/category-api";
+
+const categorySchema = z.object({
+  name: z.string().min(2, "Category name is required"),
+  description: z.string(),
+});
 
 interface Props {
   open: boolean;
@@ -19,112 +43,341 @@ interface Props {
   onClose: () => void;
 }
 
-export function CategoryDetailsDialog({ open, category, onClose }: Props) {
-  if (!category) return null;
+export function CategoryFormDialog({ open, category, onClose }: Props) {
+  const isEdit = Boolean(category?.id);
+
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+
+  const isPending = createCategory.isPending || updateCategory.isPending;
+
+  const form = useForm({
+    defaultValues: getDefaultValues(category),
+    validators: {
+      onChange: categorySchema,
+    },
+    onSubmit: async ({ value }) => {
+      const payload: CreateCategoryPayload = {
+        name: value.name.trim(),
+        description: cleanOptional(value.description),
+      };
+
+      if (isEdit && category?.id) {
+        await updateCategory.mutateAsync({
+          categoryId: category.id,
+          payload,
+        });
+      } else {
+        await createCategory.mutateAsync(payload);
+      }
+
+      onClose();
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      form.reset(getDefaultValues(category));
+    }
+  }, [open, category, form]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && !isPending) {
+      onClose();
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-2xl">
-        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-              <Shirt className="h-6 w-6" />
-            </div>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="border-b bg-background px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <DialogTitle className="truncate text-xl font-semibold tracking-tight">
+                  {isEdit ? "Edit Category" : "Add Category"}
+                </DialogTitle>
+              </div>
 
-            <div className="min-w-0">
-              <DialogTitle className="truncate text-xl font-black tracking-tight text-slate-950">
-                {category.name}
-              </DialogTitle>
-
-              <DialogDescription className="mt-1 text-sm font-medium text-slate-500">
-                Garment category details
+              <DialogDescription className="text-sm text-muted-foreground">
+                {isEdit
+                  ? "Update category details used across blocks, orders, and measurement configurations."
+                  : "Create a new garment category for blocks, orders, and measurement configurations."}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="max-h-[calc(92vh-90px)] overflow-y-auto bg-slate-50 p-5">
-          <div className="space-y-4">
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionHeading icon={FileText} title="Category details" />
+        <ScrollArea className="max-h-[calc(92vh-145px)]">
+          <form
+            id="category-form"
+            className="space-y-5 bg-muted/30 p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <section className="rounded-xl border bg-card shadow-sm">
+              <div className="flex items-start gap-3 p-5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold">
+                        Category details
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Main information used when creating blocks, order items,
+                        and measurement fields.
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="mt-4 grid gap-3">
-                <InfoItem label="Name" value={category.name} />
-                <InfoItem
-                  label="Description"
-                  value={category.description || "No description added"}
-                />
+                  <Separator className="my-4" />
+
+                  <div className="grid gap-4">
+                    <form.Field
+                      name="name"
+                      children={(field) => (
+                        <FormField>
+                          <div className="flex items-center justify-between gap-3">
+                            <Label htmlFor="category-name">
+                              Category Name{" "}
+                              <span className="text-destructive">*</span>
+                            </Label>
+
+                            <span className="text-xs text-muted-foreground">
+                              Required
+                            </span>
+                          </div>
+
+                          <Input
+                            id="category-name"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(event.target.value)
+                            }
+                            placeholder="Example: Nurse Uniform"
+                            disabled={isPending}
+                            className={cn(
+                              "h-11 bg-background",
+                              field.state.meta.errors.length &&
+                                "border-destructive focus-visible:ring-destructive",
+                            )}
+                          />
+
+                          <FieldError errors={field.state.meta.errors} />
+                        </FormField>
+                      )}
+                    />
+
+                    <form.Field
+                      name="description"
+                      children={(field) => (
+                        <FormField>
+                          <div className="flex items-center justify-between gap-3">
+                            <Label htmlFor="category-description">
+                              Description
+                            </Label>
+
+                            <span className="text-xs text-muted-foreground">
+                              Optional
+                            </span>
+                          </div>
+
+                          <Textarea
+                            id="category-description"
+                            value={field.state.value ?? ""}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(event.target.value)
+                            }
+                            placeholder="Example: Uniform category for hospital nurse staff."
+                            disabled={isPending}
+                            className="min-h-28 resize-none bg-background"
+                          />
+
+                          <p className="text-xs text-muted-foreground">
+                            Add a short note to help staff understand when this
+                            category should be selected.
+                          </p>
+                        </FormField>
+                      )}
+                    />
+                  </div>
+                </div>
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionHeading icon={ClipboardList} title="Usage" />
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
+              <SectionHeader
+                title="How this category is used"
+                description="Categories help Helora organize garment work across the main production workflow."
+              />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <InfoItem
-                  label="Blocks"
-                  value={`${category._count?.blocks ?? 0}`}
-                />
-                <InfoItem
+                <UsageCard
+                  icon={ShoppingBag}
                   label="Orders"
-                  value={`${category._count?.orderItems ?? 0}`}
+                  description="Selected when creating customer order items."
                 />
-                <InfoItem
-                  label="Fields"
-                  value={`${category._count?.measurementFields ?? 0}`}
+
+                <UsageCard
+                  icon={ClipboardList}
+                  label="Blocks"
+                  description="Used to group reusable fit and block records."
+                />
+
+                <UsageCard
+                  icon={Ruler}
+                  label="Measurements"
+                  description="Used to configure category-specific fields."
                 />
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionHeading icon={CalendarDays} title="System details" />
+            {isEdit ? (
+              <section className="rounded-xl border bg-card p-5 shadow-sm">
+                <SectionHeader
+                  title="Edit impact"
+                  description="Changing this category name will affect how it appears in future blocks, orders, and measurement setup."
+                />
+              </section>
+            ) : null}
+          </form>
+        </ScrollArea>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <InfoItem label="Created" value={formatDateTime(category.createdAt)} />
-                <InfoItem label="Updated" value={formatDateTime(category.updatedAt)} />
-              </div>
-            </section>
+        <DialogFooter className="border-t bg-background px-6 py-4">
+          <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {isEdit
+                ? "Changes may affect future blocks, orders, and measurement setup."
+                : "Measurement fields can be configured after creating the category."}
+            </p>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isPending}
+              >
+                <X className="mr-2 size-4" />
+                Cancel
+              </Button>
+
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+                children={([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="button"
+                    onClick={form.handleSubmit}
+                    disabled={!canSubmit || isSubmitting || isPending}
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        {isEdit ? (
+                          <Pencil className="mr-2 size-4" />
+                        ) : (
+                          <Save className="mr-2 size-4" />
+                        )}
+                        {isEdit ? "Save Changes" : "Add Category"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              />
+            </div>
           </div>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function SectionHeading({
-  icon: Icon,
+function SectionHeader({
   title,
+  description,
 }: {
-  icon: React.ElementType;
   title: string;
+  description: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon className="h-5 w-5 text-slate-600" />
-      <h3 className="font-black text-slate-950">{title}</h3>
+    <div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
+function FormField({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-2">{children}</div>;
+}
+
+function UsageCard({
+  icon: Icon,
+  label,
+  description,
+}: {
+  icon: ElementType;
+  label: string;
+  description: string;
+}) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-      <p className="mt-1 wrap-break-word text-sm font-black text-slate-900">
-        {value}
-      </p>
+    <div className="rounded-lg border bg-background p-4">
+      <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icon className="size-4" />
+      </div>
+
+      <div className="mt-4">
+        <p className="text-sm font-semibold">{label}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          {description}
+        </p>
+      </div>
     </div>
   );
 }
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString("en-LK", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function FieldError({ errors }: { errors: unknown[] }) {
+  if (!errors.length) return null;
+
+  return (
+    <p className="text-sm font-medium text-destructive">
+      {errors.map(formatFormError).join(", ")}
+    </p>
+  );
+}
+
+function formatFormError(error: unknown) {
+  if (typeof error === "string") return error;
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return "Invalid value";
+}
+
+function getDefaultValues(category?: Category | null) {
+  return {
+    name: category?.name ?? "",
+    description: category?.description ?? "",
+  };
+}
+
+function cleanOptional(value?: string | null) {
+  const cleaned = value?.trim();
+  return cleaned ? cleaned : undefined;
 }

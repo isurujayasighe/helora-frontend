@@ -1,5 +1,13 @@
 import { Eye, MapPin, Phone, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Customer } from "@/types/customers";
 
 const formatDate = (value?: string | null) => {
@@ -31,12 +39,10 @@ export function CustomersTable({
 }: CustomersTableProps) {
   if (customers.length === 0) {
     return (
-      <div className="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
-        <UserRound className="h-10 w-10 text-slate-400" />
-        <h3 className="mt-4 text-sm font-semibold text-slate-900">
-          No customers found
-        </h3>
-        <p className="mt-1 text-sm text-slate-500">
+      <div className="flex min-h-80 flex-col items-center justify-center border border-dashed p-8 text-center">
+        <UserRound className="h-10 w-10" />
+        <h3 className="mt-4 text-sm font-semibold">No customers found</h3>
+        <p className="mt-1 text-sm">
           Try changing your search filters or add a new customer.
         </p>
       </div>
@@ -44,77 +50,83 @@ export function CustomersTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-hidden border">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-237.5 text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 font-semibold">Phone</th>
-              <th className="px-4 py-3 font-semibold">Alternative Phone</th>
-              <th className="px-4 py-3 font-semibold">Town</th>
-              <th className="px-4 py-3 font-semibold">Orders</th>
-              <th className="px-4 py-3 font-semibold">Created Date</th>
-              <th className="px-4 py-3 text-right font-semibold">Action</th>
-            </tr>
-          </thead>
+        <Table className="w-full min-w-237.5 text-left text-sm">
+          <TableHeader className="border-b text-xs uppercase">
+            <TableRow>
+              <TableHead className="px-4 py-3 font-semibold">
+                Customer
+              </TableHead>
+              <TableHead className="px-4 py-3 font-semibold">Phone</TableHead>
+              <TableHead className="px-4 py-3 font-semibold">
+                Alternative Phone
+              </TableHead>
+              <TableHead className="px-4 py-3 font-semibold">Town</TableHead>
+              <TableHead className="px-4 py-3 font-semibold">Orders</TableHead>
+              <TableHead className="px-4 py-3 font-semibold">
+                Created Date
+              </TableHead>
+              <TableHead className="px-4 py-3 text-right font-semibold">
+                Action
+              </TableHead>
+            </TableRow>
+          </TableHeader>
 
-          <tbody className="divide-y divide-slate-100">
+          <TableBody className="divide-y">
             {customers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-slate-50/70">
-                <td className="px-4 py-4">
+              <TableRow key={customer.id}>
+                <TableCell className="px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
+                    <div className="flex h-9 w-9 items-center justify-center text-xs">
                       {customer.fullName?.charAt(0)?.toUpperCase() || "C"}
                     </div>
 
                     <div>
-                      <p className="font-semibold text-slate-900">
-                        {customer.fullName}
-                      </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-semibold">{customer.fullName}</p>
+                      <p className="text-xs">
                         {customer.address || "No address"}
                       </p>
                     </div>
                   </div>
-                </td>
+                </TableCell>
 
-                <td className="px-4 py-4">
-                  <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
-                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                <TableCell className="px-4 py-4">
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    <Phone className="h-3.5 w-3.5" />
                     {customer.phoneNumber}
                   </span>
-                </td>
+                </TableCell>
 
-                <td className="px-4 py-4">
+                <TableCell className="px-4 py-4">
                   {customer.alternatePhone ? (
-                    <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
-                      <Phone className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <Phone className="h-3.5 w-3.5" />
                       {customer.alternatePhone}
                     </span>
                   ) : (
-                    <span className="text-slate-400">-</span>
+                    <span>-</span>
                   )}
-                </td>
+                </TableCell>
 
-                <td className="px-4 py-4">
-                  <span className="inline-flex items-center gap-1.5 text-slate-700">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                <TableCell className="px-4 py-4">
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
                     {customer.town || "-"}
                   </span>
-                </td>
+                </TableCell>
 
-                <td className="px-4 py-4">
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                <TableCell className="px-4 py-4">
+                  <span className="px-2.5 py-1 text-xs font-semibold">
                     {customer._count?.orders ?? 0}
                   </span>
-                </td>
+                </TableCell>
 
-                <td className="px-4 py-4 text-slate-700">
+                <TableCell className="px-4 py-4">
                   {formatDate(customer.createdAt)}
-                </td>
+                </TableCell>
 
-                <td className="px-4 py-4 text-right">
+                <TableCell className="px-4 py-4 text-right">
                   <Button
                     type="button"
                     variant="ghost"
@@ -125,20 +137,18 @@ export function CustomersTable({
                     <Eye className="h-4 w-4" />
                     View
                   </Button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">
-          Showing page{" "}
-          <span className="font-medium text-slate-900">{currentPage}</span> of{" "}
-          <span className="font-medium text-slate-900">{totalPages}</span> —{" "}
-          <span className="font-medium text-slate-900">{totalCount}</span>{" "}
-          customers
+      <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm">
+          Showing page <span className="font-medium">{currentPage}</span> of{" "}
+          <span className="font-medium">{totalPages}</span> —{" "}
+          <span className="font-medium">{totalCount}</span> customers
         </p>
 
         <div className="flex items-center gap-2">

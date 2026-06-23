@@ -4,7 +4,7 @@ import * as React from "react";
 import {
   CheckCircle2,
   Loader2,
-  MoreVertical,
+  MoreHorizontal,
   Package2,
   Pencil,
   Plus,
@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { CustomerStatCard } from "@/components/common/customer-stat-card";
+import { DashboardPageHeader } from "../dashboard/components/dashboard-page-header";
 import {
   useCreatePackageTemplate,
   useDeactivatePackageTemplate,
@@ -177,10 +179,14 @@ export default function PackageTemplatesPage() {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
 
-  const { data: templates = [], isLoading, isFetching, refetch } =
-    usePackageTemplatesQuery({
-      search: debouncedSearch || undefined,
-    });
+  const {
+    data: templates = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = usePackageTemplatesQuery({
+    search: debouncedSearch || undefined,
+  });
   const deactivateTemplate = useDeactivatePackageTemplate();
 
   React.useEffect(() => {
@@ -251,145 +257,126 @@ export default function PackageTemplatesPage() {
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
-      <div className="flex h-full flex-col gap-4 p-3 md:p-5">
-        <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-              <Package2 className="h-5 w-5" />
-            </div>
-
-            <div className="min-w-0">
-              <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
-                Garment Sets
-              </h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Manage uniform packages and the garment or accessory items
-                included in each set.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => refetch()}
-              disabled={isLoading || isFetching}
-              className="h-9 rounded-lg bg-white font-bold"
-            >
-              <RefreshCw
-                className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")}
-              />
-              Refresh
-            </Button>
-
-            <Button
-              type="button"
-              onClick={openCreate}
-              className="h-9 rounded-lg bg-slate-900 font-bold shadow-sm hover:bg-slate-800"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Set
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <PackageStatCard
-            title="Total Sets"
-            value={stats.total}
-            description="All configured packages"
-            icon={Package2}
-          />
-          <PackageStatCard
-            title="Active Sets"
-            value={stats.active}
-            description="Available in Order Builder"
-            icon={CheckCircle2}
-          />
-          <PackageStatCard
-            title="Set Items"
-            value={stats.items}
-            description="Garments and accessories"
-            icon={Package2}
-          />
-          <PackageStatCard
-            title="Optional Items"
-            value={stats.optional}
-            description="Customer selectable add-ons"
-            icon={Plus}
-          />
-        </div>
-
-        <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-          <CardContent className="p-3 md:p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div className="grid w-full gap-2 lg:max-w-md">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Search
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search set name or description..."
-                    className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 md:p-6">
+          <DashboardPageHeader
+            title="Garment Sets"
+            description="Manage uniform packages and the garment or accessory items included in each set."
+            actions={
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isLoading || isFetching}
+                >
+                  <RefreshCw
+                    className={cn("size-4", isFetching && "animate-spin")}
                   />
+                  Refresh
+                </Button>
+
+                <Button type="button" onClick={openCreate}>
+                  <Plus className="size-4" />
+                  New Set
+                </Button>
+              </>
+            }
+          />
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <CustomerStatCard
+              title="Total Sets"
+              value={stats.total}
+              description="All configured packages"
+              icon={Package2}
+            />
+            <CustomerStatCard
+              title="Active Sets"
+              value={stats.active}
+              description="Available in Order Builder"
+              icon={CheckCircle2}
+            />
+            <CustomerStatCard
+              title="Set Items"
+              value={stats.items}
+              description="Garments and accessories"
+              icon={Package2}
+            />
+            <CustomerStatCard
+              title="Optional Items"
+              value={stats.optional}
+              description="Customer selectable add-ons"
+              icon={Plus}
+            />
+          </div>
+
+          <Card>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div className="grid w-full gap-2 lg:max-w-md">
+                  <label className="text-sm font-medium">Search</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                    <Input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search set name or description..."
+                      className="bg-background pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600 hover:bg-slate-100">
+                    {templates.length} sets
+                  </Badge>
+                  {debouncedSearch && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={clearFilters}
+                      className="h-10 rounded-lg font-bold text-slate-500 hover:text-slate-900"
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="rounded-lg bg-slate-100 px-3 py-1 font-bold text-slate-600 hover:bg-slate-100">
-                  {templates.length} sets
-                </Badge>
-                {debouncedSearch && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={clearFilters}
-                    className="h-10 rounded-lg font-bold text-slate-500 hover:text-slate-900"
-                  >
-                    Clear
-                  </Button>
-                )}
+          <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Garment Set Directory</CardTitle>
+                  <CardDescription>
+                    Use these sets when building uniform orders with multiple
+                    parts.
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
 
-        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 bg-white shadow-sm">
-          <CardHeader className="border-b border-slate-100 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base font-black text-slate-950">
-                  Set List
-                </CardTitle>
-                <CardDescription className="mt-1 text-sm font-medium text-slate-500">
-                  Use these sets when building uniform orders with multiple
-                  parts.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent
-            className={cn(
-              "min-h-0 flex-1 overflow-auto p-0",
-              isFetching && "opacity-70",
-            )}
-          >
-            <PackageTemplateTable
-              templates={templates}
-              isLoading={isLoading}
-              isDeactivating={deactivateTemplate.isPending}
-              onCreate={openCreate}
-              onEdit={openEdit}
-              onDeactivate={handleDeactivate}
-            />
-          </CardContent>
-        </Card>
+            <CardContent
+              className={cn(
+                "min-h-0 flex-1 overflow-auto p-0",
+                isFetching && "opacity-70",
+              )}
+            >
+              <PackageTemplateTable
+                templates={templates}
+                isLoading={isLoading}
+                isDeactivating={deactivateTemplate.isPending}
+                onCreate={openCreate}
+                onEdit={openEdit}
+                onDeactivate={handleDeactivate}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <PackageTemplateDialog
@@ -398,39 +385,6 @@ export default function PackageTemplatesPage() {
         onClose={closeDialog}
       />
     </div>
-  );
-}
-
-function PackageStatCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-}: {
-  title: string;
-  value: number;
-  description: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-slate-500">{title}</p>
-            <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-              {value}
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              {description}
-            </p>
-          </div>
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -505,7 +459,9 @@ function PackageTemplateTable({
           const includedItems = template.items.filter(
             (item) => !item.isOptional,
           );
-          const optionalItems = template.items.filter((item) => item.isOptional);
+          const optionalItems = template.items.filter(
+            (item) => item.isOptional,
+          );
 
           return (
             <TableRow key={template.id} className="hover:bg-slate-50">
@@ -527,10 +483,16 @@ function PackageTemplateTable({
                 Rs. {formatMoney(template.packagePrice)}
               </TableCell>
               <TableCell className="px-4 py-3">
-                <ItemSummary items={includedItems} fallback="No included items" />
+                <ItemSummary
+                  items={includedItems}
+                  fallback="No included items"
+                />
               </TableCell>
               <TableCell className="px-4 py-3">
-                <ItemSummary items={optionalItems} fallback="No optional items" />
+                <ItemSummary
+                  items={optionalItems}
+                  fallback="No optional items"
+                />
               </TableCell>
               <TableCell className="px-4 py-3">
                 <Badge
@@ -556,7 +518,7 @@ function PackageTemplateTable({
                       size="icon"
                       className="h-9 w-9 rounded-lg"
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreHorizontal className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -592,7 +554,9 @@ function ItemSummary({
   fallback: string;
 }) {
   if (!items.length) {
-    return <span className="text-xs font-semibold text-slate-400">{fallback}</span>;
+    return (
+      <span className="text-xs font-semibold text-slate-400">{fallback}</span>
+    );
   }
 
   return (
@@ -635,7 +599,17 @@ function PackageTemplateDialog({
 
   React.useEffect(() => {
     if (!open) return;
-    setEditing(template ? toEditableTemplate(template) : emptyTemplate());
+
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setEditing(template ? toEditableTemplate(template) : emptyTemplate());
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, template]);
 
   const updateItem = (index: number, patch: Partial<EditableItem>) => {
@@ -694,7 +668,9 @@ function PackageTemplateDialog({
       onClose();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Garment set could not be saved.";
+        error instanceof Error
+          ? error.message
+          : "Garment set could not be saved.";
       toast.error(message);
     }
   };
@@ -705,14 +681,14 @@ function PackageTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden gap-0 rounded-lg p-0 sm:max-w-5xl">
-        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
+      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-5xl">
+        <DialogHeader className="border-b px-5 py-4">
           <div className="flex items-start gap-3 pr-10">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
-              <Package2 className="h-5 w-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Package2 className="size-5" />
             </div>
             <div className="min-w-0">
-              <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
+              <DialogTitle className="text-xl">
                 {isEditing ? "Edit Garment Set" : "New Garment Set"}
               </DialogTitle>
               <DialogDescription className="mt-1 text-sm font-medium text-slate-500">

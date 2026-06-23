@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
-import { AnimatePresence, motion } from "framer-motion";
-import { fadeUp } from "@/components/motions/MotionFade";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,7 +15,6 @@ import {
   FileText,
   RefreshCw,
   Search,
-  Settings,
   ShieldCheck,
   Timer,
 } from "lucide-react";
@@ -29,14 +26,20 @@ import {
 } from "./api/settings-api";
 import { SettingCard } from "./components/settings-card";
 import { SettingsEditDialog } from "./components/settings-edit-dialog";
+import { CustomerStatCard } from "@/components/common/customer-stat-card";
+import { DashboardPageHeader } from "../dashboard/components/dashboard-page-header";
 
 export default function SettingsPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState<SettingsCategory | null>(null);
 
-  const { data: settings, isLoading, isRefetching, refetch } =
-    useHeloraSettingsQuery();
+  const {
+    data: settings,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useHeloraSettingsQuery();
 
   const updateSettings = useUpdateHeloraSettings();
 
@@ -74,71 +77,49 @@ export default function SettingsPage() {
 
   return (
     <PermissionGate action="read" subject="settings">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50/60">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="helora-settings"
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex h-full flex-col gap-4 p-3 md:p-5"
-          >
-            <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-                  <Settings className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0">
-                  <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-2xl">
-                    Settings
-                  </h1>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    Configure your garment shop, orders, measurements,
-                    attendance, printing, and messages.
-                  </p>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => refetch()}
-                disabled={isLoading || isRefetching}
-                className="h-9 rounded-lg bg-white font-bold"
-              >
-                <RefreshCw
-                  className={`mr-2 h-4 w-4 ${
-                    isRefetching ? "animate-spin" : ""
-                  }`}
-                />
-                Refresh
-              </Button>
-            </div>
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 md:p-6">
+            <DashboardPageHeader
+              title="Settings"
+              description="Configure your garment shop, orders, measurements, attendance, printing, and messages."
+              actions={
+                <Button
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isLoading || isRefetching}
+                >
+                  <RefreshCw
+                    className={`size-4 ${isRefetching ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
+              }
+            />
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SettingsSummaryCard
+              <CustomerStatCard
                 title="Business"
                 value={summary.shopName}
                 description="Current shop profile"
                 icon={Building2}
               />
 
-              <SettingsSummaryCard
+              <CustomerStatCard
                 title="Orders"
                 value={summary.orders}
                 description="Order number prefixes"
                 icon={ClipboardList}
               />
 
-              <SettingsSummaryCard
+              <CustomerStatCard
                 title="Attendance"
                 value={summary.attendance}
                 description="Default working time"
                 icon={Timer}
               />
 
-              <SettingsSummaryCard
+              <CustomerStatCard
                 title="Tailor Print"
                 value={summary.print}
                 description="Default tailor copy size"
@@ -146,35 +127,33 @@ export default function SettingsPage() {
               />
             </div>
 
-            <Card className="rounded-lg border-slate-200 shadow-sm">
+            <Card>
               <CardContent className="p-3 md:p-4">
                 <div className="relative w-full lg:max-w-md">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder="Search settings..."
-                    className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 font-semibold shadow-none focus-visible:bg-white"
+                    className="bg-background pl-9"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 px-4 py-3">
+            <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
+              <CardHeader className="border-b">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <CardTitle className="text-base font-black text-slate-950">
-                      Settings Dashboard
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-sm font-medium text-slate-500">
+                    <CardTitle>Settings Directory</CardTitle>
+                    <CardDescription>
                       Open a settings area and update how Helora ERP works for
                       your shop.
                     </CardDescription>
                   </div>
 
-                  <div className="hidden h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 sm:flex">
-                    <ShieldCheck className="h-5 w-5" />
+                  <div className="hidden size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground sm:flex">
+                    <ShieldCheck className="size-5" />
                   </div>
                 </div>
               </CardHeader>
@@ -209,8 +188,8 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        </div>
 
         {settings && (
           <SettingsEditDialog
@@ -226,40 +205,6 @@ export default function SettingsPage() {
         )}
       </div>
     </PermissionGate>
-  );
-}
-
-function SettingsSummaryCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-}: {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-500">{title}</p>
-            <p className="mt-2 truncate text-xl font-black tracking-tight text-slate-950">
-              {value}
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              {description}
-            </p>
-          </div>
-
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

@@ -108,7 +108,7 @@ export type BlockDetails = {
   };
 };
 
-interface GetBlockByIdApiResponse {
+export interface GetBlockByIdApiResponse {
   success: boolean;
   data: BlockDetails;
 }
@@ -119,20 +119,17 @@ export const blockDetailsQueryKeys = {
     [...blockDetailsQueryKeys.all, blockId] as const,
 };
 
-const getBlockById = async (
-  blockId: string
+export const getBlockById = async (
+  blockId: string,
 ): Promise<GetBlockByIdApiResponse> => {
   const response = await covalentHubClient.get<GetBlockByIdApiResponse>(
-    `/blocks/${blockId}`
+    `/blocks/${blockId}`,
   );
 
   return response.data;
 };
 
-export const useGetBlockById = (
-  blockId?: string | null,
-  enabled = true
-) => {
+export const useGetBlockById = (blockId?: string | null, enabled = true) => {
   return useQuery({
     queryKey: blockDetailsQueryKeys.detail(blockId),
     queryFn: () => getBlockById(blockId!),

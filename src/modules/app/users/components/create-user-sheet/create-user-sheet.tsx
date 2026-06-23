@@ -51,7 +51,9 @@ export function CreateUserDialog({ open, onClose }: Props) {
 
     onSubmit: async ({ value }) => {
       try {
-        const [firstName, ...lastNameParts] = value.fullName.trim().split(/\s+/);
+        const [firstName, ...lastNameParts] = value.fullName
+          .trim()
+          .split(/\s+/);
 
         await createUser({
           firstName,
@@ -67,7 +69,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
         console.error("Submission failed", error);
         showToastError(
           "Could not add staff member",
-          "Please check the details and try again."
+          "Please check the details and try again.",
         );
       }
     },
@@ -87,16 +89,16 @@ export function CreateUserDialog({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-2xl gap-0">
+      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-2xl">
         {/* Header */}
-        <DialogHeader className="border-b bg-white px-5 py-4">
+        <DialogHeader className="border-b px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
-              <UserPlus className="h-6 w-6" />
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <UserPlus className="size-6" />
             </div>
 
             <div className="min-w-0">
-              <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
+              <DialogTitle className="text-xl">
                 Add New Staff Member
               </DialogTitle>
 
@@ -150,7 +152,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                         className={cn(
                           "h-12 rounded-2xl bg-slate-50 text-base font-semibold shadow-none",
                           field.state.meta.errors.length &&
-                            "border-red-500 focus-visible:ring-red-500"
+                            "border-red-500 focus-visible:ring-red-500",
                         )}
                       />
 
@@ -189,7 +191,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                           className={cn(
                             "h-12 rounded-2xl bg-slate-50 pl-10 text-base font-semibold shadow-none",
                             field.state.meta.errors.length &&
-                              "border-red-500 focus-visible:ring-red-500"
+                              "border-red-500 focus-visible:ring-red-500",
                           )}
                         />
                       </div>
@@ -260,7 +262,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                                 "hover:border-slate-300 hover:bg-slate-50",
                                 isSelected
                                   ? "border-slate-900 bg-slate-50 ring-2 ring-slate-900/10"
-                                  : "border-slate-200 bg-white"
+                                  : "border-slate-200 bg-white",
                               )}
                             >
                               <RadioGroupItem
@@ -283,7 +285,7 @@ export function CreateUserDialog({ open, onClose }: Props) {
                                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
                                   {getFriendlyRoleDescription(
                                     role.name,
-                                    role.description ?? undefined
+                                    role.description ?? undefined,
                                   )}
                                 </p>
                               </div>

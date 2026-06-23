@@ -17,11 +17,11 @@ export type UpdateBlockPayload = {
   sizeLabel?: string;
   fitNotes?: string;
   versionNo?: number;
-  previousBlockId?: string;
+  previousBlockId?: string | null;
   description?: string;
   status?: string;
   remarks?: string;
-  legacyId?: number;
+  legacyId?: number | null;
   customers?: UpdateBlockCustomerPayload[];
 };
 
@@ -42,7 +42,7 @@ const updateBlock = async ({
 }: UpdateBlockVariables): Promise<UpdateBlockApiResponse> => {
   const response = await covalentHubClient.patch<UpdateBlockApiResponse>(
     `/blocks/${blockId}`,
-    payload
+    payload,
   );
 
   return response.data;

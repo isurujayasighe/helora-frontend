@@ -21,4 +21,3 @@ export interface Order {
   totalQuantity: number;
   orderLines: SalesPart[];
 }
-

@@ -7,13 +7,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ type DatePreset = "all" | "30days" | "6months" | "custom";
 export function FilterDialog({
   currentStatus,
   onStatusChange,
-  onDateChange
+  onDateChange,
 }: FilterDialogProps) {
   const [startDate, setStartDate] = React.useState<Date | undefined>();
   const [endDate, setEndDate] = React.useState<Date | undefined>();
@@ -96,7 +96,7 @@ export function FilterDialog({
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="h-8 w-8 shrink-0 gap-2 border-slate-200 px-3 font-medium text-slate-600 hover:bg-slate-50"
+          className="h-8 w-8 shrink-0 gap-2 px-3 font-medium"
         >
           <SlidersHorizontal className="h-4 w-4" />
           <span className="hidden text-xs xs:inline">Filter</span>
@@ -104,22 +104,20 @@ export function FilterDialog({
       </DialogTrigger>
 
       <DialogContent
-        className="flex h-auto max-w-2xl flex-col overflow-hidden rounded-3xl border-none p-6 shadow-2xl"
+        className="flex h-auto max-w-2xl flex-col overflow-hidden border-none p-6"
         onOpenAutoFocus={(e) => e.preventDefault()}
         showCloseButton={false}
       >
         <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle className="text-2xl font-bold">Filter</DialogTitle>
-          <DialogClose className="rounded-full bg-slate-50 p-2 transition-colors hover:bg-slate-100">
-            <X className="h-4 w-4 text-slate-400" />
+          <DialogTitle className="text-2xl">Filter</DialogTitle>
+          <DialogClose className="p-2 transition-colors">
+            <X className="h-4 w-4" />
           </DialogClose>
         </DialogHeader>
 
         <div className="mt-4 space-y-6">
           <div className="space-y-3">
-            <h4 className="text-[13px] font-bold uppercase tracking-wide text-slate-400">
-              Filter by Date Range
-            </h4>
+            <h4 className="text-xs uppercase">Filter by Date Range</h4>
 
             <div className="flex flex-wrap gap-2">
               {[
@@ -134,10 +132,8 @@ export function FilterDialog({
                     key={preset.value}
                     variant={isActive ? "secondary" : "outline"}
                     className={cn(
-                      "h-10 rounded-full px-4 text-sm",
-                      isActive
-                        ? "border-none bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                      "h-10  px-4 text-sm",
+                      isActive ? "border-none" : "",
                     )}
                     onClick={() => handlePreset(preset.value)}
                   >
@@ -148,12 +144,10 @@ export function FilterDialog({
             </div>
           </div>
 
-          <Separator className="bg-slate-100" />
+          <Separator />
 
           <div className="space-y-3">
-            <h4 className="text-[13px] font-bold uppercase tracking-wide text-slate-400">
-              Custom Date Range
-            </h4>
+            <h4 className="text-xs uppercase">Custom Date Range</h4>
 
             <div className="flex gap-3">
               <Popover>
@@ -161,18 +155,19 @@ export function FilterDialog({
                   <Button
                     variant="outline"
                     className={cn(
-                      "flex-1 justify-between rounded-xl border-slate-200 px-4 text-left font-normal",
-                      !startDate && "text-slate-500"
+                      "flex-1 justify-between   px-4 text-left font-normal",
+                      !startDate && "",
                     )}
                   >
-                    {startDate ? format(startDate, "PPP") : <span>Start date</span>}
-                    <CalendarIcon className="h-4 w-4 text-slate-400" />
+                    {startDate ? (
+                      format(startDate, "PPP")
+                    ) : (
+                      <span>Start date</span>
+                    )}
+                    <CalendarIcon className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto rounded-2xl border-slate-100 p-0 shadow-xl"
-                  align="start"
-                >
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
@@ -186,18 +181,15 @@ export function FilterDialog({
                   <Button
                     variant="outline"
                     className={cn(
-                      "flex-1 justify-between rounded-xl border-slate-200 px-4 text-left font-normal",
-                      !endDate && "text-slate-500"
+                      "flex-1 justify-between   px-4 text-left font-normal",
+                      !endDate && "",
                     )}
                   >
                     {endDate ? format(endDate, "PPP") : <span>End date</span>}
-                    <CalendarIcon className="h-4 w-4 text-slate-400" />
+                    <CalendarIcon className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto rounded-2xl border-slate-100 p-0 shadow-xl"
-                  align="end"
-                >
+                <PopoverContent className="w-auto p-0" align="end">
                   <Calendar
                     mode="single"
                     selected={endDate}
@@ -209,47 +201,45 @@ export function FilterDialog({
             </div>
           </div>
 
-          <Separator className="bg-slate-100" />
+          <Separator />
 
           <div className="space-y-3">
-            <h4 className="text-[13px] font-bold uppercase tracking-wide text-slate-400">
-              Filter by Order Status
-            </h4>
+            <h4 className="text-xs uppercase">Filter by Order Status</h4>
 
             <div className="flex flex-wrap gap-2">
-              {["All", "Processing", "Invoiced", "Delivered", "Cancelled"].map((s) => (
-                <Button
-                  key={s}
-                  variant={currentStatus === s.toLowerCase() ? "secondary" : "outline"}
-                  onClick={() => onStatusChange(s.toLowerCase())}
-                  className={cn(
-                    "h-10 rounded-full px-5 text-sm transition-all",
-                    currentStatus === s.toLowerCase()
-                      ? "border-none bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  )}
-                >
-                  {s}
-                </Button>
-              ))}
+              {["All", "Processing", "Invoiced", "Delivered", "Cancelled"].map(
+                (s) => (
+                  <Button
+                    key={s}
+                    variant={
+                      currentStatus === s.toLowerCase()
+                        ? "secondary"
+                        : "outline"
+                    }
+                    onClick={() => onStatusChange(s.toLowerCase())}
+                    className={cn(
+                      "h-10  px-5 text-sm transition-all",
+                      currentStatus === s.toLowerCase() ? "border-none   " : "",
+                    )}
+                  >
+                    {s}
+                  </Button>
+                ),
+              )}
             </div>
           </div>
 
           <div className="flex gap-3 pt-4">
             <DialogClose asChild>
               <Button
-                className="flex-1 h-12 rounded-xl bg-slate-900 font-bold text-white transition-transform active:scale-95"
+                className="flex-1 h-12 transition-transform active:scale-95"
                 onClick={handleApply}
               >
                 Apply Filters
               </Button>
             </DialogClose>
 
-            <Button
-              variant="ghost"
-              className="h-12 font-bold text-slate-400"
-              onClick={handleReset}
-            >
+            <Button variant="ghost" className="h-12" onClick={handleReset}>
               Reset
             </Button>
           </div>

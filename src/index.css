@@ -8,13 +8,22 @@
 
 :root {
   /* =========================
+     Palette Reference (Approx OKLCH)
+     #5643FE (Primary)          -> oklch(0.48 0.26 274)
+     #CDC7FF (Malibu)           -> oklch(0.85 0.09 278)
+     #130D49 (Midnight Sapphire)-> oklch(0.18 0.08 277)
+     #899095 (Quantum Mist)     -> oklch(0.65 0.02 250)
+     #F9F9FB (Pale Aura)        -> oklch(0.98 0.005 270)
+     ========================= */
+
+  /* =========================
      Core surfaces
      ========================= */
-  --background: oklch(97.343% 0.00143 285.217);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.967 0.001 286.375);    /* Pale Aura #F9F9FB */
+  --foreground: oklch(0.145 0 0);         /* Midnight Sapphire #130D49 */
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);                       /* Pure White for contrast */
+  --card-foreground: oklch(0.145 0 0);    /* Midnight Sapphire */
 
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -22,19 +31,19 @@
   /* =========================
      Brand
      ========================= */
-  --primary: oklch(0.508 0.118 165.612);
-  --primary-foreground: oklch(0.979 0.021 166.113);
+  --primary: oklch(0.508 0.118 165.612);            /* Primary #5643FE */
+  --primary-foreground: oklch(0.979 0.021 166.113);         /* White text on primary */
 
-  --secondary: oklch(0.967 0.001 286.375);
+  --secondary: oklch(0.967 0.001 286.375);          /* Very light Malibu tint */
   --secondary-foreground: oklch(0.21 0.006 285.885);
 
   /* =========================
      Muted & accent
      ========================= */
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: oklch(0.97 0 0);              /* Pale Aura slightly darker */
+  --muted-foreground: oklch(0.556 0 0);   /* Quantum Mist darker for text */
 
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.97 0 0);             /* Malibu #CDC7FF */
   --accent-foreground: oklch(0.205 0 0);
 
   /* =========================
@@ -46,35 +55,34 @@
   /* =========================
      Borders & inputs
      ========================= */
-  --border: oklch(0.922 0 0);
+  --border: oklch(0.922 0 0);             /* Light Quantum Mist */
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.708 0 0);               /* Primary ring */
 
   /* =========================
-     Charts
+     Charts (Branded)
      ========================= */
-  --chart-1: oklch(0.845 0.143 164.978);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.596 0.145 163.225);
-  --chart-4: oklch(0.508 0.118 165.612);
-  --chart-5: oklch(0.432 0.095 166.913);
+  --chart-1: oklch(0.845 0.143 164.978);            /* Primary */
+  --chart-2: oklch(0.696 0.17 162.48);            /* Lighter Primary */
+  --chart-3: oklch(0.596 0.145 163.225);            /* Midnight */
+  --chart-4: oklch(0.508 0.118 165.612);            /* Malibu */
+  --chart-5: oklch(0.432 0.095 166.913);            /* Quantum Mist */
 
   /* =========================
      Sidebar
      ========================= */
-  --sidebar: oklch(100% 0.00011 271.152);
+  --sidebar: oklch(0.985 0 0);            /* Midnight Sapphire (Dark sidebar on light mode) */
+  --sidebar-foreground: oklch(0.145 0 0);/* Pale Aura text */
 
-  --sidebar-foreground: oklch(0.145 0 0); 
-
-  --sidebar-primary: oklch(0.596 0.145 163.225); 
+  --sidebar-primary: oklch(0.596 0.145 163.225);
   --sidebar-primary-foreground: oklch(0.979 0.021 166.113);
 
-  --sidebar-accent: oklch(0.97 0 0); 
+  --sidebar-accent: oklch(0.97 0 0);     /* Slightly lighter Midnight */
   --sidebar-accent-foreground: oklch(0.205 0 0);
 
   --sidebar-border: oklch(0.922 0 0);
-
   --sidebar-ring: oklch(0.708 0 0);
+
   /* =========================
      Enterprise status colors
      ========================= */
@@ -82,26 +90,26 @@
   --success-foreground: oklch(1 0 0);
 
   --warning: oklch(0.78 0.17 85);
-  --warning-foreground: oklch(0.2 0.02 85);
+  --warning-foreground: oklch(0.20 0.02 85);
 
-  --info: oklch(0.36 0.045 195);
+  --info: oklch(0.48 0.26 274);
   --info-foreground: oklch(1 0 0);
 
   /* =========================
      Workflow / integration states
      ========================= */
-  --status-draft: oklch(0.6 0.015 250);
+  --status-draft: oklch(0.65 0.02 250);
   --status-connected: oklch(0.52 0.12 150);
-  --status-mapped: oklch(0.36 0.045 195);
+  --status-mapped: oklch(0.48 0.26 274);
   --status-tested: oklch(0.78 0.17 85);
   --status-deployed: oklch(0.52 0.12 150);
-  --status-paused: oklch(0.6 0.015 250);
+  --status-paused: oklch(0.65 0.02 250);
   --status-error: oklch(0.63 0.23 29);
 
   /* =========================
      Typography
      ========================= */
-  --font-sans: Inter, system-ui, ui-sans-serif, sans-serif;
+  --font-sans: Roboto, system-ui, ui-sans-serif, sans-serif;
 
   /* =========================
      Radius & spacing
@@ -112,39 +120,26 @@
   /* =========================
      Shadows (OKLCH-based alpha)
      ========================= */
-  --shadow-sm: 
-    0 1px 2px 0 rgb(16 24 40 / 0.06);
-
-  --shadow: 
-    0 1px 3px 0 rgb(16 24 40 / 0.06),
-    0 1px 2px -1px rgb(16 24 40 / 0.04);
-
-  --shadow-md: 
-    0 10px 22px -18px rgb(16 24 40 / 0.2), 
-    0 1px 2px -1px rgb(16 24 40 / 0.05);
-
-  --shadow-lg: 
-    0 18px 32px -28px rgb(16 24 40 / 0.2), 
-    0 4px 10px -14px rgb(16 24 40 / 0.12);
-
-  /* Deep immersion for modals and flyouts */
-  --shadow-xl: 
-    0 20px 25px -5px oklch(0 0 0 / 0.08), 
-    0 8px 10px -6px oklch(0 0 0 / 0.02);
-
-  --shadow-2xl: 
-    0 24px 48px -18px oklch(0 0 0 / 0.16),
-    0 0 1px 0 oklch(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 oklch(100% 0.00011 271.152);
+  --shadow: 0 1px 3px 0 oklch(0.18 0.08 277 / 0.1),
+            0 1px 2px -1px oklch(100% 0.00011 271.152);
+  --shadow-md: 0 4px 6px -1px oklch(0.18 0.08 277 / 0.1),
+               0 2px 4px -2px oklch(0.18 0.08 277 / 0.1);
+  --shadow-lg: 0 10px 15px -3px oklch(100% 0.00011 271.152 / 0.979),
+               0 4px 6px -4px oklch(100% 0.00011 271.152);
+  --shadow-xl: 0 20px 25px -5px oklch(0.18 0.08 277 / 0.1),
+               0 8px 10px -6px oklch(0.18 0.08 277 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px oklch(0.18 0.08 277 / 0.25);
 }
 
 .dark {
   /* =========================
      Core surfaces
      ========================= */
-  --background: oklch(0.145 0 0); /* deep teal background */
-  --foreground: oklch(0.985 0 0); /* near-white text */
+  --background: oklch(0.145 0 0);         /* Deep Midnight Sapphire (Darker) */
+  --foreground: oklch(0.985 0 0);        /* Pale Aura text */
 
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.205 0 0);               /* Midnight Sapphire #130D49 */
   --card-foreground: oklch(0.985 0 0);
 
   --popover: oklch(0.205 0 0);
@@ -153,7 +148,7 @@
   /* =========================
      Brand
      ========================= */
-  --primary: oklch(0.432 0.095 166.913); /* light teal */
+  --primary: oklch(0.432 0.095 166.913);            /* Lighter/Brighter Primary for Dark mode */
   --primary-foreground: oklch(0.979 0.021 166.113);
 
   --secondary: oklch(0.274 0.006 286.033);
@@ -163,7 +158,7 @@
      Muted & accent
      ========================= */
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --muted-foreground: oklch(0.708 0 0);   /* Quantum Mist */
 
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
@@ -172,7 +167,7 @@
      Destructive
      ========================= */
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.98 0.003 247);
+  --destructive-foreground: oklch(0.98 0.005 270);
 
   /* =========================
      Borders & inputs
@@ -184,16 +179,16 @@
   /* =========================
      Charts (dark-safe)
      ========================= */
-  --chart-1: oklch(0.845 0.143 164.978);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.596 0.145 163.225);
+  --chart-1: oklch(0.845 0.143 164.978);            /* Bright Primary */
+  --chart-2: oklch(0.696 0.17 162.48);            /* Malibu */
+  --chart-3: oklch(0.596 0.145 163.225);            /* Quantum Mist */
   --chart-4: oklch(0.508 0.118 165.612);
   --chart-5: oklch(0.432 0.095 166.913);
 
   /* =========================
      Sidebar
      ========================= */
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: oklch(0.205 0 0);            /* Darker Midnight for Sidebar */
   --sidebar-foreground: oklch(0.985 0 0);
 
   --sidebar-primary: oklch(0.696 0.17 162.48);
@@ -209,36 +204,37 @@
      Enterprise status colors
      ========================= */
   --success: oklch(0.65 0.12 150);
-  --success-foreground: oklch(0.16 0.02 195);
+  --success-foreground: oklch(0.15 0.08 277);
 
   --warning: oklch(0.78 0.17 85);
-  --warning-foreground: oklch(0.2 0.02 85);
+  --warning-foreground: oklch(0.20 0.02 85);
 
-  --info: oklch(0.72 0.045 195);
-  --info-foreground: oklch(0.16 0.02 195);
+  --info: oklch(0.65 0.22 274);
+  --info-foreground: oklch(0.15 0.08 277);
 
   /* =========================
      Workflow / integration states
      ========================= */
-  --status-draft: oklch(0.65 0.015 250);
+  --status-draft: oklch(0.65 0.02 250);
   --status-connected: oklch(0.65 0.12 150);
-  --status-mapped: oklch(0.72 0.045 195);
+  --status-mapped: oklch(0.65 0.22 274);
   --status-tested: oklch(0.78 0.17 85);
   --status-deployed: oklch(0.65 0.12 150);
-  --status-paused: oklch(0.65 0.015 250);
+  --status-paused: oklch(0.65 0.02 250);
   --status-error: oklch(0.62 0.22 29);
 
   /* =========================
      Shadows (subtle, dark-safe)
      ========================= */
-  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.4);
-  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.5), 0 1px 2px -1px oklch(0 0 0 / 0.45);
-  --shadow-md:
-    0 4px 6px -1px oklch(0 0 0 / 0.55), 0 2px 4px -2px oklch(0 0 0 / 0.5);
-  --shadow-lg:
-    0 10px 15px -3px oklch(0 0 0 / 0.6), 0 4px 6px -4px oklch(0 0 0 / 0.55);
-  --shadow-xl:
-    0 20px 25px -5px oklch(0 0 0 / 0.65), 0 8px 10px -6px oklch(0 0 0 / 0.6);
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.40);
+  --shadow: 0 1px 3px 0 oklch(0 0 0 / 0.50),
+            0 1px 2px -1px oklch(0 0 0 / 0.45);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.55),
+               0 2px 4px -2px oklch(0 0 0 / 0.50);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.60),
+               0 4px 6px -4px oklch(0 0 0 / 0.55);
+  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.65),
+               0 8px 10px -6px oklch(0 0 0 / 0.60);
   --shadow-2xl: 0 25px 50px -12px oklch(0 0 0 / 0.75);
 }
 
@@ -259,12 +255,6 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-info: var(--info);
-  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -313,22 +303,18 @@
 }
 
 @theme {
-  --text-sm: 0.85rem;
-  --text-sm--letter-spacing: 0;
+  --text-sm: 0.75rem;
+  --text-sm--letter-spacing: 0.03rem;
+  --text-xl: 1.0rem;
+  --text-lg: 1.0rem;
   --text-xl: 1.25rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text--xs: 0.75rem;
+  --text--xs: 0.70rem;
 
   --shadow-3xl: 0 35px 35px rgba(0, 0, 0, 0.25);
 }
 
 body {
-  letter-spacing: 0;
-}
-
-html {
-  background: var(--background);
+  letter-spacing: var(--tracking-normal);
 }
 
 @layer base {
@@ -342,20 +328,6 @@ html {
   }
   body {
     @apply min-h-svh w-full bg-background text-foreground;
-    font-size: 14px;
-    line-height: 1.45;
-    font-feature-settings:
-      "cv02",
-      "cv03",
-      "cv04",
-      "cv11";
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
-
-  ::selection {
-    background: rgb(23 92 211 / 0.16);
-    color: #1849a9;
   }
 
   button:not(:disabled),
@@ -374,80 +346,6 @@ html {
 }
 
 @layer utilities {
-  .bg-slate-50\/60 {
-    background-color: rgb(247 249 252 / 0.9);
-  }
-  .bg-slate-50 {
-    background-color: #f8fafc;
-  }
-  .bg-slate-100 {
-    background-color: #eef2f6;
-  }
-  .bg-slate-900 {
-    background-color: #080726;
-  }
-  .bg-indigo-600 {
-    background-color: #7a5af8;
-  }
-  .bg-blue-700 {
-    background-color: #175cd3;
-  }
-  .hover\:bg-slate-800:hover {
-    background-color: #151343;
-  }
-  .hover\:bg-blue-800:hover {
-    background-color: #1849a9;
-  }
-  .text-slate-950,
-  .text-slate-900 {
-    color: #243142;
-  }
-  .text-slate-800,
-  .text-slate-700,
-  .text-slate-600 {
-    color: #4b5565;
-  }
-  .text-slate-500,
-  .text-slate-400 {
-    color: #667085;
-  }
-  .text-indigo-300,
-  .text-blue-700 {
-    color: #175cd3;
-  }
-  .border-slate-100,
-  .border-slate-200,
-  .border-slate-300 {
-    border-color: #d9e1ea;
-  }
-  .rounded-2xl,
-  .rounded-3xl,
-  .rounded-xl {
-    border-radius: 0.5rem;
-  }
-  .font-black {
-    font-weight: 650;
-  }
-  .font-bold {
-    font-weight: 600;
-  }
-  .tracking-tight,
-  .tracking-tighter,
-  .tracking-wide,
-  .tracking-wider,
-  .tracking-widest {
-    letter-spacing: 0;
-  }
-  .shadow-sm {
-    box-shadow: var(--shadow-sm);
-  }
-  .shadow-md {
-    box-shadow: var(--shadow-md);
-  }
-  .shadow-lg {
-    box-shadow: var(--shadow-lg);
-  }
-
   .text-destructive {
     color: hsl(var(--destructive));
   }
@@ -514,41 +412,27 @@ html {
 
 @keyframes l5 {
   0% {
-    box-shadow:
-      20px 0 currentColor,
-      -20px 0 #0002;
+    box-shadow: 20px 0 currentColor, -20px 0 #0002;
     background: currentColor;
   }
   33% {
-    box-shadow:
-      20px 0 currentColor,
-      -20px 0 #0002;
+    box-shadow: 20px 0 currentColor, -20px 0 #0002;
     background: #0002;
   }
   66% {
-    box-shadow:
-      20px 0 #0002,
-      -20px 0 currentColor;
+    box-shadow: 20px 0 #0002, -20px 0 currentColor;
     background: #0002;
   }
   100% {
-    box-shadow:
-      20px 0 #0002,
-      -20px 0 currentColor;
+    box-shadow: 20px 0 #0002, -20px 0 currentColor;
     background: currentColor;
   }
 }
 
 @keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .bg-animated-gradient {

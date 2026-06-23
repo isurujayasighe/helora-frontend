@@ -1,12 +1,22 @@
 "use client";
 
 import {
+  BarChart3,
   Blocks,
+  CalendarDays,
+  ChevronDown,
+  FileText,
   History,
   Link2,
   Loader2,
+  MapPin,
   PackageCheck,
+  Pencil,
+  Phone,
   Ruler,
+  Shirt,
+  Tags,
+  type LucideIcon,
   UserRound,
 } from "lucide-react";
 import { useState } from "react";
@@ -17,22 +27,58 @@ import {
   useGetBlockMeasurements,
 } from "@/api/useGetLatestMeasurement";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getApiErrorMessage } from "@/errors/api-error-response";
 import { cn } from "@/lib/utils";
-import { useGetBlockById } from "../api/useGetBlockById";
+import {
+  useGetBlockById,
+  type BlockDetailsCustomerAssignment,
+} from "../api/useGetBlockById";
 import { useLinkMeasurementToBlock } from "../api/useLinkMeasurementToBlock";
 
 type BlockDetailsDialogProps = {
   blockId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onManageAssignments?: (blockId: string) => void;
 };
 
 const formatDate = (value?: string | null) => {
@@ -42,18 +88,6 @@ const formatDate = (value?: string | null) => {
     year: "numeric",
     month: "short",
     day: "2-digit",
-  }).format(new Date(value));
-};
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) return "-";
-
-  return new Intl.DateTimeFormat("en-LK", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(new Date(value));
 };
 
@@ -67,30 +101,16 @@ const formatCurrency = (value?: string | number | null) => {
   }).format(amount);
 };
 
-const statusClassName = (status?: string) => {
-  switch (status) {
-    case "ACTIVE":
-    case "COMPLETED":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
-    case "INACTIVE":
-    case "PENDING":
-      return "bg-amber-50 text-amber-700 ring-amber-100";
-    case "ARCHIVED":
-    case "CANCELLED":
-      return "bg-slate-100 text-slate-700 ring-slate-200";
-    default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
-  }
-};
-
 export function BlockDetailsDialog({
   blockId,
   open,
   onOpenChange,
+  onManageAssignments,
 }: BlockDetailsDialogProps) {
   const { data, isLoading, isFetching } = useGetBlockById(blockId, open);
   const linkMeasurementToBlock = useLinkMeasurementToBlock();
   const [activeTab, setActiveTab] = useState("customers");
+  const [specificationsOpen, setSpecificationsOpen] = useState(true);
   const [linkingCustomerId, setLinkingCustomerId] = useState<string | null>(
     null,
   );
@@ -140,155 +160,244 @@ export function BlockDetailsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] sm:max-w-3xl overflow-hidden p-0 gap-0">
-        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600 text-white">
-                <Blocks className="h-3.5 w-3.5" />
-              </span>
-              Block Details
-            </DialogTitle>
-          </div>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl data-[side=right]:lg:max-w-4xl"
+      >
+        <SheetHeader className="border-b p-4 pr-14">
+          <SheetTitle>Block Details</SheetTitle>
+          <SheetDescription>
+            View block details, customer assignments, measurements, versions,
+            and order history.
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="max-h-[calc(92vh-56px)] overflow-y-auto bg-slate-50">
+        <ScrollArea className="min-h-0 flex-1">
           {isLoading ? (
-            <div className="flex min-h-80 items-center justify-center text-sm text-slate-500">
-              Loading block details...
-            </div>
+            <BlockDetailsLoading />
           ) : !block ? (
-            <div className="flex min-h-80 flex-col items-center justify-center text-center">
-              <Blocks className="h-9 w-9 text-slate-400" />
-              <p className="mt-2 text-sm font-medium text-slate-900">
-                Block details not found
-              </p>
-            </div>
+            <Empty className="min-h-80">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Blocks />
+                </EmptyMedia>
+                <EmptyTitle>Block details not found</EmptyTitle>
+                <EmptyDescription>
+                  The selected block may have been removed or is unavailable.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
-            <div className={cn(isFetching && "opacity-70")}>
-              <section className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <h2 className="text-lg font-semibold tracking-tight text-blue-700">
-                        {block.blockNumber}
-                      </h2>
+            <div className={cn("space-y-4 p-4", isFetching && "opacity-70")}>
+              <Card size="sm">
+                <CardContent>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Shirt className="size-6" />
+                      </div>
 
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1",
-                          statusClassName(block.status),
-                        )}
-                      >
-                        {block.status}
-                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                            {block.blockNumber}
+                          </h2>
+                          <Badge
+                            variant={
+                              block.status === "ACTIVE"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {block.status.replaceAll("_", " ")}
+                          </Badge>
+                          <Badge variant="outline">
+                            {block.category?.name || "Block"}
+                          </Badge>
+                        </div>
 
-                      <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-blue-700 ring-1 ring-blue-100">
-                        {block.category?.name || "Block"}
-                      </span>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {block.readyMadeSize || block.sizeLabel || "No size"}
+                          <span className="mx-1.5">·</span>
+                          Version V{block.versionNo}
+                        </p>
+                      </div>
                     </div>
 
-                    <p className="mt-0.5 max-w-2xl truncate text-xs text-slate-500">
-                      {block.sizeLabel ||
-                        block.description ||
-                        "Tailoring block measurement profile"}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {onManageAssignments && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onManageAssignments(block.id)}
+                        >
+                          <Pencil className="size-4" />
+                          Assign Customers
+                        </Button>
+                      )}
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setActiveTab("measurements")}
+                      >
+                        <Link2 className="size-4" />
+                        Measurements
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </section>
+                </CardContent>
+              </Card>
 
-              <section className="grid gap-4 border-b border-slate-200 bg-white px-5 py-4 lg:grid-cols-2">
-                <InfoGroup title="Core Attributes">
-                  <AttributeGrid>
-                    <Attribute
-                      label="Category"
-                      value={block.category?.name || "-"}
-                    />
-                    <Attribute
-                      label="Size / Spec"
-                      value={block.readyMadeSize || "-"}
-                    />
-                    <Attribute label="Version" value={`V${block.versionNo}`} />
-                    <Attribute
-                      label="Size Label"
-                      value={block.sizeLabel || "-"}
-                    />
-                  </AttributeGrid>
-                </InfoGroup>
+              <Collapsible
+                open={specificationsOpen}
+                onOpenChange={setSpecificationsOpen}
+              >
+                <Card size="sm">
+                  <CardHeader className="grid grid-cols-[1fr_auto] gap-3">
+                    <div>
+                      <CardTitle>Block Specifications</CardTitle>
+                      <CardDescription>
+                        Core sizing and lifecycle information for this block.
+                      </CardDescription>
+                    </div>
 
-                <InfoGroup title="Lifecycle Data">
-                  <AttributeGrid>
-                    <Attribute
-                      label="Created On"
-                      value={formatDate(block.createdAt)}
-                    />
-                    <Attribute
-                      label="Last Modified"
-                      value={formatDate(block.updatedAt)}
-                    />
-                    <Attribute
-                      label="Last Used"
-                      value={formatDateTime(block.lastUsedAt)}
-                    />
-                    <Attribute
-                      label="Lifetime Usage"
-                      value={`${block._count?.orderItems ?? 0} order item(s)`}
-                    />
-                  </AttributeGrid>
-                </InfoGroup>
-              </section>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={
+                          specificationsOpen
+                            ? "Collapse block specifications"
+                            : "Expand block specifications"
+                        }
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "size-4 transition-transform",
+                            specificationsOpen && "rotate-180",
+                          )}
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </CardHeader>
 
-              <section className="space-y-3 bg-white px-2 py-4">
-                <TextPanel
-                  title="Description"
-                  value={block.description || "No description added."}
-                />
+                  <CollapsibleContent className="overflow-hidden">
+                    <CardContent>
+                      <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+                        <div className="space-y-1">
+                          <DetailRow
+                            icon={Tags}
+                            label="Category"
+                            value={block.category?.name || "-"}
+                          />
+                          <Separator />
+                          <DetailRow
+                            icon={Ruler}
+                            label="Size / Spec"
+                            value={block.readyMadeSize || "-"}
+                          />
+                          <Separator />
+                          <DetailRow
+                            icon={Shirt}
+                            label="Size Label"
+                            value={block.sizeLabel || "-"}
+                          />
+                        </div>
 
-               
-              </section>
+                        <div className="space-y-1">
+                          <DetailRow
+                            icon={CalendarDays}
+                            label="Created On"
+                            value={formatDate(block.createdAt)}
+                          />
+                          <Separator />
+                          <DetailRow
+                            icon={CalendarDays}
+                            label="Last Modified"
+                            value={formatDate(block.updatedAt)}
+                          />
+                          <Separator />
+                          <DetailRow
+                            icon={BarChart3}
+                            label="Lifetime Usage"
+                            value={`${block._count?.orderItems ?? 0} order item(s)`}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
 
-              <section className="border-t border-slate-200 bg-white px-5 pb-5">
+              <Card size="sm">
+                <CardContent>
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      <FileText className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Description
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-foreground">
+                        {block.description || "No description added."}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <section>
                 <Tabs
                   value={activeTab}
                   onValueChange={setActiveTab}
                   className="w-full"
                 >
-                  <TabsList className="h-10 justify-start gap-3 rounded-none border-b border-slate-200 bg-transparent p-0">
-                    <TabsTrigger
-                      value="customers"
-                      className="h-10 rounded-none border-b-2 border-transparent px-0 text-xs font-semibold data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
+                  <div className="sticky top-0 z-10 border-b bg-popover">
+                    <TabsList
+                      className="grid w-full grid-cols-4"
+                      variant="line"
                     >
-                      <UserRound className="mr-1.5 h-3.5 w-3.5" />
-                      Assigned Customers
-                    </TabsTrigger>
+                      <TabsTrigger value="customers">
+                        <UserRound className="size-4" />
+                        Customers
+                        <Badge variant="secondary" className="ml-1">
+                          {block.customerBlocks?.length ?? 0}
+                        </Badge>
+                      </TabsTrigger>
 
-                    <TabsTrigger
-                      value="measurements"
-                      className="h-10 rounded-none border-b-2 border-transparent px-0 text-xs font-semibold data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
-                    >
-                      <Ruler className="mr-1.5 h-3.5 w-3.5" />
-                      Measurements
-                    </TabsTrigger>
+                      <TabsTrigger value="measurements">
+                        <Ruler className="size-4" />
+                        Measurements
+                        <Badge variant="secondary" className="ml-1">
+                          {block._count?.measurements ?? measurements.length}
+                        </Badge>
+                      </TabsTrigger>
 
-                    <TabsTrigger
-                      value="versions"
-                      className="h-10 rounded-none border-b-2 border-transparent px-0 text-xs font-semibold data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
-                    >
-                      <History className="mr-1.5 h-3.5 w-3.5" />
-                      Version History
-                    </TabsTrigger>
+                      <TabsTrigger value="versions">
+                        <History className="size-4" />
+                        Versions
+                        <Badge variant="secondary" className="ml-1">
+                          {(block.previousBlock ? 1 : 0) +
+                            (block.nextVersions?.length ?? 0)}
+                        </Badge>
+                      </TabsTrigger>
 
-                    <TabsTrigger
-                      value="orders"
-                      className="h-10 rounded-none border-b-2 border-transparent px-0 text-xs font-semibold data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
-                    >
-                      <PackageCheck className="mr-1.5 h-3.5 w-3.5" />
-                      Order History
-                    </TabsTrigger>
-                  </TabsList>
+                      <TabsTrigger value="orders">
+                        <PackageCheck className="size-4" />
+                        Orders
+                        <Badge variant="secondary" className="ml-1">
+                          {block._count?.orderItems ?? 0}
+                        </Badge>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
-                  <TabsContent value="customers" className="mt-4">
+                  <TabsContent value="customers" className="mt-2">
                     <AssignedCustomersTable
                       customerBlocks={block.customerBlocks ?? []}
                       linkingCustomerId={linkingCustomerId}
@@ -296,7 +405,7 @@ export function BlockDetailsDialog({
                     />
                   </TabsContent>
 
-                  <TabsContent value="measurements" className="mt-4">
+                  <TabsContent value="measurements" className="mt-2">
                     <MeasurementsTable
                       measurements={measurements}
                       isLoading={
@@ -305,71 +414,61 @@ export function BlockDetailsDialog({
                     />
                   </TabsContent>
 
-                  <TabsContent value="versions" className="mt-4">
+                  <TabsContent value="versions" className="mt-2">
                     <VersionHistoryTable
                       previousBlock={block.previousBlock}
                       nextVersions={block.nextVersions ?? []}
                     />
                   </TabsContent>
 
-                  <TabsContent value="orders" className="mt-4">
+                  <TabsContent value="orders" className="mt-2">
                     <OrderUsageTable orderItems={block.orderItems ?? []} />
                   </TabsContent>
                 </Tabs>
               </section>
             </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
   );
 }
 
+function BlockDetailsLoading() {
+  return (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-24 w-full" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Skeleton key={index} className="h-20 w-full" />
+        ))}
+      </div>
+      <Skeleton className="h-56 w-full" />
+      <Skeleton className="h-20 w-full" />
+    </div>
+  );
+}
 
-function InfoGroup({
-  title,
-  children,
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
 }: {
-  title: string;
-  children: React.ReactNode;
+  icon: LucideIcon;
+  label: string;
+  value: string;
 }) {
   return (
-    <div>
-      <div className="mb-3 flex items-center gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-blue-700">
-          {title}
-        </p>
-        <div className="h-px flex-1 bg-slate-200" />
+    <div className="flex items-center gap-3 py-2">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="size-4" />
       </div>
-      {children}
-    </div>
-  );
-}
-
-function AttributeGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-6 gap-y-4">{children}</div>;
-}
-
-function Attribute({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-semibold text-slate-800">{value}</p>
-    </div>
-  );
-}
-
-function TextPanel({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-        {title}
-      </p>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-        {value}
-      </p>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-0.5 truncate text-sm font-medium text-foreground">
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -379,22 +478,7 @@ function AssignedCustomersTable({
   linkingCustomerId,
   onLinkLatestMeasurement,
 }: {
-  customerBlocks: Array<{
-    customerId: string;
-    blockId: string;
-    measurementId: string | null;
-    isDefault: boolean;
-    assignedAt: string;
-    customer: {
-      fullName: string;
-      phoneNumber: string | null;
-      town: string | null;
-    };
-    measurement?: {
-      id: string;
-      measurementNumber: string;
-    } | null;
-  }>;
+  customerBlocks: BlockDetailsCustomerAssignment[];
   linkingCustomerId: string | null;
   onLinkLatestMeasurement: (customerId: string) => void;
 }) {
@@ -403,76 +487,84 @@ function AssignedCustomersTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-160 text-left text-sm">
-        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Customer</th>
-            <th className="px-3 py-2 font-semibold">Phone</th>
-            <th className="px-3 py-2 font-semibold">Town</th>
-            <th className="px-3 py-2 font-semibold">Measurement</th>
-            <th className="px-3 py-2 font-semibold">Assigned</th>
-            <th className="px-3 py-2 text-right font-semibold">Action</th>
-          </tr>
-        </thead>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            Assigned Customers
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Customers who can use this block and their linked measurements.
+          </p>
+        </div>
+        <Badge variant="secondary">{customerBlocks.length}</Badge>
+      </div>
 
-        <tbody className="divide-y divide-slate-100 bg-white">
-          {customerBlocks.map((item) => (
-            <tr key={`${item.customerId}-${item.blockId}`}>
-              <td className="px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-slate-900">
-                    {item.customer.fullName}
-                  </span>
-
-                  {item.isDefault && (
-                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                      Default
-                    </span>
-                  )}
+      {customerBlocks.map((item) => (
+        <Card key={`${item.customerId}-${item.blockId}`} size="sm">
+          <CardContent>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+                  {item.customer.fullName?.charAt(0)?.toUpperCase() || "C"}
                 </div>
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
-                {item.customer.phoneNumber || "-"}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
-                {item.customer.town || "-"}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
-                {item.measurement?.measurementNumber ? (
-                  <span className="font-medium text-slate-900">
-                    {item.measurement.measurementNumber}
-                  </span>
-                ) : item.measurementId ? (
-                  "Linked"
-                ) : (
-                  <span className="text-slate-400">Not linked</span>
-                )}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
-                {formatDate(item.assignedAt)}
-              </td>
-              <td className="px-3 py-2.5 text-right">
+
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {item.customer.fullName}
+                    </p>
+                    {item.isDefault && <Badge>Default</Badge>}
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Phone className="size-3.5" />
+                      {item.customer.phoneNumber || "No phone"}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="size-3.5" />
+                      {item.customer.town || "No town"}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <CalendarDays className="size-3.5" />
+                      Assigned {formatDate(item.assignedAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="min-w-44 rounded-lg border bg-muted/30 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">Measurement</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <Ruler className="size-3.5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">
+                      {item.measurement?.measurementNumber ||
+                        (item.measurementId ? "Linked" : "Not linked")}
+                    </span>
+                  </div>
+                </div>
+
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 bg-white"
                   disabled={linkingCustomerId === item.customerId}
                   onClick={() => onLinkLatestMeasurement(item.customerId)}
                 >
                   {linkingCustomerId === item.customerId ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                    <Link2 className="size-4" />
                   )}
-                  {item.measurementId ? "Relink" : "Link latest"}
+                  {item.measurementId ? "Relink latest" : "Link latest"}
                 </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -500,7 +592,7 @@ function MeasurementsTable({
 }) {
   if (isLoading) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-500">
+      <div className="flex h-40 items-center justify-center border text-sm">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Loading measurements...
       </div>
@@ -512,62 +604,57 @@ function MeasurementsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-180 text-left text-sm">
-        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Measurement</th>
-            <th className="px-3 py-2 font-semibold">Customer</th>
-            <th className="px-3 py-2 font-semibold">Status</th>
-            <th className="px-3 py-2 font-semibold">Version</th>
-            <th className="px-3 py-2 font-semibold">Created</th>
-          </tr>
-        </thead>
+    <div className="overflow-hidden border">
+      <Table className="w-full min-w-180 text-left text-sm">
+        <TableHeader className="text-xs uppercase">
+          <TableRow>
+            <TableHead className="px-3 py-2 font-semibold">
+              Measurement
+            </TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Customer</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Status</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Version</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Created</TableHead>
+          </TableRow>
+        </TableHeader>
 
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <TableBody className="divide-y">
           {measurements.map((measurement) => (
-            <tr key={measurement.id}>
-              <td className="px-3 py-2.5">
-                <p className="font-medium text-slate-900">
+            <TableRow key={measurement.id}>
+              <TableCell className="px-3 py-2.5">
+                <p className="font-medium">
                   {measurement.measurementNumber || measurement.id}
                 </p>
                 {measurement.notes && (
-                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                    {measurement.notes}
-                  </p>
+                  <p className="mt-0.5 truncate text-xs">{measurement.notes}</p>
                 )}
-              </td>
-              <td className="px-3 py-2.5">
-                <p className="font-medium text-slate-900">
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
+                <p className="font-medium">
                   {measurement.customer?.fullName || "-"}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs">
                   {measurement.customer?.phoneNumber || "-"}
                   {measurement.customer?.town
                     ? ` - ${measurement.customer.town}`
                     : ""}
                 </p>
-              </td>
-              <td className="px-3 py-2.5">
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1",
-                    statusClassName(measurement.verificationStatus),
-                  )}
-                >
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
+                <Badge variant="secondary">
                   {measurement.verificationStatus.replaceAll("_", " ")}
-                </span>
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
+                </Badge>
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
                 V{measurement.versionNo}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
                 {formatDate(measurement.createdAt)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -595,45 +682,45 @@ function VersionHistoryTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-130 text-left text-sm">
-        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Type</th>
-            <th className="px-3 py-2 font-semibold">Block No</th>
-            <th className="px-3 py-2 font-semibold">Version</th>
-            <th className="px-3 py-2 font-semibold">Created</th>
-          </tr>
-        </thead>
+    <div className="overflow-hidden border">
+      <Table className="w-full min-w-130 text-left text-sm">
+        <TableHeader className="text-xs uppercase">
+          <TableRow>
+            <TableHead className="px-3 py-2 font-semibold">Type</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Block No</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Version</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Created</TableHead>
+          </TableRow>
+        </TableHeader>
 
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <TableBody className="divide-y">
           {previousBlock && (
-            <tr>
-              <td className="px-3 py-2.5 text-slate-700">Previous</td>
-              <td className="px-3 py-2.5 font-medium text-slate-900">
+            <TableRow>
+              <TableCell className="px-3 py-2.5">Previous</TableCell>
+              <TableCell className="px-3 py-2.5 font-medium">
                 {previousBlock.blockNumber}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
                 V{previousBlock.versionNo}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">-</td>
-            </tr>
+              </TableCell>
+              <TableCell className="px-3 py-2.5">-</TableCell>
+            </TableRow>
           )}
 
           {nextVersions.map((item) => (
-            <tr key={item.id}>
-              <td className="px-3 py-2.5 text-slate-700">Next</td>
-              <td className="px-3 py-2.5 font-medium text-slate-900">
+            <TableRow key={item.id}>
+              <TableCell className="px-3 py-2.5">Next</TableCell>
+              <TableCell className="px-3 py-2.5 font-medium">
                 {item.blockNumber}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">V{item.versionNo}</td>
-              <td className="px-3 py-2.5 text-slate-700">
+              </TableCell>
+              <TableCell className="px-3 py-2.5">V{item.versionNo}</TableCell>
+              <TableCell className="px-3 py-2.5">
                 {formatDate(item.createdAt)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -661,53 +748,61 @@ function OrderUsageTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full min-w-190 text-left text-sm">
-        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Order</th>
-            <th className="px-3 py-2 font-semibold">Item</th>
-            <th className="px-3 py-2 font-semibold">Qty</th>
-            <th className="px-3 py-2 font-semibold">Unit Price</th>
-            <th className="px-3 py-2 font-semibold">Line Total</th>
-          </tr>
-        </thead>
+    <div className="overflow-hidden border">
+      <Table className="w-full min-w-190 text-left text-sm">
+        <TableHeader className="text-xs uppercase">
+          <TableRow>
+            <TableHead className="px-3 py-2 font-semibold">Order</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Item</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">Qty</TableHead>
+            <TableHead className="px-3 py-2 font-semibold">
+              Unit Price
+            </TableHead>
+            <TableHead className="px-3 py-2 font-semibold">
+              Line Total
+            </TableHead>
+          </TableRow>
+        </TableHeader>
 
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <TableBody className="divide-y">
           {orderItems.map((item) => (
-            <tr key={item.id}>
-              <td className="px-3 py-2.5">
-                <p className="font-medium text-slate-900">
-                  {item.order?.orderNumber || "-"}
-                </p>
-                <p className="text-[11px] text-slate-500">
+            <TableRow key={item.id}>
+              <TableCell className="px-3 py-2.5">
+                <p className="font-medium">{item.order?.orderNumber || "-"}</p>
+                <p className="text-xs">
                   {item.order?.orderDate
                     ? formatDate(item.order.orderDate)
                     : "-"}
                 </p>
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">
+              </TableCell>
+              <TableCell className="px-3 py-2.5">
                 {item.itemDescription || "-"}
-              </td>
-              <td className="px-3 py-2.5 text-slate-700">{item.quantity}</td>
-              <td className="px-3 py-2.5 text-slate-700">
+              </TableCell>
+              <TableCell className="px-3 py-2.5">{item.quantity}</TableCell>
+              <TableCell className="px-3 py-2.5">
                 {formatCurrency(item.unitPrice)}
-              </td>
-              <td className="px-3 py-2.5 font-medium text-slate-900">
+              </TableCell>
+              <TableCell className="px-3 py-2.5 font-medium">
                 {formatCurrency(item.lineTotal)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
 function EmptyMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-      {message}
-    </div>
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Blocks />
+        </EmptyMedia>
+        <EmptyTitle>Nothing to show</EmptyTitle>
+        <EmptyDescription>{message}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }

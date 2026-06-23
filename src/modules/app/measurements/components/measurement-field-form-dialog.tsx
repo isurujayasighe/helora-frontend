@@ -200,15 +200,15 @@ export function MeasurementFieldFormDialog({ open, field, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-3xl gap-0">
-        <DialogHeader className="border-b border-slate-200 bg-white px-5 py-4">
+      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="border-b px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-              <Ruler className="h-5 w-5" />
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Ruler className="size-5" />
             </div>
 
             <div>
-              <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
+              <DialogTitle className="text-xl">
                 {isEdit ? "Edit Measurement Field" : "Add Measurement Field"}
               </DialogTitle>
 
@@ -456,9 +456,7 @@ function SectionTitle({
 
       <div>
         <h3 className="text-sm font-black text-slate-950">{title}</h3>
-        <p className="mt-1 text-xs font-medium text-slate-500">
-          {description}
-        </p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{description}</p>
       </div>
     </div>
   );
@@ -468,9 +466,7 @@ function FieldError({ errors }: { errors?: unknown[] }) {
   if (!errors?.length) return null;
 
   return (
-    <p className="text-xs font-medium text-red-600">
-      {String(errors[0])}
-    </p>
+    <p className="text-xs font-medium text-red-600">{String(errors[0])}</p>
   );
 }
 

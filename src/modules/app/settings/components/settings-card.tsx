@@ -13,29 +13,24 @@ export function SettingCard({ category, onOpen }: Props) {
   const Icon = category.icon;
 
   return (
-    <Card className="rounded-lg border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
+    <Card className="transition-colors hover:bg-muted/20">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-              <Icon className="h-5 w-5" />
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Icon className="size-5" />
             </div>
 
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-black text-slate-950">
-                  {category.title}
-                </h3>
+                <h3 className="font-semibold">{category.title}</h3>
 
-                <Badge
-                  variant="secondary"
-                  className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600"
-                >
+                <Badge variant="secondary" className="text-xs">
                   {category.badge}
                 </Badge>
               </div>
 
-              <p className="mt-1 text-sm font-medium leading-5 text-slate-500">
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">
                 {category.description}
               </p>
             </div>
@@ -46,10 +41,10 @@ export function SettingCard({ category, onOpen }: Props) {
           type="button"
           variant="outline"
           onClick={onOpen}
-          className="mt-4 h-10 w-full rounded-lg font-bold"
+          className="mt-4 w-full"
         >
           Open Settings
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight className="size-4" />
         </Button>
       </CardContent>
     </Card>

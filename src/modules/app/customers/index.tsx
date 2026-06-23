@@ -23,7 +23,11 @@ import { cn } from "@/lib/utils";
 import { useGetCustomers } from "./api/useGetCustomers";
 import { CustomersTable } from "./components/customer-details-table";
 import { CreateCustomerDialog } from "./components/create-customer-dialog";
-import { CustomerDetailsDialog } from "./components/customer-details-dialog";
+import {
+  AssignCustomerBlockDialog,
+  CustomerDetailsDialog,
+} from "./components/customer-details-dialog";
+import { EditCustomerSheet } from "./components/edit-customer-sheet";
 import { DashboardPageHeader } from "../dashboard/components/dashboard-page-header";
 import {
   Card,
@@ -49,6 +53,12 @@ export default function CustomersPage() {
   const [townFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(
+    null,
+  );
+  const [assigningCustomerId, setAssigningCustomerId] = useState<string | null>(
+    null,
+  );
 
   const isCustomerDetailsOpen = Boolean(
     customerSearch.customerDetails && customerSearch.customerId,
@@ -57,14 +67,11 @@ export default function CustomersPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm.trim());
+      setCurrentPage(1);
     }, 400);
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, townFilter]);
 
   const {
     data: customersResponse,
@@ -78,7 +85,10 @@ export default function CustomersPage() {
     town: townFilter || undefined,
   });
 
-  const customersList = customersResponse?.data.items ?? [];
+  const customersList = useMemo(
+    () => customersResponse?.data.items ?? [],
+    [customersResponse?.data.items],
+  );
 
   const pagination = customersResponse?.data.pagination ?? {
     page: currentPage,
@@ -137,7 +147,7 @@ export default function CustomersPage() {
 
   return (
     <PermissionGate action="read" subject="customers">
-      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+      <div className="flex h-full w-full flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 md:p-6">
             <DashboardPageHeader
@@ -147,7 +157,7 @@ export default function CustomersPage() {
                 <>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => refetch()}
                     disabled={isLoading || isFetching}
                   >
@@ -241,6 +251,8 @@ export default function CustomersPage() {
                     totalCount={pagination.totalItems}
                     onPageChange={setCurrentPage}
                     onViewCustomer={handleViewCustomer}
+                    onEditCustomer={setEditingCustomerId}
+                    onAssignBlocks={setAssigningCustomerId}
                   />
                 )}
               </CardContent>
@@ -261,6 +273,33 @@ export default function CustomersPage() {
         <CreateCustomerDialog
           open={createCustomerOpen}
           onOpenChange={setCreateCustomerOpen}
+          onViewCustomer={handleViewCustomer}
+        />
+
+        <EditCustomerSheet
+          customerId={editingCustomerId}
+          open={Boolean(editingCustomerId)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingCustomerId(null);
+            }
+          }}
+          onUpdated={async () => {
+            await refetch();
+          }}
+        />
+
+        <AssignCustomerBlockDialog
+          customerId={assigningCustomerId}
+          open={Boolean(assigningCustomerId)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAssigningCustomerId(null);
+            }
+          }}
+          onAssigned={async () => {
+            await refetch();
+          }}
         />
       </div>
     </PermissionGate>
@@ -271,10 +310,7 @@ function CustomersLoadingState() {
   return (
     <div className="grid gap-3 p-4">
       {Array.from({ length: 6 }).map((_, index) => (
-        <div
-          key={index}
-          className="h-16 animate-pulse rounded-lg bg-muted"
-        />
+        <div key={index} className="h-16 animate-pulse rounded-lg bg-muted" />
       ))}
     </div>
   );

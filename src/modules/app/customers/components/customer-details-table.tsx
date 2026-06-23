@@ -1,6 +1,21 @@
-import { Eye, MapPin, Phone, UserRound } from "lucide-react";
+import {
+  Blocks,
+  Eye,
+  MapPin,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  UserRound,
+} from "lucide-react";
 
+import { useCan } from "@/auth/rbac/useCan";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -28,6 +43,8 @@ type CustomersTableProps = {
   totalCount: number;
   onPageChange: (page: number) => void;
   onViewCustomer: (customerId: string) => void;
+  onEditCustomer: (customerId: string) => void;
+  onAssignBlocks: (customerId: string) => void;
 };
 
 export function CustomersTable({
@@ -37,7 +54,12 @@ export function CustomersTable({
   totalCount,
   onPageChange,
   onViewCustomer,
+  onEditCustomer,
+  onAssignBlocks,
 }: CustomersTableProps) {
+  const canEditCustomer = useCan("update", "customers");
+  const canAssignBlocks = useCan("update", "blocks");
+
   if (customers.length === 0) {
     return (
       <div className="flex min-h-80 flex-col items-center justify-center border border-dashed bg-background p-8 text-center">
@@ -61,9 +83,9 @@ export function CustomersTable({
             <TableHead>Phone</TableHead>
             <TableHead>Alternative Phone</TableHead>
             <TableHead>Town</TableHead>
-          
+
             <TableHead>Created Date</TableHead>
-            <TableHead className="px-4 text-left">Action</TableHead>
+            <TableHead className="px-4 text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -75,7 +97,7 @@ export function CustomersTable({
                   <div className="min-w-0">
                     <p className="font-medium text-foreground">
                       {customer.fullName}
-                    </p>  
+                    </p>
                   </div>
                 </div>
               </TableCell>
@@ -105,19 +127,44 @@ export function CustomersTable({
                 </span>
               </TableCell>
 
-             
-
               <TableCell>{formatDate(customer.createdAt)}</TableCell>
 
-              <TableCell className="px-4 text-left">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => onViewCustomer(customer.id)}
-                >
-                  <Eye className="size-4" />
-                  View
-                </Button>
+              <TableCell className="px-4 text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm">
+                      <MoreHorizontal className="size-4" />
+                      <span className="sr-only">Open customer actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => onViewCustomer(customer.id)}
+                    >
+                      <Eye className="size-4" />
+                      View details
+                    </DropdownMenuItem>
+
+                    {canEditCustomer && (
+                      <DropdownMenuItem
+                        onClick={() => onEditCustomer(customer.id)}
+                      >
+                        <Pencil className="size-4" />
+                        Edit customer
+                      </DropdownMenuItem>
+                    )}
+
+                    {canAssignBlocks && (
+                      <DropdownMenuItem
+                        onClick={() => onAssignBlocks(customer.id)}
+                      >
+                        <Blocks className="size-4" />
+                        Assign blocks
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
