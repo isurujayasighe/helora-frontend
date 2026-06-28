@@ -36,7 +36,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -112,22 +111,16 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
           },
         ],
       },
-      {
-        title: "Customers",
-        icon: Users,
-        children: [
-          {
-            title: "All Customers",
+     {
+            title: "Customers",
             url: "/app/customers",
             icon: Users,
           },
           {
-            title: "Customer Blocks",
+            title: "Blocks",
             url: "/app/blocks",
             icon: Shirt,
           },
-        ],
-      },
       {
         title: "Payments",
         url: "/app/payments",
@@ -212,6 +205,10 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
     label: "Admin",
     items: [
       {
+        title: "Settings",
+        icon: MessageCircle,
+        children: [
+           {
         title: "Users",
         url: "/app/users",
         icon: UserCog,
@@ -226,6 +223,10 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
         url: "/app/settings",
         icon: Settings,
       },
+      
+        ],
+      },
+     
     ],
   },
 ];
@@ -295,10 +296,8 @@ export function EnterpriseSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent className="px-2 py-3">
         {SIDEBAR_GROUPS.map((group) => (
-          <SidebarGroup key={group.label} className="p-0 pb-3">
-            <SidebarGroupLabel className="px-2 text-[11px] font-semibold uppercase text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden">
-              {group.label}
-            </SidebarGroupLabel>
+          <SidebarGroup key={group.label} className="p-0">
+           
             <SidebarGroupContent>
               <SidebarMenu className="gap-1">
                 {group.items.map((item) => (

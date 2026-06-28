@@ -1,10 +1,13 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CalendarDays,
   MapPin,
@@ -27,77 +30,99 @@ export function EmployeeDetailsDialog({ open, employee, onClose }: Props) {
   if (!employee) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-2xl">
-        <DialogHeader className="border-b bg-white px-5 py-4">
+    <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <SheetContent
+        side="right"
+        className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl lg:max-w-3xl"
+      >
+        <SheetHeader className="shrink-0 border-b bg-background px-6 py-5 text-left">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-                <User className="h-6 w-6" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border bg-muted">
+                <User className="size-5 text-muted-foreground" />
               </div>
 
               <div>
-                <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
-                  {employee.fullName}
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-sm font-medium text-slate-500">
+                <SheetTitle className="text-lg">{employee.fullName}</SheetTitle>
+                <SheetDescription className="mt-1 leading-5">
                   Employee No: {employee.employeeNo}
-                </DialogDescription>
+                </SheetDescription>
               </div>
             </div>
 
             <EmployeeStatusBadge status={employee.status} />
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
-        <div className="max-h-[calc(92vh-90px)] overflow-y-auto bg-slate-50 p-5">
-          <div className="space-y-4">
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="space-y-5 bg-muted/30 p-4">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <SectionHeading icon={Shirt} title="Work details" />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <InfoItem label="Department" value={formatDepartment(employee.department)} />
+                <InfoItem
+                  label="Department"
+                  value={formatDepartment(employee.department)}
+                />
                 <InfoItem label="Job role" value={employee.designation} />
-                <InfoItem label="Joined date" value={formatDate(employee.joinedDate)} />
-                <InfoItem label="Status" value={formatStatus(employee.status)} />
+                <InfoItem
+                  label="Joined date"
+                  value={formatDate(employee.joinedDate)}
+                />
+                <InfoItem
+                  label="Status"
+                  value={formatStatus(employee.status)}
+                />
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <SectionHeading icon={Phone} title="Contact details" />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <InfoItem label="Phone" value={employee.phoneNumber} />
-                <InfoItem label="Another phone" value={employee.alternatePhone || "Not added"} />
+                <InfoItem
+                  label="Another phone"
+                  value={employee.alternatePhone || "Not added"}
+                />
                 <InfoItem label="NIC" value={employee.nic || "Not added"} />
                 <InfoItem label="Town" value={employee.town || "Not added"} />
               </div>
 
               {employee.address && (
-                <div className="mt-3 rounded-lg bg-slate-50 p-3">
-                  <div className="flex gap-2 text-sm font-semibold text-slate-700">
-                    <MapPin className="mt-0.5 h-4 w-4 text-slate-400" />
+                <div className="mt-3 rounded-lg bg-muted p-3">
+                  <div className="flex gap-2 text-sm text-muted-foreground">
+                    <MapPin className="mt-0.5 size-4" />
                     {employee.address}
                   </div>
                 </div>
               )}
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <SectionHeading icon={WalletCards} title="Payment details" />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <InfoItem label="Payment type" value={formatSalaryType(employee.salaryType)} />
+                <InfoItem
+                  label="Payment type"
+                  value={formatSalaryType(employee.salaryType)}
+                />
                 <InfoItem
                   label="Monthly salary"
                   value={formatMoney(employee.basicSalary)}
                 />
-                <InfoItem label="Daily rate" value={formatMoney(employee.dailyRate)} />
-                <InfoItem label="Per item rate" value={formatMoney(employee.pieceRate)} />
+                <InfoItem
+                  label="Daily rate"
+                  value={formatMoney(employee.dailyRate)}
+                />
+                <InfoItem
+                  label="Per item rate"
+                  value={formatMoney(employee.pieceRate)}
+                />
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="rounded-xl border bg-card p-5 shadow-sm">
               <SectionHeading icon={ShieldCheck} title="Emergency contact" />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -113,17 +138,23 @@ export function EmployeeDetailsDialog({ open, employee, onClose }: Props) {
             </section>
 
             {employee.notes && (
-              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <section className="rounded-xl border bg-card p-5 shadow-sm">
                 <SectionHeading icon={CalendarDays} title="Notes" />
-                <p className="mt-3 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                   {employee.notes}
                 </p>
               </section>
             )}
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </ScrollArea>
+
+        <SheetFooter className="shrink-0 border-t bg-background px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -136,19 +167,19 @@ function SectionHeading({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Icon className="h-5 w-5 text-slate-600" />
-      <h3 className="font-black text-slate-950">{title}</h3>
+      <Icon className="size-5 text-muted-foreground" />
+      <h3 className="font-semibold">{title}</h3>
     </div>
   );
 }
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+    <div className="rounded-lg border bg-background p-3">
+      <p className="text-xs font-medium uppercase text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-sm font-black text-slate-900">{value}</p>
+      <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
   );
 }

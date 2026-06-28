@@ -188,13 +188,10 @@ export function PackageTemplateDialog({
       >
         <SheetHeader className="shrink-0 border-b px-6 py-5 text-left">
           <div className="flex items-start gap-3">
-           
             <div className="min-w-0">
               <SheetTitle className="text-lg">
                 {isEditing ? "Edit Garment Set" : "New Garment Set"}
               </SheetTitle>
-
-              
             </div>
           </div>
         </SheetHeader>
@@ -263,7 +260,7 @@ export function PackageTemplateDialog({
               </CardContent>
             </Card>
 
-            <Card >
+            <Card>
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
                 <div>
                   <CardTitle className="text-base">Set Items</CardTitle>

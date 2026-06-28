@@ -19,7 +19,7 @@ export function useEmployeesQuery(params: EmployeeListParams) {
   return useQuery({
     queryKey: employeeKeys.list(params),
     queryFn: async (): Promise<EmployeesResponse> => {
-      const response = await covalentHubClient.get("/api/v1/employees", {
+      const response = await covalentHubClient.get("employees", {
         params: {
           page: params.pageIndex + 1,
           pageSize: params.pageSize,

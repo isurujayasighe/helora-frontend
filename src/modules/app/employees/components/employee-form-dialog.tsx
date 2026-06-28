@@ -1,17 +1,26 @@
 import { useEffect } from "react";
-import { useForm } from "@tanstack/react-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, type FieldPath, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -28,7 +37,6 @@ import {
   UserPlus,
   WalletCards,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type {
   Employee,
   EmployeeDepartment,
@@ -36,7 +44,10 @@ import type {
   EmployeeStatus,
   SalaryType,
 } from "../types/employee.types";
-import { useCreateEmployee, useUpdateEmployee } from "../api/useGetEmployeeList";
+import {
+  useCreateEmployee,
+  useUpdateEmployee,
+} from "../api/useGetEmployeeList";
 
 const employeeSchema = z.object({
   fullName: z.string().min(2, "Employee name is required"),
@@ -68,6 +79,30 @@ const employeeSchema = z.object({
   emergencyContactPhone: z.string(),
   notes: z.string(),
 });
+
+type EmployeeFormValues = z.infer<typeof employeeSchema>;
+type EmployeeFormApi = UseFormReturn<EmployeeFormValues>;
+type TextFieldName = Extract<
+  FieldPath<EmployeeFormValues>,
+  | "fullName"
+  | "phoneNumber"
+  | "alternatePhone"
+  | "nic"
+  | "address"
+  | "town"
+  | "designation"
+  | "joinedDate"
+  | "emergencyContactName"
+  | "emergencyContactPhone"
+>;
+type NumberFieldName = Extract<
+  FieldPath<EmployeeFormValues>,
+  "basicSalary" | "dailyRate" | "pieceRate"
+>;
+type SelectFieldName = Extract<
+  FieldPath<EmployeeFormValues>,
+  "department" | "salaryType" | "status"
+>;
 
 interface Props {
   open: boolean;
@@ -138,47 +173,10 @@ export function EmployeeFormDialog({ open, employee, onClose }: Props) {
 
   const isPending = createEmployee.isPending || updateEmployee.isPending;
 
-  const form = useForm({
+  const form = useForm<EmployeeFormValues>({
     defaultValues: getDefaultValues(employee),
-    validators: {
-      onChange: employeeSchema,
-    },
-    onSubmit: async ({ value }) => {
-      const payload: EmployeePayload = {
-        fullName: value.fullName.trim(),
-        phoneNumber: value.phoneNumber.trim(),
-        alternatePhone: cleanOptional(value.alternatePhone),
-        nic: cleanOptional(value.nic),
-        address: cleanOptional(value.address),
-        town: cleanOptional(value.town),
-
-        department: value.department as EmployeeDepartment,
-        designation: value.designation.trim(),
-        salaryType: value.salaryType as SalaryType,
-
-        basicSalary: value.basicSalary ?? null,
-        dailyRate: value.dailyRate ?? null,
-        pieceRate: value.pieceRate ?? null,
-
-        joinedDate: value.joinedDate,
-        status: value.status as EmployeeStatus,
-
-        emergencyContactName: cleanOptional(value.emergencyContactName),
-        emergencyContactPhone: cleanOptional(value.emergencyContactPhone),
-        notes: cleanOptional(value.notes),
-      };
-
-      if (isEdit && employee?.id) {
-        await updateEmployee.mutateAsync({
-          employeeId: employee.id,
-          payload,
-        });
-      } else {
-        await createEmployee.mutateAsync(payload);
-      }
-
-      onClose();
-    },
+    mode: "onChange",
+    resolver: zodResolver(employeeSchema),
   });
 
   useEffect(() => {
@@ -187,6 +185,43 @@ export function EmployeeFormDialog({ open, employee, onClose }: Props) {
     }
   }, [open, employee, form]);
 
+  const handleSubmit = async (value: EmployeeFormValues) => {
+    const payload: EmployeePayload = {
+      fullName: value.fullName.trim(),
+      phoneNumber: value.phoneNumber.trim(),
+      alternatePhone: cleanOptional(value.alternatePhone),
+      nic: cleanOptional(value.nic),
+      address: cleanOptional(value.address),
+      town: cleanOptional(value.town),
+
+      department: value.department as EmployeeDepartment,
+      designation: value.designation.trim(),
+      salaryType: value.salaryType as SalaryType,
+
+      basicSalary: value.basicSalary ?? null,
+      dailyRate: value.dailyRate ?? null,
+      pieceRate: value.pieceRate ?? null,
+
+      joinedDate: value.joinedDate,
+      status: value.status as EmployeeStatus,
+
+      emergencyContactName: cleanOptional(value.emergencyContactName),
+      emergencyContactPhone: cleanOptional(value.emergencyContactPhone),
+      notes: cleanOptional(value.notes),
+    };
+
+    if (isEdit && employee?.id) {
+      await updateEmployee.mutateAsync({
+        employeeId: employee.id,
+        payload,
+      });
+    } else {
+      await createEmployee.mutateAsync(payload);
+    }
+
+    onClose();
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && !isPending) {
       onClose();
@@ -194,252 +229,250 @@ export function EmployeeFormDialog({ open, employee, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-hidden rounded-lg p-0 sm:max-w-3xl">
-        <DialogHeader className="border-b bg-white px-5 py-4">
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl lg:max-w-3xl xl:max-w-3xl"
+      >
+        <SheetHeader className="shrink-0 border-b bg-background px-6 py-5 text-left">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-              <UserPlus className="h-5 w-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border bg-muted">
+              <UserPlus className="size-5 text-muted-foreground" />
             </div>
 
             <div>
-              <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
+              <SheetTitle className="text-lg">
                 {isEdit ? "Edit Employee" : "Add Employee"}
-              </DialogTitle>
-              <DialogDescription className="mt-1 text-sm font-medium text-slate-500">
+              </SheetTitle>
+
+              <SheetDescription className="mt-1 leading-5">
                 {isEdit
                   ? "Update employee details used for garment operations."
                   : "Add a tailor, cutter, helper, cashier, or manager to Helora."}
-              </DialogDescription>
+              </SheetDescription>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
-        <div className="max-h-[calc(92vh-150px)] overflow-y-auto bg-slate-50 p-5">
-          <form
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={Shirt}
-                title="Employee details"
-                description="Basic details for identifying this staff member."
-              />
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <TextField
-                  form={form}
-                  name="fullName"
-                  label="Employee name"
-                  placeholder="Example: Nimal Perera"
-                  required
-                />
-
-                <TextField
-                  form={form}
-                  name="nic"
-                  label="NIC"
-                  placeholder="Example: 901234567V"
-                />
-
-                <TextField
-                  form={form}
-                  name="phoneNumber"
-                  label="Phone number"
-                  placeholder="Example: 0712345678"
-                  required
-                />
-
-                <TextField
-                  form={form}
-                  name="alternatePhone"
-                  label="Another phone"
-                  placeholder="Optional"
-                />
-
-                <TextField
-                  form={form}
-                  name="town"
-                  label="Town"
-                  placeholder="Example: Horana"
-                />
-
-                <TextField
-                  form={form}
-                  name="address"
-                  label="Address"
-                  placeholder="Employee address"
-                />
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={WalletCards}
-                title="Work and payment"
-                description="Choose the work type and how this person is paid."
-              />
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <SelectField
-                  form={form}
-                  name="department"
-                  label="Department"
-                  placeholder="Choose department"
-                  options={departmentOptions.map((item) => ({
-                    value: item.value,
-                    label: item.label,
-                  }))}
-                  required
-                />
-
-                <TextField
-                  form={form}
-                  name="designation"
-                  label="Job role"
-                  placeholder="Example: Senior Tailor"
-                  required
-                />
-
-                <SelectField
-                  form={form}
-                  name="salaryType"
-                  label="Payment type"
-                  placeholder="Choose payment type"
-                  options={salaryTypeOptions}
-                  required
-                />
-
-                <SelectField
-                  form={form}
-                  name="status"
-                  label="Employee status"
-                  placeholder="Choose status"
-                  options={statusOptions}
-                  required
-                />
-
-                <NumberField
-                  form={form}
-                  name="basicSalary"
-                  label="Monthly salary"
-                  placeholder="Example: 65000"
-                />
-
-                <NumberField
-                  form={form}
-                  name="dailyRate"
-                  label="Daily rate"
-                  placeholder="Example: 2500"
-                />
-
-                <NumberField
-                  form={form}
-                  name="pieceRate"
-                  label="Per item rate"
-                  placeholder="Example: 350"
-                />
-
-                <TextField
-                  form={form}
-                  name="joinedDate"
-                  label="Joined date"
-                  type="date"
-                  required
-                />
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionTitle
-                icon={Phone}
-                title="Emergency contact"
-                description="Someone to contact if there is an emergency."
-              />
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <TextField
-                  form={form}
-                  name="emergencyContactName"
-                  label="Contact name"
-                  placeholder="Example: Kamala Perera"
-                />
-
-                <TextField
-                  form={form}
-                  name="emergencyContactPhone"
-                  label="Contact phone"
-                  placeholder="Example: 0771234567"
-                />
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <form.Field
-                name="notes"
-                children={(field) => (
-                  <div className="grid gap-2">
-                    <Label className="font-bold text-slate-700">Notes</Label>
-                    <Textarea
-                      value={field.state.value ?? ""}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
-                      placeholder="Add any special notes about this employee..."
-                      className="min-h-24 rounded-lg bg-slate-50 text-sm font-medium shadow-none"
-                    />
-                  </div>
-                )}
-              />
-            </section>
-          </form>
-        </div>
-
-        <DialogFooter className="border-t bg-white px-5 py-4">
-          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={isPending}
-              className="h-11 rounded-lg font-bold"
+        <ScrollArea className="min-h-0 flex-1">
+          <Form {...form}>
+            <form
+              className="space-y-5 bg-muted/30 p-4"
+              onSubmit={form.handleSubmit(handleSubmit)}
             >
-              Cancel
-            </Button>
+              <section className="rounded-xl border bg-card p-5 shadow-sm">
+                <SectionTitle
+                  icon={Shirt}
+                  title="Employee details"
+                  description="Basic details for identifying this staff member."
+                />
 
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
-                <Button
-                  type="button"
-                  onClick={form.handleSubmit}
-                  disabled={!canSubmit || isSubmitting || isPending}
-                  className="h-11 rounded-lg font-bold"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      {isEdit ? "Save Changes" : "Add Employee"}
-                    </>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <TextField
+                    form={form}
+                    name="fullName"
+                    label="Employee name"
+                    placeholder="Example: Nimal Perera"
+                    required
+                  />
+
+                  <TextField
+                    form={form}
+                    name="nic"
+                    label="NIC"
+                    placeholder="Example: 901234567V"
+                  />
+
+                  <TextField
+                    form={form}
+                    name="phoneNumber"
+                    label="Phone number"
+                    placeholder="Example: 0712345678"
+                    required
+                  />
+
+                  <TextField
+                    form={form}
+                    name="alternatePhone"
+                    label="Another phone"
+                    placeholder="Optional"
+                  />
+
+                  <TextField
+                    form={form}
+                    name="town"
+                    label="Town"
+                    placeholder="Example: Horana"
+                  />
+
+                  <TextField
+                    form={form}
+                    name="address"
+                    label="Address"
+                    placeholder="Employee address"
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-xl border bg-card p-5 shadow-sm">
+                <SectionTitle
+                  icon={WalletCards}
+                  title="Work and payment"
+                  description="Choose the work type and how this person is paid."
+                />
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <SelectField
+                    form={form}
+                    name="department"
+                    label="Department"
+                    placeholder="Choose department"
+                    options={departmentOptions.map((item) => ({
+                      value: item.value,
+                      label: item.label,
+                    }))}
+                    required
+                  />
+
+                  <TextField
+                    form={form}
+                    name="designation"
+                    label="Job role"
+                    placeholder="Example: Senior Tailor"
+                    required
+                  />
+
+                  <SelectField
+                    form={form}
+                    name="salaryType"
+                    label="Payment type"
+                    placeholder="Choose payment type"
+                    options={salaryTypeOptions}
+                    required
+                  />
+
+                  <SelectField
+                    form={form}
+                    name="status"
+                    label="Employee status"
+                    placeholder="Choose status"
+                    options={statusOptions}
+                    required
+                  />
+
+                  <NumberField
+                    form={form}
+                    name="basicSalary"
+                    label="Monthly salary"
+                    placeholder="Example: 65000"
+                  />
+
+                  <NumberField
+                    form={form}
+                    name="dailyRate"
+                    label="Daily rate"
+                    placeholder="Example: 2500"
+                  />
+
+                  <NumberField
+                    form={form}
+                    name="pieceRate"
+                    label="Per item rate"
+                    placeholder="Example: 350"
+                  />
+
+                  <TextField
+                    form={form}
+                    name="joinedDate"
+                    label="Joined date"
+                    type="date"
+                    required
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-xl border bg-card p-5 shadow-sm">
+                <SectionTitle
+                  icon={Phone}
+                  title="Emergency contact"
+                  description="Someone to contact if there is an emergency."
+                />
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <TextField
+                    form={form}
+                    name="emergencyContactName"
+                    label="Contact name"
+                    placeholder="Example: Kamala Perera"
+                  />
+
+                  <TextField
+                    form={form}
+                    name="emergencyContactPhone"
+                    label="Contact phone"
+                    placeholder="Example: 0771234567"
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-xl border bg-card p-5 shadow-sm">
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          value={field.value ?? ""}
+                          placeholder="Add any special notes about this employee..."
+                          className="min-h-24 resize-none bg-background"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </Button>
-              )}
-            />
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                />
+              </section>
+            </form>
+          </Form>
+        </ScrollArea>
+
+        <SheetFooter className="shrink-0 border-t bg-background px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="button"
+            onClick={form.handleSubmit(handleSubmit)}
+            disabled={
+              !form.formState.isValid ||
+              form.formState.isSubmitting ||
+              isPending
+            }
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="size-4" />
+                {isEdit ? "Save Changes" : "Add Employee"}
+              </>
+            )}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -454,15 +487,13 @@ function SectionTitle({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-        <Icon className="h-5 w-5" />
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <Icon className="size-5" />
       </div>
 
       <div>
-        <h3 className="text-base font-black text-slate-950">{title}</h3>
-        <p className="mt-1 text-sm font-medium text-slate-500">
-          {description}
-        </p>
+        <h3 className="text-base font-semibold">{title}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
   );
@@ -476,37 +507,35 @@ function TextField({
   type = "text",
   required,
 }: {
-  form: any;
-  name: string;
+  form: EmployeeFormApi;
+  name: TextFieldName;
   label: string;
   placeholder?: string;
   type?: string;
   required?: boolean;
 }) {
   return (
-    <form.Field
+    <FormField
+      control={form.control}
       name={name}
-      children={(field: any) => (
-        <div className="grid gap-2">
-          <Label className="font-bold text-slate-700">
-            {label} {required && <span className="text-red-500">*</span>}
-          </Label>
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>
+            {label} {required && <span className="text-destructive">*</span>}
+          </FormLabel>
 
-          <Input
-            type={type}
-            value={field.state.value ?? ""}
-            onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.target.value)}
-            placeholder={placeholder}
-            className={cn(
-              "h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none",
-              field.state.meta.errors.length &&
-                "border-red-500 focus-visible:ring-red-500"
-            )}
-          />
+          <FormControl>
+            <Input
+              {...field}
+              type={type}
+              value={field.value ?? ""}
+              placeholder={placeholder}
+              className="h- bg-background"
+            />
+          </FormControl>
 
-          <FieldError errors={field.state.meta.errors} />
-        </div>
+          <FormMessage />
+        </FormItem>
       )}
     />
   );
@@ -518,33 +547,36 @@ function NumberField({
   label,
   placeholder,
 }: {
-  form: any;
-  name: string;
+  form: EmployeeFormApi;
+  name: NumberFieldName;
   label: string;
   placeholder?: string;
 }) {
   return (
-    <form.Field
+    <FormField
+      control={form.control}
       name={name}
-      children={(field: any) => (
-        <div className="grid gap-2">
-          <Label className="font-bold text-slate-700">{label}</Label>
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
 
-          <Input
-            type="number"
-            min={0}
-            value={field.state.value ?? ""}
-            onBlur={field.handleBlur}
-            onChange={(event) => {
-              const value = event.target.value;
-              field.handleChange(value === "" ? null : Number(value));
-            }}
-            placeholder={placeholder}
-            className="h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none"
-          />
+          <FormControl>
+            <Input
+              type="number"
+              min={0}
+              value={field.value ?? ""}
+              onBlur={field.onBlur}
+              onChange={(event) => {
+                const value = event.target.value;
+                field.onChange(value === "" ? null : Number(value));
+              }}
+              placeholder={placeholder}
+              className="h-11 bg-background"
+            />
+          </FormControl>
 
-          <FieldError errors={field.state.meta.errors} />
-        </div>
+          <FormMessage />
+        </FormItem>
       )}
     />
   );
@@ -558,32 +590,29 @@ function SelectField({
   options,
   required,
 }: {
-  form: any;
-  name: string;
+  form: EmployeeFormApi;
+  name: SelectFieldName;
   label: string;
   placeholder: string;
   options: Array<{ value: string; label: string }>;
   required?: boolean;
 }) {
   return (
-    <form.Field
+    <FormField
+      control={form.control}
       name={name}
-      children={(field: any) => (
-        <div className="grid gap-2">
-          <Label className="font-bold text-slate-700">
-            {label} {required && <span className="text-red-500">*</span>}
-          </Label>
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>
+            {label} {required && <span className="text-destructive">*</span>}
+          </FormLabel>
 
-          <Select value={field.state.value} onValueChange={field.handleChange}>
-            <SelectTrigger
-              className={cn(
-                "h-11 rounded-lg bg-slate-50 text-sm font-semibold shadow-none",
-                field.state.meta.errors.length &&
-                  "border-red-500 focus-visible:ring-red-500"
-              )}
-            >
-              <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
+          <Select value={field.value} onValueChange={field.onChange}>
+            <FormControl>
+              <SelectTrigger className="h-11 w-full bg-background">
+                <SelectValue placeholder={placeholder} />
+              </SelectTrigger>
+            </FormControl>
 
             <SelectContent>
               {options.map((option) => (
@@ -594,20 +623,10 @@ function SelectField({
             </SelectContent>
           </Select>
 
-          <FieldError errors={field.state.meta.errors} />
-        </div>
+          <FormMessage />
+        </FormItem>
       )}
     />
-  );
-}
-
-function FieldError({ errors }: { errors: unknown[] }) {
-  if (!errors.length) return null;
-
-  return (
-    <p className="text-sm font-semibold text-red-600">
-      {errors.join(", ")}
-    </p>
   );
 }
 
