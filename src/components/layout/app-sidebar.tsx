@@ -92,24 +92,14 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
         icon: Gauge,
       },
       {
-        title: "Customers",
-        url: "/app/customers",
-        icon: Users,
+        title: "Create Order",
+        url: "/app/create-order-page",
+        icon: ClipboardList,
       },
-       {
-            title: "Customer Blocks",
-            url: "/app/blocks",
-            icon: Shirt,
-          },
       {
         title: "Orders",
         icon: ReceiptText,
         children: [
-          {
-            title: "Create Order",
-            url: "/app/create-order-page",
-            icon: ClipboardList,
-          },
           {
             title: "All Orders",
             url: "/app/orders",
@@ -122,21 +112,36 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
           },
         ],
       },
+      {
+        title: "Customers",
+        icon: Users,
+        children: [
+          {
+            title: "All Customers",
+            url: "/app/customers",
+            icon: Users,
+          },
+          {
+            title: "Customer Blocks",
+            url: "/app/blocks",
+            icon: Shirt,
+          },
+        ],
+      },
+      {
+        title: "Payments",
+        url: "/app/payments",
+        icon: CreditCard,
+      },
     ],
   },
   {
-    label: "Operations",
+    label: "Setup",
     items: [
       {
-        title: "Production",
+        title: "Garment Setup",
         icon: Scissors,
         children: [
-         
-          {
-            title: "Measurements",
-            url: "/app/measurements",
-            icon: Ruler,
-          },
           {
             title: "Categories",
             url: "/app/category",
@@ -148,17 +153,22 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
             icon: PackagePlus,
           },
           {
-            title: "Pricing",
-            url: "/app/pricing",
-            icon: BadgeDollarSign,
+            title: "Measurements",
+            url: "/app/measurements",
+            icon: Ruler,
           },
         ],
       },
       {
-        title: "Payments",
-        url: "/app/payments",
-        icon: CreditCard,
+        title: "Pricing",
+        url: "/app/pricing",
+        icon: BadgeDollarSign,
       },
+    ],
+  },
+  {
+    label: "Back Office",
+    items: [
       {
         title: "Staff",
         icon: UserRoundCheck,
@@ -202,25 +212,19 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
     label: "Admin",
     items: [
       {
-        title: "Administration",
+        title: "Users",
+        url: "/app/users",
+        icon: UserCog,
+      },
+      {
+        title: "Roles & Access",
+        url: "/app/role-permission",
         icon: ShieldCheck,
-        children: [
-          {
-            title: "Users",
-            url: "/app/users",
-            icon: UserCog,
-          },
-          {
-            title: "Roles & Access",
-            url: "/app/role-permission",
-            icon: ShieldCheck,
-          },
-          {
-            title: "Settings",
-            url: "/app/settings",
-            icon: Settings,
-          },
-        ],
+      },
+      {
+        title: "Settings",
+        url: "/app/settings",
+        icon: Settings,
       },
     ],
   },

@@ -47,7 +47,7 @@ import { DashboardPageHeader } from "../dashboard/components/dashboard-page-head
 import type { Category } from "./types/category.types";
 import { useCategoriesQuery, useDeleteCategory } from "./api/category-api";
 import { CategoryFormDialog } from "./components/category-form-dialog";
-import { CategoryDetailsDialog } from "./components/category-details-dialog";
+import {CategoryDetailsDialog } from "./components/category-details-dialog";
 
 const PAGE_SIZE = 10;
 

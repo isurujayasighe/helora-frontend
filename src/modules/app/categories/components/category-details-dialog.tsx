@@ -3,25 +3,23 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import {
   ClipboardList,
-  HelpCircle,
   Loader2,
   Pencil,
   Ruler,
   Save,
-  Shirt,
   ShoppingBag,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -43,7 +41,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function CategoryFormDialog({ open, category, onClose }: Props) {
+export function CategoryDetailsDialog({ open, category, onClose }: Props) {
   const isEdit = Boolean(category?.id);
 
   const createCategory = useCreateCategory();
@@ -88,27 +86,30 @@ export function CategoryFormDialog({ open, category, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[92vh] gap-0 overflow-hidden p-0 sm:max-w-3xl">
-        <DialogHeader className="border-b bg-background px-6 py-5">
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl lg:max-w-3xl"
+      >
+        <SheetHeader className="shrink-0 border-b bg-background px-6 py-5 text-left">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 space-y-1">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <DialogTitle className="truncate text-xl font-semibold tracking-tight">
+                <SheetTitle className="truncate text-xl font-semibold tracking-tight">
                   {isEdit ? "Edit Category" : "Add Category"}
-                </DialogTitle>
+                </SheetTitle>
               </div>
 
-              <DialogDescription className="text-sm text-muted-foreground">
+              <SheetDescription className="text-sm text-muted-foreground">
                 {isEdit
                   ? "Update category details used across blocks, orders, and measurement configurations."
                   : "Create a new garment category for blocks, orders, and measurement configurations."}
-              </DialogDescription>
+              </SheetDescription>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
-        <ScrollArea className="max-h-[calc(92vh-145px)]">
+        <ScrollArea className="min-h-0 flex-1">
           <form
             id="category-form"
             className="space-y-5 bg-muted/30 p-4"
@@ -248,7 +249,7 @@ export function CategoryFormDialog({ open, category, onClose }: Props) {
           </form>
         </ScrollArea>
 
-        <DialogFooter className="border-t bg-background px-6 py-4">
+        <SheetFooter className="shrink-0 border-t bg-background px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
               {isEdit
@@ -295,9 +296,9 @@ export function CategoryFormDialog({ open, category, onClose }: Props) {
               />
             </div>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
