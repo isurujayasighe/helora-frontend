@@ -49,8 +49,8 @@ export function DashboardSearch({
           <InputGroupInput
             value={value}
             onChange={(event) => onValueChange(event.target.value)}
-            placeholder="Quick search customers, blocks, or orders..."
-            aria-label="Quick search customers, blocks, or orders"
+            placeholder="Search orders, customers, or blocks..."
+            aria-label="Search orders, customers, or blocks"
           />
           <InputGroupAddon align="inline-end" className="hidden sm:flex">
             <Kbd>Enter</Kbd>
