@@ -22,6 +22,17 @@ import {
 } from "@/api/useGetLatestMeasurement";
 import type { CustomerLookupItem } from "@/api/useGetCustomerLookup";
 import { CustomerPhoneLookupField } from "@/components/layout/components/customer-phone-lookup-field";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +59,7 @@ import { getApiErrorMessage } from "@/errors/api-error-response";
 import { useGetBlockById } from "../api/useGetBlockById";
 import { getBlocks } from "../api/useGetBlocks";
 import { useLinkMeasurementToBlock } from "../api/useLinkMeasurementToBlock";
+import { useRemoveBlockCustomer } from "../api/useRemoveBlockCustomer";
 import { useUpdateBlock } from "../api/useUpdateBlock";
 import { useUpdateBlockCustomers } from "../api/useUpdateBlockCustomers";
 
@@ -109,14 +121,26 @@ export function EditBlockCustomersDialog({
   const [linkingCustomerId, setLinkingCustomerId] = React.useState<
     string | null
   >(null);
+  const [pendingRemoval, setPendingRemoval] =
+    React.useState<CustomerAssignment | null>(null);
 
   const form = useForm<AssignmentFormValues>({ defaultValues });
   const updateBlockCustomers = useUpdateBlockCustomers();
   const linkMeasurementToBlock = useLinkMeasurementToBlock();
+  const removeBlockCustomer = useRemoveBlockCustomer();
   const { data, isLoading, isFetching } = useGetBlockById(blockId, open);
 
   const block = data?.data;
   const categoryId = block?.categoryId;
+
+  // Customers already persisted on the block. Removing one of these deletes the
+  // relationship on the server (with confirmation); customers only added in this
+  // session are just dropped from local state.
+  const persistedCustomerIds = React.useMemo(
+    () =>
+      new Set((block?.customerBlocks ?? []).map((item) => item.customerId)),
+    [block],
+  );
 
   const customerId = useWatch({
     control: form.control,
@@ -167,6 +191,7 @@ export function EditBlockCustomersDialog({
 
     if (!nextOpen) {
       setAssignments([]);
+      setPendingRemoval(null);
       clearDraftCustomer();
     }
   };
@@ -290,10 +315,49 @@ export function EditBlockCustomersDialog({
     }
   };
 
+  const handleRemoveClick = (assignment: CustomerAssignment) => {
+    if (persistedCustomerIds.has(assignment.customerId)) {
+      // Persisted relationship — confirm before deleting on the server.
+      setPendingRemoval(assignment);
+      return;
+    }
+
+    // Draft-only customer — nothing persisted yet, drop it locally.
+    setAssignments((current) =>
+      current.filter((item) => item.customerId !== assignment.customerId),
+    );
+  };
+
+  const handleConfirmRemoval = async () => {
+    if (!blockId || !pendingRemoval) return;
+
+    const target = pendingRemoval;
+
+    try {
+      await removeBlockCustomer.mutateAsync({
+        blockId,
+        customerId: target.customerId,
+      });
+
+      setAssignments((current) =>
+        current.filter((item) => item.customerId !== target.customerId),
+      );
+
+      toast.success(`${target.customerName} removed from this block`);
+      onUpdated?.();
+      setPendingRemoval(null);
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Unable to remove customer from this block."),
+      );
+    }
+  };
+
   const isBusy = isLoading || isFetching;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         <DialogHeader className="border-b px-5 py-4">
           <div className="flex items-start gap-3">
@@ -396,15 +460,9 @@ export function EditBlockCustomersDialog({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
-                            onClick={() =>
-                              setAssignments((current) =>
-                                current.filter(
-                                  (item) =>
-                                    item.customerId !== assignment.customerId,
-                                ),
-                              )
-                            }
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            aria-label={`Remove ${assignment.customerName} from this block`}
+                            onClick={() => handleRemoveClick(assignment)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -488,7 +546,58 @@ export function EditBlockCustomersDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(pendingRemoval)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !removeBlockCustomer.isPending) {
+            setPendingRemoval(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <Trash2 className="text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Remove customer from block?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Do you really want to remove{" "}
+              <span className="font-medium text-foreground">
+                {pendingRemoval?.customerName}
+              </span>{" "}
+              from block{" "}
+              <span className="font-medium text-foreground">
+                {block?.blockNumber}
+              </span>
+              ? This only removes the link between the customer and this block.
+              The customer stays in your records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeBlockCustomer.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={removeBlockCustomer.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmRemoval();
+              }}
+            >
+              {removeBlockCustomer.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Remove customer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

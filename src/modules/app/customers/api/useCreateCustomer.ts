@@ -28,6 +28,7 @@ export type CreateCustomerPayload = {
     description?: string;
     remarks?: string;
   }>;
+  allowDuplicate?: boolean;
 };
 
 type CreateCustomerApiResponse = {
