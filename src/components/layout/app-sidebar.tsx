@@ -205,8 +205,8 @@ const SIDEBAR_GROUPS: SidebarGroupSection[] = [
     label: "Admin",
     items: [
       {
-        title: "Settings",
-        icon: MessageCircle,
+        title: "Admin",
+        icon: User,
         children: [
            {
         title: "Users",

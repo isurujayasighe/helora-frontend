@@ -10,7 +10,6 @@ import {
   Eye,
   Info,
   Loader2,
-  LockKeyhole,
   PackagePlus,
   Search,
   Trash2,
@@ -184,6 +183,7 @@ export function CreateCustomerDialog({
     inputKey: string;
     match: CustomerDuplicateMatch;
   } | null>(null);
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
   const { data: packageTemplates = [], isLoading: isPackageTemplatesLoading } =
     usePackageTemplatesQuery({ isActive: true });
 
@@ -227,6 +227,12 @@ export function CreateCustomerDialog({
         (match) => match.matchType === "Exact Phone Match",
       ) ?? duplicateMatches[0])
     : undefined;
+
+  // Editing the name or phone invalidates a prior "create anyway" choice, so the
+  // operator re-confirms against the current values before a duplicate is saved.
+  useEffect(() => {
+    setAllowDuplicate(false);
+  }, [duplicateInputKey]);
 
   const selectedCategoryName =
     activePackageCategory?.category?.name ??
@@ -314,6 +320,7 @@ export function CreateCustomerDialog({
     setBlockLookupSearch("");
     setDebouncedBlockSearch("");
     setServerDuplicate(null);
+    setAllowDuplicate(false);
     onOpenChange(false);
   };
 
@@ -448,9 +455,10 @@ export function CreateCustomerDialog({
   const onSubmit: SubmitHandler<CreateCustomerFormValues> = async (values) => {
     const legacyBlocks = values.hasLegacyBlock ? legacyBlockAssignments : [];
 
-    if (hasExactDuplicate) {
+    if (hasExactDuplicate && !allowDuplicate) {
       form.setError("phoneNumber", {
-        message: "This phone number already belongs to another customer.",
+        message:
+          "This phone number already belongs to another customer. Confirm below to create anyway.",
       });
       return;
     }
@@ -470,6 +478,7 @@ export function CreateCustomerDialog({
         town: values.town?.trim() || undefined,
         address: values.address?.trim() || undefined,
         notes: values.notes?.trim() || undefined,
+        allowDuplicate: allowDuplicate || undefined,
         legacyBlocks: legacyBlocks.length
           ? legacyBlocks.map((assignment) => ({
               categoryId: assignment.categoryId,
@@ -498,8 +507,13 @@ export function CreateCustomerDialog({
           match: duplicateCustomer,
         });
         form.setError("phoneNumber", {
-          message: "This phone number already belongs to another customer.",
+          message:
+            "This phone number already belongs to another customer. Confirm below to create anyway.",
         });
+        toast.error(
+          "This phone number already belongs to another customer. Confirm below to create anyway.",
+        );
+        return;
       }
 
       toast.error(getApiErrorMessage(error, "Unable to create customer."));
@@ -577,6 +591,8 @@ export function CreateCustomerDialog({
                       }
                       matches={duplicateMatches}
                       error={duplicateCheck.error}
+                      allowDuplicate={allowDuplicate}
+                      onAllowDuplicateChange={setAllowDuplicate}
                       onViewCustomer={
                         onViewCustomer
                           ? (customerId) => {
@@ -859,11 +875,19 @@ export function CreateCustomerDialog({
 
             <DialogFooter className="shrink-0 items-center border-t px-6 py-4 sm:justify-between">
               <div className="flex min-w-0 items-center gap-2 text-sm">
-                {hasExactDuplicate ? (
+                {hasExactDuplicate && !allowDuplicate ? (
                   <>
-                    <LockKeyhole className="size-4 shrink-0 text-destructive" />
-                    <span className="truncate text-destructive">
-                      Creation is blocked until the duplicate is resolved.
+                    <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+                    <span className="truncate text-amber-700">
+                      Existing customer found. Confirm above to create a
+                      duplicate.
+                    </span>
+                  </>
+                ) : hasExactDuplicate && allowDuplicate ? (
+                  <>
+                    <Info className="size-4 shrink-0 text-amber-600" />
+                    <span className="truncate text-amber-700">
+                      Creating a separate customer with a shared number.
                     </span>
                   </>
                 ) : duplicateCheck.isChecking ? (
@@ -888,38 +912,41 @@ export function CreateCustomerDialog({
                   Cancel
                 </Button>
 
-                {hasExactDuplicate && exactDuplicateMatch && onViewCustomer ? (
+                {hasExactDuplicate && exactDuplicateMatch && onViewCustomer && (
                   <Button
                     type="button"
+                    variant="outline"
                     onClick={() => {
                       handleClose();
                       onViewCustomer(exactDuplicateMatch.id);
                     }}
                   >
                     <Eye className="size-4" />
-                    Open Existing Customer
+                    Open existing
                   </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    disabled={
-                      createCustomerMutation.isPending ||
-                      duplicateCheck.isChecking ||
-                      hasExactDuplicate
-                    }
-                  >
-                    {createCustomerMutation.isPending && (
-                      <Loader2 className="size-4 animate-spin" />
-                    )}
-                    {hasExactDuplicate
-                      ? "Existing Customer Found"
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={
+                    createCustomerMutation.isPending ||
+                    duplicateCheck.isChecking ||
+                    (hasExactDuplicate && !allowDuplicate)
+                  }
+                >
+                  {createCustomerMutation.isPending && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  {hasExactDuplicate && !allowDuplicate
+                    ? "Confirm to create anyway"
+                    : hasExactDuplicate && allowDuplicate
+                      ? "Create duplicate customer"
                       : hasLegacyBlock && legacyBlockAssignments.length
                         ? `Create Customer & Link ${legacyBlockAssignments.length} Blocks`
                         : hasLegacyBlock
                           ? "Create Customer & Link Blocks"
                           : "Create Customer"}
-                  </Button>
-                )}
+                </Button>
               </div>
             </DialogFooter>
           </form>
@@ -953,6 +980,8 @@ function CustomerDuplicateNotice({
   hasPossibleMatches,
   matches,
   error,
+  allowDuplicate,
+  onAllowDuplicateChange,
   onViewCustomer,
 }: {
   isChecking: boolean;
@@ -960,6 +989,8 @@ function CustomerDuplicateNotice({
   hasPossibleMatches: boolean;
   matches: CustomerDuplicateMatch[];
   error: unknown;
+  allowDuplicate: boolean;
+  onAllowDuplicateChange: (value: boolean) => void;
   onViewCustomer?: (customerId: string) => void;
 }) {
   if (isChecking) {
@@ -992,6 +1023,8 @@ function CustomerDuplicateNotice({
     <DuplicateMatchesPanel
       hasExactMatch={hasExactMatch}
       matches={matches}
+      allowDuplicate={allowDuplicate}
+      onAllowDuplicateChange={onAllowDuplicateChange}
       onViewCustomer={onViewCustomer}
     />
   );
@@ -1000,10 +1033,14 @@ function CustomerDuplicateNotice({
 function DuplicateMatchesPanel({
   hasExactMatch,
   matches,
+  allowDuplicate,
+  onAllowDuplicateChange,
   onViewCustomer,
 }: {
   hasExactMatch: boolean;
   matches: CustomerDuplicateMatch[];
+  allowDuplicate: boolean;
+  onAllowDuplicateChange: (value: boolean) => void;
   onViewCustomer?: (customerId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -1107,21 +1144,29 @@ function DuplicateMatchesPanel({
 
             <Separator />
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {hasExactMatch ? (
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-300 bg-amber-50/60 p-3">
+                <Checkbox
+                  checked={allowDuplicate}
+                  onCheckedChange={(checked) =>
+                    onAllowDuplicateChange(checked === true)
+                  }
+                  className="mt-0.5"
+                />
+                <span className="min-w-0 text-xs leading-5 text-amber-900">
+                  <span className="font-semibold">
+                    Create anyway as a separate customer.
+                  </span>{" "}
+                  Use this for old book entries with mixed-up numbers. You can
+                  confirm the phone number and merge records later.
+                </span>
+              </label>
+            ) : (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Info className="size-4 shrink-0" />
-                {hasExactMatch
-                  ? "Continuing would create a duplicate record."
-                  : "You may continue after reviewing these possible matches."}
+                You may continue after reviewing these possible matches.
               </div>
-
-              {hasExactMatch && (
-                <Button type="button" variant="outline" size="sm" disabled>
-                  <LockKeyhole className="size-4" />
-                  Continue anyway
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </CollapsibleContent>
       </div>

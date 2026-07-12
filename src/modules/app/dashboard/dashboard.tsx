@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ElementType } from "react";
 import {
   CalendarClock,
   CalendarDays,
   Grid2x2,
   PackageCheck,
   Plus,
+  Search,
   Shirt,
   TriangleAlert,
   Users,
@@ -15,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { PermissionGate } from "@/auth/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateBlockDialog } from "@/modules/app/blocks/components/create-block-dialog";
 import { useGetBlocks } from "@/modules/app/blocks/api/useGetBlocks";
 import { CreateCustomerDialog } from "@/modules/app/customers/components/create-customer-dialog";
@@ -23,7 +25,7 @@ import { useGetOrders } from "@/modules/app/orders/api/useGetOrders";
 
 import { DashboardOrdersSheet } from "./components/dashboard-orders-sheet";
 import { DashboardPageHeader } from "./components/dashboard-page-header";
-import { DashboardSearch } from "./components/dashboard-search";
+import { DashboardQuickFindDialog } from "./components/dashboard-quick-find-dialog";
 import { DashboardStatCard } from "./components/dashboard-stat-card";
 import { OrderPipelineCard } from "./components/order-pipeline-card";
 import { UpcomingPromisedOrders } from "./components/promissed-orders";
@@ -67,12 +69,12 @@ function getPercent(value: number, total: number) {
 
 export default function Dashboard() {
   const [quickSearch, setQuickSearch] = useState("");
-  const [searchScope, setSearchScope] =
-    useState<DashboardSearchScope>("all");
+  const [searchScope, setSearchScope] = useState<DashboardSearchScope>("all");
   const [overdueOrdersPage, setOverdueOrdersPage] = useState(1);
   const [pendingOrdersPage, setPendingOrdersPage] = useState(1);
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
   const [isCreateBlockOpen, setIsCreateBlockOpen] = useState(false);
+  const [isQuickFindOpen, setIsQuickFindOpen] = useState(false);
   const [isOverdueSheetOpen, setIsOverdueSheetOpen] = useState(false);
   const [isPendingSheetOpen, setIsPendingSheetOpen] = useState(false);
 
@@ -192,38 +194,7 @@ export default function Dashboard() {
       orderMetrics.deliveredOrders,
   );
 
-  const dashboardStats: DashboardStatItem[] = [
-    {
-      title: "Total Customers",
-      value: isCustomersCountLoading
-        ? "..."
-        : formatCompactNumber(customersCount),
-      description: "Customers saved in Helora",
-      badge: isCustomersCountFetching ? "Updating" : "Live",
-      icon: Users,
-      tone: "primary",
-      supportingText: "Live customer registry",
-    },
-    {
-      title: "Active Blocks",
-      value: isActiveBlocksLoading
-        ? "..."
-        : formatCompactNumber(activeBlocksCount),
-      description: "Reusable tailoring blocks",
-      badge: isActiveBlocksFetching ? "Updating" : "Stable",
-      icon: Grid2x2,
-      supportingText: "Filtered to active blocks",
-    },
-    {
-      title: "Pending Orders",
-      value: isPendingOrdersLoading
-        ? "..."
-        : formatCompactNumber(pendingOrdersPagination.totalItems),
-      description: "Orders waiting or in progress",
-      badge: pendingOrdersPagination.totalItems > 0 ? "Open" : "Clear",
-      icon: CalendarClock,
-      onClick: () => setIsPendingSheetOpen(true),
-    },
+  const orderAttentionStats: DashboardStatItem[] = [
     {
       title: "Overdue Orders",
       value: isOverdueOrdersLoading
@@ -233,7 +204,43 @@ export default function Dashboard() {
       badge: overdueOrdersPagination.totalItems > 0 ? "Urgent" : "Clear",
       icon: TriangleAlert,
       tone: "destructive",
+      supportingText: "Needs delivery follow-up",
       onClick: () => setIsOverdueSheetOpen(true),
+    },
+    {
+      title: "Pending Orders",
+      value: isPendingOrdersLoading
+        ? "..."
+        : formatCompactNumber(pendingOrdersPagination.totalItems),
+      description: "Waiting or in production",
+      badge: pendingOrdersPagination.totalItems > 0 ? "Open" : "Clear",
+      icon: CalendarClock,
+      supportingText: "Tap to review active work",
+      onClick: () => setIsPendingSheetOpen(true),
+    },
+    {
+      title: "Promised Next 7 Days",
+      value:
+        isUpcomingOrdersLoading || isUpcomingOrdersFetching
+          ? "..."
+          : formatCompactNumber(upcomingOrdersPagination.totalItems),
+      description: "Deliveries due soon",
+      badge: upcomingOrdersPagination.totalItems > 0 ? "Upcoming" : "Clear",
+      icon: CalendarDays,
+      supportingText: "Plan finishing and handover",
+      onClick: () => navigate({ to: "/app/orders" }),
+    },
+    {
+      title: "Orders Created Today",
+      value: orderMetrics.isLoading
+        ? "..."
+        : formatCompactNumber(orderMetrics.todayOrders),
+      description: "New orders dated today",
+      badge: orderMetrics.todayOrders > 0 ? "Today" : "None",
+      icon: Shirt,
+      tone: "primary",
+      supportingText: "Daily order intake",
+      onClick: () => navigate({ to: "/app/orders" }),
     },
   ];
 
@@ -292,8 +299,6 @@ export default function Dashboard() {
     },
   ];
 
-  
-
   const upcomingOrders = (upcomingOrdersResponse?.data.items ?? [])
     .filter((order) => Boolean(order.promisedDate))
     .map((order) => ({
@@ -305,15 +310,17 @@ export default function Dashboard() {
       date: order.promisedDate ?? order.orderDate,
     }));
 
-  const recentOrders = (recentOrdersResponse?.data.items ?? []).map((order) => ({
-    id: order.id,
-    orderNo: order.orderNumber,
-    customerName: order.customer?.fullName ?? "-",
-    itemName: getOrderTitle(order),
-    quantity: getOrderQuantity(order),
-    promisedDate: order.promisedDate ?? order.orderDate,
-    status: formatOrderStatus(order.status, order.promisedDate),
-  }));
+  const recentOrders = (recentOrdersResponse?.data.items ?? []).map(
+    (order) => ({
+      id: order.id,
+      orderNo: order.orderNumber,
+      customerName: order.customer?.fullName ?? "-",
+      itemName: getOrderTitle(order),
+      quantity: getOrderQuantity(order),
+      promisedDate: order.promisedDate ?? order.orderDate,
+      status: formatOrderStatus(order.status, order.promisedDate),
+    }),
+  );
 
   const overdueOrders = overdueOrdersResponse?.data.items ?? [];
   const pendingOrders = pendingOrdersResponse?.data.items ?? [];
@@ -339,30 +346,36 @@ export default function Dashboard() {
     if (!query && searchScope === "all") return;
 
     if (searchScope === "customers") {
+      setIsQuickFindOpen(false);
       navigate({ to: "/app/customers" });
       return;
     }
 
     if (searchScope === "blocks") {
+      setIsQuickFindOpen(false);
       navigate({ to: "/app/blocks" });
       return;
     }
 
     if (searchScope === "orders") {
+      setIsQuickFindOpen(false);
       navigate({ to: "/app/orders" });
       return;
     }
 
     if (query.startsWith("ord") || query.startsWith("#ord")) {
+      setIsQuickFindOpen(false);
       navigate({ to: "/app/orders" });
       return;
     }
 
     if (query.startsWith("blk") || query.includes("block")) {
+      setIsQuickFindOpen(false);
       navigate({ to: "/app/blocks" });
       return;
     }
 
+    setIsQuickFindOpen(false);
     navigate({ to: "/app/customers" });
   }
 
@@ -373,20 +386,9 @@ export default function Dashboard() {
           <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 md:p-6">
             <DashboardPageHeader
               title="Dashboard"
-              description="Track customers, orders, production blocks, and promised deliveries."
+              description="Monitor today's orders, upcoming deliveries, and production workload."
               actions={
                 <>
-                  <PermissionGate action="create" subject="customers">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsCreateCustomerOpen(true)}
-                    >
-                      <Plus className="size-4" />
-                      Add Customer
-                    </Button>
-                  </PermissionGate>
-
                   <PermissionGate action="create" subject="orders">
                     <Button
                       type="button"
@@ -404,6 +406,26 @@ export default function Dashboard() {
                     </Button>
                   </PermissionGate>
 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsQuickFindOpen(true)}
+                  >
+                    <Search className="size-4" />
+                    Quick Find
+                  </Button>
+
+                  <PermissionGate action="create" subject="customers">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateCustomerOpen(true)}
+                    >
+                      <Plus className="size-4" />
+                      Add Customer
+                    </Button>
+                  </PermissionGate>
+
                   <PermissionGate action="create" subject="blocks">
                     <Button
                       type="button"
@@ -418,51 +440,64 @@ export default function Dashboard() {
               }
             />
 
-            <DashboardSearch
-              value={quickSearch}
-              scope={searchScope}
-              onValueChange={setQuickSearch}
-              onScopeChange={setSearchScope}
-              onSubmit={handleQuickSearchSubmit}
-            />
+            <section className="space-y-3">
+             
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {orderAttentionStats.map((stat) => (
+                  <DashboardStatCard key={stat.title} {...stat} />
+                ))}
+              </div>
+            </section>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {dashboardStats.map((stat) => (
-                <DashboardStatCard key={stat.title} {...stat} />
-              ))}
-            </div>
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+              <div className="grid min-w-0 gap-4">
+                <UpcomingPromisedOrders
+                  orders={upcomingOrders}
+                  isLoading={
+                    isUpcomingOrdersLoading || isUpcomingOrdersFetching
+                  }
+                  onViewAll={() => navigate({ to: "/app/orders" })}
+                  onSelectOrder={navigateToOrder}
+                />
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(300px,0.9fr)]">
-              <OrderPipelineCard
-                stages={pipelineStages}
-                totalOrders={allOrdersCount}
-                isLoading={orderMetrics.isLoading || isRecentOrdersLoading}
-                onViewAll={() => navigate({ to: "/app/orders" })}
-              />
+                <RecentOrdersTableCard
+                  orders={recentOrders}
+                  isLoading={isRecentOrdersLoading || isRecentOrdersFetching}
+                  onViewAll={() => navigate({ to: "/app/orders" })}
+                  onViewOrder={navigateToOrder}
+                />
+              </div>
 
-              <TodaysActivityCard
-                items={activityItems}
-                updatedAtLabel={updatedAtLabel}
-                onViewAll={() => navigate({ to: "/app/orders" })}
-              />
+              <div className="grid min-w-0 content-start gap-4">
+                <OrderPipelineCard
+                  stages={pipelineStages}
+                  totalOrders={allOrdersCount}
+                  isLoading={orderMetrics.isLoading || isRecentOrdersLoading}
+                  onViewAll={() => navigate({ to: "/app/orders" })}
+                />
 
-              
-            </div>
+                <TodaysActivityCard
+                  items={activityItems}
+                  updatedAtLabel={updatedAtLabel}
+                  onViewAll={() => navigate({ to: "/app/orders" })}
+                />
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.7fr)]">
-              <UpcomingPromisedOrders
-                orders={upcomingOrders}
-                isLoading={isUpcomingOrdersLoading || isUpcomingOrdersFetching}
-                onViewAll={() => navigate({ to: "/app/orders" })}
-                onSelectOrder={navigateToOrder}
-              />
-
-              <RecentOrdersTableCard
-                orders={recentOrders}
-                isLoading={isRecentOrdersLoading || isRecentOrdersFetching}
-                onViewAll={() => navigate({ to: "/app/orders" })}
-                onViewOrder={navigateToOrder}
-              />
+                <BusinessSummaryCard
+                  customersCount={
+                    isCustomersCountLoading
+                      ? "..."
+                      : formatCompactNumber(customersCount)
+                  }
+                  blocksCount={
+                    isActiveBlocksLoading
+                      ? "..."
+                      : formatCompactNumber(activeBlocksCount)
+                  }
+                  isUpdating={
+                    isCustomersCountFetching || isActiveBlocksFetching
+                  }
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -484,6 +519,16 @@ export default function Dashboard() {
             setIsCreateBlockOpen(false);
             void refetchActiveBlocksCount();
           }}
+        />
+
+        <DashboardQuickFindDialog
+          open={isQuickFindOpen}
+          value={quickSearch}
+          scope={searchScope}
+          onOpenChange={setIsQuickFindOpen}
+          onValueChange={setQuickSearch}
+          onScopeChange={setSearchScope}
+          onSubmit={handleQuickSearchSubmit}
         />
 
         <DashboardOrdersSheet
@@ -538,5 +583,71 @@ export default function Dashboard() {
         />
       </div>
     </PermissionGate>
+  );
+}
+
+function BusinessSummaryCard({
+  customersCount,
+  blocksCount,
+  isUpdating,
+}: {
+  customersCount: string;
+  blocksCount: string;
+  isUpdating: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Setup Summary</CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        <SummaryRow
+          icon={Users}
+          label="Total Customers"
+          value={customersCount}
+          description="Customer records available for orders"
+        />
+
+        <SummaryRow
+          icon={Grid2x2}
+          label="Active Blocks"
+          value={blocksCount}
+          description="Reusable tailoring blocks"
+        />
+
+        {isUpdating && (
+          <p className="text-xs text-muted-foreground">Updating summary...</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryRow({
+  icon: Icon,
+  label,
+  value,
+  description,
+}: {
+  icon: ElementType;
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border bg-background p-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="size-4" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          <p className="text-sm font-semibold text-foreground">{value}</p>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      </div>
+    </div>
   );
 }

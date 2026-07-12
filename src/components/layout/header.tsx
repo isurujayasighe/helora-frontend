@@ -1,11 +1,10 @@
-import React from 'react'
-import { cn } from '@/lib/utils'
-import { SidebarTrigger } from '../ui/sidebar'
-import { Search } from 'lucide-react'
+import React from "react";
+import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 
 interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
-  fixed?: boolean
-  ref?: React.Ref<HTMLElement>
+  fixed?: boolean;
+  ref?: React.Ref<HTMLElement>;
 }
 
 export const Header = ({
@@ -14,38 +13,38 @@ export const Header = ({
   children,
   ...props
 }: HeaderProps) => {
-  const [offset, setOffset] = React.useState(0)
+  const [offset, setOffset] = React.useState(0);
 
   React.useEffect(() => {
     const onScroll = () => {
-      setOffset(document.body.scrollTop || document.documentElement.scrollTop)
-    }
+      setOffset(document.body.scrollTop || document.documentElement.scrollTop);
+    };
 
     // Add scroll listener to the body
-    document.addEventListener('scroll', onScroll, { passive: true })
+    document.addEventListener("scroll", onScroll, { passive: true });
 
     // Clean up the event listener on unmount
-    return () => document.removeEventListener('scroll', onScroll)
-  }, [])
+    return () => document.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <header
       className={cn(
-        'bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/88 flex h-14 items-center border-b border-border px-4 py-0 sm:gap-4 transition-shadow duration-150 dark:bg-secondary-900/75 dark:border-secondary-700/50',
-        fixed && 'header-fixed peer/header fixed z-50 w-[inherit] ',
-        offset > 10 && fixed ? 'shadow-sm' : 'shadow-none',
-        className
+        "bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/88 flex h-14 items-center border-b border-border px-4 py-0 sm:gap-4 transition-shadow duration-150 dark:bg-secondary-900/75 dark:border-secondary-700/50",
+        fixed && "header-fixed peer/header fixed z-50 w-[inherit] ",
+        offset > 10 && fixed ? "shadow-sm" : "shadow-none",
+        className,
       )}
       {...props}
     >
-      <SidebarTrigger variant='ghost' className='mr-1 text-muted-foreground hover:bg-secondary hover:text-primary' />
-      
+      {/* <SidebarTrigger variant='ghost' className='mr-1 text-muted-foreground hover:bg-secondary hover:text-primary' /> */}
+
       {children}
     </header>
-  )
-}
+  );
+};
 
-Header.displayName = 'Header'
+Header.displayName = "Header";
 
 export function HeaderQuickSearch() {
   return (
@@ -60,5 +59,5 @@ export function HeaderQuickSearch() {
         Ctrl K
       </kbd>
     </div>
-  )
+  );
 }
